@@ -30,6 +30,7 @@ class _PlaceTabState extends State<PlaceTab> {
   List<Map<String, dynamic>> _haDevices = [];
   List<Map<String, dynamic>> _installedApps = [];
   bool _isLoadingApps = true;
+  int _lastAppsVersion = -1;
 
   @override
   void initState() {
@@ -72,6 +73,13 @@ class _PlaceTabState extends State<PlaceTab> {
     final currentAvatarId = avatarProvider.currentAvatarId;
     final statusProvider = context.watch<PlaceAgentStatusProvider>();
     final appProvider = context.watch<AriAppProvider>();
+
+    if (appProvider.installedAppsVersion != _lastAppsVersion) {
+      _lastAppsVersion = appProvider.installedAppsVersion;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadInstalledApps();
+      });
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
