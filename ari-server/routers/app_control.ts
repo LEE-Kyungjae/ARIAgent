@@ -200,13 +200,16 @@ router.on("/APP.UPDATE", async (ws, params) => {
 
     } else if (process.platform === "win32") {
       const scriptPath = path.join(tempDir, "apply_update.bat");
-      const newExe = newAppBundle; // .exe path
+      // newAppBundle is the path to the new .exe; its parent dir contains all app files
+      const newExeDir = path.dirname(newAppBundle);
+      const exeName = path.basename(newAppBundle);
+      const targetExePath = path.join(currentAppBundle, exeName);
       const script = [
         "@echo off",
         "timeout /t 2 /nobreak >nul",
-        `del /f /q "${currentAppBundle}"`,
-        `move "${newExe}" "${currentAppBundle}"`,
-        `start "" "${currentAppBundle}"`,
+        `rd /s /q "${currentAppBundle}"`,
+        `move "${newExeDir}" "${currentAppBundle}"`,
+        `start "" "${targetExePath}"`,
       ].join("\r\n");
       fs.writeFileSync(scriptPath, script);
       const child = spawn("cmd", ["/c", scriptPath], { detached: true, stdio: "ignore", windowsHide: true });
