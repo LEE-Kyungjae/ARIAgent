@@ -11,55 +11,49 @@ class ChannelsTab extends StatefulWidget {
 }
 
 class _ChannelsTabState extends State<ChannelsTab> {
-  String? _lastAgentId;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final agentId = context.read<AgentProvider>().currentAvatarId;
-      _lastAgentId = agentId;
-      context.read<AgentProvider>().loadTelegram();
+      context.read<AgentProvider>().currentAgent.loadTelegram();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<AgentProvider>();
+    // 에이전트 전환 감지용 (전환 시 rebuild → ListenableBuilder가 새 agent를 구독)
+    final agent = context.watch<AgentProvider>().currentAgent;
 
-    // 에이전트 전환 시 채널 데이터 재로드
-    if (_lastAgentId != null && _lastAgentId != provider.currentAvatarId) {
-      _lastAgentId = provider.currentAvatarId;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) provider.loadTelegram();
-      });
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const TabSectionHeader(
-            icon: Icons.send_rounded,
-            title: '채널',
-            description: '에이전트가 외부와 소통하는 메시지 채널이에요.',
-          ),
-          if (provider.channelLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32),
-                child: CircularProgressIndicator(
-                  color: Color(0xFF6C63FF),
-                  strokeWidth: 2,
-                ),
+    return ListenableBuilder(
+      listenable: agent,
+      builder: (context, _) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const TabSectionHeader(
+                icon: Icons.send_rounded,
+                title: '채널',
+                description: '에이전트가 외부와 소통하는 메시지 채널이에요.',
               ),
-            )
-          else
-            _TelegramCard(state: provider.telegram),
-        ],
-      ),
+              if (agent.channelLoading)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF6C63FF),
+                      strokeWidth: 2,
+                    ),
+                  ),
+                )
+              else
+                _TelegramCard(state: agent.telegram),
+            ],
+          ),
+        );
+      },
     );
   }
 }

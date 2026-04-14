@@ -3,7 +3,7 @@ part of '../schedule_tab.dart';
 class RoutineCard extends StatelessWidget {
   static const double kHeight = _kCardH;
 
-  final AriScheduledTask task;
+  final AgentSchedule task;
   final bool isSelected;
   final VoidCallback onTap;
 

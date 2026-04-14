@@ -1,5 +1,5 @@
 /// ARI 프레임워크 - 스케줄된 작업 모델
-class AriScheduledTask {
+class AgentSchedule {
   final String id;
   final String prompt;
   final Map<String, dynamic>? scheduleSpec;
@@ -15,7 +15,7 @@ class AriScheduledTask {
   final DateTime? endAt;
   final String? lastError;
 
-  AriScheduledTask({
+  AgentSchedule({
     required this.id,
     required this.prompt,
     this.scheduleSpec,
@@ -49,7 +49,7 @@ class AriScheduledTask {
         'lastError': lastError,
       };
 
-  factory AriScheduledTask.fromMap(Map<String, dynamic> m) => AriScheduledTask(
+  factory AgentSchedule.fromMap(Map<String, dynamic> m) => AgentSchedule(
         id: m['id'] ?? '',
         prompt: m['prompt'] ?? '',
         scheduleSpec: m['scheduleSpec'] is Map<String, dynamic>
@@ -72,7 +72,7 @@ class AriScheduledTask {
         lastError: m['lastError'],
       );
 
-  AriScheduledTask copyWith({
+  AgentSchedule copyWith({
     bool? enabled,
     DateTime? lastRunAt,
     String? lastResult,
@@ -80,7 +80,7 @@ class AriScheduledTask {
     DateTime? endAt,
     String? lastError,
   }) =>
-      AriScheduledTask(
+      AgentSchedule(
         id: id,
         prompt: prompt,
         scheduleSpec: scheduleSpec,

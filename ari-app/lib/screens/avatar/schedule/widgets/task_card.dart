@@ -29,7 +29,7 @@ class TaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = task['enabled'] ?? true;
-    final scheduledTask = AriScheduledTask.fromMap(task);
+    final scheduledTask = AgentSchedule.fromMap(task);
 
     return GestureDetector(
       onTap: onTap,

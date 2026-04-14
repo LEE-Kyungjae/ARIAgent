@@ -6,55 +6,25 @@ import 'package:ari_plugin/ari_plugin.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/tab_section_header.dart';
 
-class AppsTab extends StatefulWidget {
+class AppsTab extends StatelessWidget {
   const AppsTab({super.key});
 
   @override
-  State<AppsTab> createState() => _AppsTabState();
-}
-
-class _AppsTabState extends State<AppsTab> {
-  Future<List<Map<String, dynamic>>>? _appsFuture;
-  int _lastAppsVersion = -1;
-  String? _lastAgentId;
-
-  @override
-  void initState() {
-    super.initState();
-    // initState에서는 context.watch 사용 불가 — 첫 프레임 후 agentId를 읽어 요청
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final agentId = context.read<AgentProvider>().currentAvatarId;
-      _lastAgentId = agentId;
-      _refresh(agentId: agentId);
-    });
-  }
-
-  void _refresh({String? agentId}) {
-    if (!mounted) return;
-    setState(() {
-      _appsFuture = context.read<AgentProvider>().getApps(agentId: agentId);
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
+    // 에이전트 전환 감지 → ListenableBuilder가 새 agent 구독
     final provider = context.watch<AgentProvider>();
-    final agentId = context.watch<AgentProvider>().currentAvatarId;
-    final connectedIds = provider.connectedAppIds;
+    final agent = provider.currentAgent;
 
-    // 에이전트 변경 시 같은 build 패스에서 future를 즉시 교체
-    // (addPostFrameCallback 사용 시 현재 프레임은 구 에이전트 앱을 그대로 보여주는 문제 있음)
-    if (agentId != _lastAgentId) {
-      _lastAgentId = agentId;
-      _appsFuture = context.read<AgentProvider>().getApps(agentId: agentId);
-    }
+    return ListenableBuilder(
+      listenable: agent,
+      builder: (context, _) => _buildContent(context, provider, agent),
+    );
+  }
 
-    // 앱 설치/삭제 또는 서버 연결 시 자동 리프레시
-    if (provider.installedAppsVersion != _lastAppsVersion) {
-      _lastAppsVersion = provider.installedAppsVersion;
-      _appsFuture = provider.getApps(agentId: agentId);
-    }
+  Widget _buildContent(
+      BuildContext context, AgentProvider provider, AgentModel agent) {
+    final agentId = agent.id;
+    final apps = agent.installedApps;
 
     return Column(
       children: [
@@ -69,85 +39,42 @@ class _AppsTabState extends State<AppsTab> {
                 final uri = Uri.parse('https://ariwith.me/store');
                 if (await canLaunchUrl(uri)) launchUrl(uri);
               },
-              icon: const Icon(Icons.storefront_rounded, size: 14, color: Color(0xFF6C63FF)),
-              label: const Text('앱스토어', style: TextStyle(fontSize: 12, color: Color(0xFF6C63FF))),
+              icon: const Icon(Icons.storefront_rounded,
+                  size: 14, color: Color(0xFF6C63FF)),
+              label: const Text('앱스토어',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF6C63FF))),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
           ),
         ),
         Expanded(
-          child: FutureBuilder<List<Map<String, dynamic>>>(
-            future: _appsFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF6C63FF)),
-                );
-              }
-
-              if (snapshot.hasError) {
-                return _buildErrorState();
-              }
-
-              final apps = snapshot.data ?? [];
-
-              if (apps.isEmpty) {
-                return _buildEmptyState();
-              }
-
-              return RefreshIndicator(
-                onRefresh: () async => _refresh(agentId: agentId),
-                color: const Color(0xFF6C63FF),
-                backgroundColor: const Color(0xFF1A1A2E),
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(20),
-                  itemCount: apps.length,
-                  itemBuilder: (context, index) {
-                    final app = apps[index];
-                    final isConnected = connectedIds.contains(app['name']);
-                    return _AppCard(
-                      app: app,
-                      agentId: agentId,
-                      isConnected: isConnected,
-                      onRefresh: () => _refresh(agentId: agentId),
-                    );
-                  },
+          child: apps.isEmpty
+              ? _buildEmptyState()
+              : RefreshIndicator(
+                  onRefresh: () => agent.loadApps(),
+                  color: const Color(0xFF6C63FF),
+                  backgroundColor: const Color(0xFF1A1A2E),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(20),
+                    itemCount: apps.length,
+                    itemBuilder: (context, index) {
+                      final app = apps[index];
+                      final isConnected =
+                          agent.isAppConnected(app['name'] as String);
+                      return _AppCard(
+                        app: app,
+                        agentId: agentId,
+                        isConnected: isConnected,
+                      );
+                    },
+                  ),
                 ),
-              );
-            },
-          ),
         ),
       ],
-    );
-  }
-
-  Widget _buildErrorState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.error_outline_rounded,
-            color: Colors.redAccent.withValues(alpha: 0.5),
-            size: 48,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            '앱 정보를 가져오지 못했습니다.',
-            style: TextStyle(color: Colors.white70),
-          ),
-          TextButton(
-            onPressed: _refresh,
-            child: const Text(
-              '다시 시도',
-              style: TextStyle(color: Color(0xFF6C63FF)),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -156,23 +83,16 @@ class _AppsTabState extends State<AppsTab> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.apps_rounded,
-            color: Colors.white.withValues(alpha: 0.2),
-            size: 48,
-          ),
+          Icon(Icons.apps_rounded,
+              color: Colors.white.withValues(alpha: 0.2), size: 48),
           const SizedBox(height: 16),
-          const Text(
-            '설치된 앱이 없습니다.',
-            style: TextStyle(color: Colors.white54, fontSize: 14),
-          ),
+          const Text('설치된 앱이 없습니다.',
+              style: TextStyle(color: Colors.white54, fontSize: 14)),
           const SizedBox(height: 8),
           Text(
             '~/.ari-agent/apps 폴더를 확인해주세요.',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.3),
-              fontSize: 12,
-            ),
+                color: Colors.white.withValues(alpha: 0.3), fontSize: 12),
           ),
         ],
       ),
@@ -184,13 +104,11 @@ class _AppCard extends StatelessWidget {
   final Map<String, dynamic> app;
   final String agentId;
   final bool isConnected;
-  final VoidCallback onRefresh;
 
   const _AppCard({
     required this.app,
     required this.agentId,
     required this.isConnected,
-    required this.onRefresh,
   });
 
   @override
@@ -223,7 +141,6 @@ class _AppCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: Stack(
           children: [
-            // Side accent bar
             Positioned(
               left: 0,
               top: 0,
@@ -259,14 +176,11 @@ class _AppCard extends StatelessWidget {
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
-                              ),
+                                  horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
                                 color: isConnected
-                                    ? const Color(
-                                        0xFF4CAF50,
-                                      ).withValues(alpha: 0.15)
+                                    ? const Color(0xFF4CAF50)
+                                        .withValues(alpha: 0.15)
                                     : Colors.white.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(20),
                               ),
@@ -306,9 +220,8 @@ class _AppCard extends StatelessWidget {
                         color: const Color(0xFF6C63FF).withValues(alpha: 0.7),
                         size: 24,
                       ),
-                      onPressed: () async {
-                        await context.read<AgentProvider>().launchApp(appId);
-                      },
+                      onPressed: () =>
+                          context.read<AgentProvider>().launchApp(appId),
                     ),
                   IconButton(
                     padding: EdgeInsets.zero,
@@ -323,14 +236,11 @@ class _AppCard extends StatelessWidget {
                         context: context,
                         builder: (context) => AlertDialog(
                           backgroundColor: const Color(0xFF1A1A2E),
-                          title: const Text(
-                            '앱 삭제',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          content: Text(
-                            '"$title" 앱을 삭제하시겠습니까?',
-                            style: const TextStyle(color: Colors.white70),
-                          ),
+                          title: const Text('앱 삭제',
+                              style: TextStyle(color: Colors.white)),
+                          content: Text('"$title" 앱을 삭제하시겠습니까?',
+                              style:
+                                  const TextStyle(color: Colors.white70)),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context, false),
@@ -338,19 +248,17 @@ class _AppCard extends StatelessWidget {
                             ),
                             TextButton(
                               onPressed: () => Navigator.pop(context, true),
-                              child: const Text(
-                                '삭제',
-                                style: TextStyle(color: Colors.redAccent),
-                              ),
+                              child: const Text('삭제',
+                                  style:
+                                      TextStyle(color: Colors.redAccent)),
                             ),
                           ],
                         ),
                       );
                       if (confirm == true && context.mounted) {
-                        final success = await context
+                        await context
                             .read<AgentProvider>()
                             .deleteApp(appId, agentId: agentId);
-                        if (success) onRefresh();
                       }
                     },
                   ),
@@ -373,7 +281,6 @@ class _AppCard extends StatelessWidget {
         );
       }
     }
-
     return Container(
       width: 44,
       height: 44,
@@ -384,11 +291,9 @@ class _AppCard extends StatelessWidget {
       child: Center(
         child: icon != null
             ? Text(icon, style: const TextStyle(fontSize: 22))
-            : Icon(
-                Icons.extension_rounded,
+            : Icon(Icons.extension_rounded,
                 color: const Color(0xFF6C63FF).withValues(alpha: 0.5),
-                size: 22,
-              ),
+                size: 22),
       ),
     );
   }

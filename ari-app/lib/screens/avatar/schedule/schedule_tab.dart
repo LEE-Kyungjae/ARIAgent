@@ -26,7 +26,7 @@ class ScheduleTab extends StatefulWidget {
 
 class _ScheduleTabState extends State<ScheduleTab> {
   bool _isLoading = false;
-  List<AriScheduledTask> _selectedTasks = [];
+  List<AgentSchedule> _selectedTasks = [];
   _ViewMode _viewMode = _ViewMode.day;
   DateTime _viewDate = DateTime.now(); // 하루보기 기준 날짜
   final _scrollController = ScrollController();
@@ -61,7 +61,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
     if (_scrollController.hasClients) _scrollController.jumpTo(targetPx);
   }
 
-  void _onSlotSelected(List<AriScheduledTask> tasks) {
+  void _onSlotSelected(List<AgentSchedule> tasks) {
     setState(() {
       final newIds = tasks.map((t) => t.id).toSet();
       final curIds = _selectedTasks.map((t) => t.id).toSet();
@@ -71,10 +71,22 @@ class _ScheduleTabState extends State<ScheduleTab> {
 
   @override
   Widget build(BuildContext context) {
-    final agent = context.watch<AgentProvider>();
-    final allTasks = agent.tasksForAgent(agent.currentAvatarId);
+    // 에이전트 전환 감지 → ListenableBuilder가 새 agent 구독
+    final agentProvider = context.watch<AgentProvider>();
+    final agentModel = agentProvider.currentAgent;
 
-    final dayTaskLists = List.generate(7, (_) => <AriScheduledTask>[]);
+    return ListenableBuilder(
+      listenable: agentModel,
+      builder: (context, _) =>
+          _buildContent(context, agentProvider, agentModel),
+    );
+  }
+
+  Widget _buildContent(
+      BuildContext context, AgentProvider agent, AgentModel agentModel) {
+    final allTasks = agentModel.tasks;
+
+    final dayTaskLists = List.generate(7, (_) => <AgentSchedule>[]);
     for (final task in allTasks) {
       _assignToDays(task, dayTaskLists);
     }
@@ -245,8 +257,8 @@ class _ScheduleTabState extends State<ScheduleTab> {
   }
 
   static void _assignToDays(
-    AriScheduledTask task,
-    List<List<AriScheduledTask>> dayLists,
+    AgentSchedule task,
+    List<List<AgentSchedule>> dayLists,
   ) {
     if (task.isOneOff) {
       final wd = task.startAt.toLocal().weekday % 7;

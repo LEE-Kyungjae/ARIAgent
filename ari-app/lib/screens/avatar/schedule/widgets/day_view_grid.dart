@@ -109,9 +109,9 @@ class _DayViewHeader extends StatelessWidget {
 // ── 하루보기 그리드 (시간축 + 오늘 단일 컬럼) ─────────────
 
 class _DayViewGrid extends StatelessWidget {
-  final List<AriScheduledTask> tasks;
+  final List<AgentSchedule> tasks;
   final List<String> selectedTaskIds;
-  final void Function(List<AriScheduledTask>) onSlotSelected;
+  final void Function(List<AgentSchedule>) onSlotSelected;
   final double colWidth;
   final DateTime displayDate;
 

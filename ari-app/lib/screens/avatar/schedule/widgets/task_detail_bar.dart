@@ -1,10 +1,10 @@
 part of '../schedule_tab.dart';
 
 class _TaskDetailBar extends StatelessWidget {
-  final List<AriScheduledTask> tasks;
+  final List<AgentSchedule> tasks;
   final VoidCallback onClose;
-  final void Function(AriScheduledTask) onDelete;
-  final void Function(AriScheduledTask) onToggle;
+  final void Function(AgentSchedule) onDelete;
+  final void Function(AgentSchedule) onToggle;
 
   const _TaskDetailBar({
     required this.tasks,
@@ -72,9 +72,9 @@ class _TaskDetailBar extends StatelessWidget {
 // ── 개별 task 행 ──────────────────────────────────────────
 
 class _TaskRow extends StatelessWidget {
-  final AriScheduledTask task;
-  final void Function(AriScheduledTask) onDelete;
-  final void Function(AriScheduledTask) onToggle;
+  final AgentSchedule task;
+  final void Function(AgentSchedule) onDelete;
+  final void Function(AgentSchedule) onToggle;
 
   const _TaskRow({
     required this.task,

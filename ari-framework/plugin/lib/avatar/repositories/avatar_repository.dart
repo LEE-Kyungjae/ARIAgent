@@ -120,10 +120,11 @@ class AvatarRepository {
   }
 
   Future<void> saveAgent(AgentModel agent) async {
-    String processedPath = await _processAvatarImage(agent.id, agent.imagePath);
-    final updatedAgent = agent.copyWith(imagePath: processedPath);
-
-    _agentsMap[updatedAgent.id] = updatedAgent.toMap();
+    final processedPath = await _processAvatarImage(agent.id, agent.imagePath);
+    if (processedPath != agent.imagePath) {
+      agent.updateImagePath(processedPath);
+    }
+    _agentsMap[agent.id] = agent.toMap();
 
     try {
       final dataToSave = {

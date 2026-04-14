@@ -5,7 +5,7 @@ part of '../schedule_tab.dart';
 class _HourSlot {
   final int hour;
   final int minute; // 슬롯 내 첫 발화 시각의 분
-  final List<AriScheduledTask> tasks;
+  final List<AgentSchedule> tasks;
 
   const _HourSlot(this.hour, this.minute, this.tasks);
 
@@ -15,9 +15,9 @@ class _HourSlot {
 // ── DayColumn ────────────────────────────────────────────
 
 class DayColumn extends StatelessWidget {
-  final List<AriScheduledTask> tasks;
+  final List<AgentSchedule> tasks;
   final List<String> selectedTaskIds;
-  final void Function(List<AriScheduledTask>) onSlotSelected;
+  final void Function(List<AgentSchedule>) onSlotSelected;
   final bool isToday;
   final DateTime displayDate; // 어떤 날짜를 표시 중인지
 
@@ -30,14 +30,14 @@ class DayColumn extends StatelessWidget {
     this.isToday = false,
   });
 
-  static int _hour(AriScheduledTask t) {
+  static int _hour(AgentSchedule t) {
     if (t.isOneOff) return t.startAt.toLocal().hour;
     final type = t.scheduleSpec?['type'] as String?;
     if (_isIntervalType(type)) return 0;
     return (t.scheduleSpec?['hour'] as num?)?.toInt() ?? 0;
   }
 
-  static int _minute(AriScheduledTask t) {
+  static int _minute(AgentSchedule t) {
     if (t.isOneOff) return t.startAt.toLocal().minute;
     final type = t.scheduleSpec?['type'] as String?;
     if (_isIntervalType(type)) return 0;
@@ -45,8 +45,8 @@ class DayColumn extends StatelessWidget {
   }
 
   /// displayDate 기준으로 발화 시각을 생성하고 startAt/endAt 범위 내 것만 반환
-  static List<(AriScheduledTask, int hour, int minute)> _expandTask(
-      AriScheduledTask t, DateTime displayDate) {
+  static List<(AgentSchedule, int hour, int minute)> _expandTask(
+      AgentSchedule t, DateTime displayDate) {
     final type = t.scheduleSpec?['type'] as String?;
     final startAt = t.startAt.toLocal();
     final endAt   = t.endAt?.toLocal();
@@ -159,12 +159,12 @@ class DayColumn extends StatelessWidget {
 
 class _HourSlotBuilder {
   final int hour;
-  final List<AriScheduledTask> _tasks = [];
+  final List<AgentSchedule> _tasks = [];
   int _firstMinute = 0;
 
   _HourSlotBuilder(this.hour);
 
-  void add(AriScheduledTask task, int minute) {
+  void add(AgentSchedule task, int minute) {
     if (_tasks.isEmpty) _firstMinute = minute;
     _tasks.add(task);
   }

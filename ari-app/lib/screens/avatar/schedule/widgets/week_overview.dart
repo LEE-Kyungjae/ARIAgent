@@ -3,7 +3,7 @@ part of '../schedule_tab.dart';
 // ── 주간 타임라인 (Y=스케줄, X=요일) ─────────────────────
 
 class WeekOverview extends StatelessWidget {
-  final List<List<AriScheduledTask>> dayTaskLists;
+  final List<List<AgentSchedule>> dayTaskLists;
   final String? selectedTaskId;
   final ValueChanged<String> onTaskSelected;
   final int today;
@@ -19,7 +19,7 @@ class WeekOverview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final seen = <String>{};
-    final tasks = <AriScheduledTask>[];
+    final tasks = <AgentSchedule>[];
     for (final dayList in dayTaskLists) {
       for (final t in dayList) {
         if (seen.add(t.id)) tasks.add(t);
@@ -59,7 +59,7 @@ class WeekOverview extends StatelessWidget {
 class _TimelineRow extends StatelessWidget {
   static const double _rowH = 48.0;
 
-  final AriScheduledTask task;
+  final AgentSchedule task;
   final Set<int> activeDays;
   final int today;
   final bool isSelected;

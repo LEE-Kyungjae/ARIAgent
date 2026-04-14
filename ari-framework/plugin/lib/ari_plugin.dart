@@ -17,7 +17,7 @@ export 'avatar/models/telegram_channel_state.dart';
 export 'avatar/repositories/avatar_repository.dart';
 export 'avatar/providers/agent_provider.dart';
 
-export 'tasks/models/ari_scheduled_task.dart';
+export 'avatar/models/agent_schedule.dart';
 
 export 'update/app_update_service.dart';
 export 'update/widgets/ari_update_banner.dart';
