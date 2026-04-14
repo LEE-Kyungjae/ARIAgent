@@ -13,6 +13,7 @@ export 'chat/widgets/chat_input_area.dart';
 export 'chat/models/ari_chat_message.dart';
 
 export 'avatar/models/agent_model.dart';
+export 'avatar/models/agent_token_usage.dart';
 export 'avatar/models/telegram_channel_state.dart';
 export 'avatar/repositories/avatar_repository.dart';
 export 'avatar/providers/agent_provider.dart';

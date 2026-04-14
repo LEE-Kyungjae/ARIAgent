@@ -1,3 +1,4 @@
+import 'package:ari_plugin/avatar/models/agent_token_usage.dart';
 import 'package:ari_plugin/avatar/models/telegram_channel_state.dart';
 import 'package:ari_plugin/bridge/ws/AriAgent.dart';
 import 'package:ari_plugin/avatar/models/agent_schedule.dart';
@@ -24,6 +25,9 @@ class AgentModel extends ChangeNotifier {
   // ── 런타임: 태스크 ───────────────────────────────────────
   List<AgentSchedule> _tasks = [];
   final Map<String, List<String>> _progressMessages = {};
+
+  // ── 런타임: 토큰 사용량 (실시간 누적, /USAGE.UPDATED 이벤트로 갱신) ──
+  AgentTokenUsage _tokenUsage = const AgentTokenUsage();
 
   // ── 런타임: 채널 ─────────────────────────────────────────
   TelegramChannelState _telegram = const TelegramChannelState();
@@ -67,6 +71,9 @@ class AgentModel extends ChangeNotifier {
   List<AgentSchedule> get tasks => List.unmodifiable(_tasks);
   List<String> progressFor(String taskId) =>
       List.unmodifiable(_progressMessages[taskId] ?? []);
+
+  // ── 토큰 사용량 게터 ─────────────────────────────────────
+  AgentTokenUsage get tokenUsage => _tokenUsage;
 
   // ── 채널 게터 ────────────────────────────────────────────
   TelegramChannelState get telegram => _telegram;
@@ -178,6 +185,29 @@ class AgentModel extends ChangeNotifier {
     } catch (e) {
       debugPrint('[AgentModel($id)] loadApps failed: $e');
     }
+  }
+
+  // ── 토큰 사용량 세터 ─────────────────────────────────────
+  /// 단일 응답의 사용량을 누적 (서버 /USAGE.UPDATED 이벤트)
+  void accumulateTokenUsage({
+    required int input,
+    required int output,
+    required int totalTokens,
+    required String model,
+  }) {
+    _tokenUsage = _tokenUsage.accumulate(
+      input: input,
+      output: output,
+      totalTokens: totalTokens,
+      model: model,
+    );
+    notifyListeners();
+  }
+
+  /// 서버 /USAGE.GET 전체 집계로 교체 (초기 로드 or 새로고침)
+  void setTokenUsageFromSummary(Map<String, dynamic> data) {
+    _tokenUsage = AgentTokenUsage.fromSummary(data);
+    notifyListeners();
   }
 
   // ── 채널 액션 (자기 자신 호출) ───────────────────────────

@@ -61,6 +61,20 @@ class AgentProvider extends ChangeNotifier {
       unawaited(_reloadAllApps());
     });
 
+    // 실시간 토큰 누적 — 서버가 appendUsageLog 후 /USAGE.UPDATED를 broadcast하면 동작
+    AriAgent.on('/USAGE.UPDATED', (data) {
+      final agentId = data['agentId']?.toString();
+      final model = data['model']?.toString() ?? 'unknown';
+      final usage = data['usage'] as Map<String, dynamic>?;
+      if (agentId == null || usage == null) return;
+      _findAgent(agentId)?.accumulateTokenUsage(
+        input: (usage['input'] as num? ?? 0).toInt(),
+        output: (usage['output'] as num? ?? 0).toInt(),
+        totalTokens: (usage['totalTokens'] as num? ?? 0).toInt(),
+        model: model,
+      );
+    });
+
     unawaited(_initTasksWs());
     notifyListeners();
   }
