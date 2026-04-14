@@ -31,12 +31,18 @@ class _PlaceTabState extends State<PlaceTab> {
   List<Map<String, dynamic>> _installedApps = [];
   bool _isLoadingApps = true;
   int _lastAppsVersion = -1;
+  String? _lastAgentId;
 
   @override
   void initState() {
     super.initState();
     _loadHADevices();
-    _loadInstalledApps();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final agentId = context.read<AvatarProvider>().currentAvatarId;
+      _lastAgentId = agentId;
+      _loadInstalledApps(agentId: agentId);
+    });
   }
 
   Future<void> _loadHADevices() async {
@@ -52,9 +58,10 @@ class _PlaceTabState extends State<PlaceTab> {
     }
   }
 
-  Future<void> _loadInstalledApps() async {
+  Future<void> _loadInstalledApps({String? agentId}) async {
     final appProvider = Provider.of<AriAppProvider>(context, listen: false);
-    final apps = await appProvider.getInstalledApps();
+    // 서버의 에이전트 필터링 적용 — 파일시스템 직접 스캔 대신 /PLUGINS.APPS 사용
+    final apps = await appProvider.getApps(agentId: agentId);
     if (mounted) {
       setState(() {
         _installedApps = apps;
@@ -74,10 +81,19 @@ class _PlaceTabState extends State<PlaceTab> {
     final statusProvider = context.watch<PlaceAgentStatusProvider>();
     final appProvider = context.watch<AriAppProvider>();
 
+    // 에이전트 전환 시 해당 에이전트 앱 목록으로 갱신
+    if (currentAvatarId != _lastAgentId) {
+      _lastAgentId = currentAvatarId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadInstalledApps(agentId: currentAvatarId);
+      });
+    }
+
+    // 앱 설치/삭제 시 갱신
     if (appProvider.installedAppsVersion != _lastAppsVersion) {
       _lastAppsVersion = appProvider.installedAppsVersion;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _loadInstalledApps();
+        if (mounted) _loadInstalledApps(agentId: currentAvatarId);
       });
     }
 

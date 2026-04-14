@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:ari_plugin/ari_plugin.dart';
 import '../../../providers/ari_app_provider.dart';
 import '../widgets/tab_section_header.dart';
 
@@ -15,30 +16,45 @@ class AppsTab extends StatefulWidget {
 class _AppsTabState extends State<AppsTab> {
   Future<List<Map<String, dynamic>>>? _appsFuture;
   int _lastAppsVersion = -1;
+  String? _lastAgentId;
 
   @override
   void initState() {
     super.initState();
-    _refresh();
+    // initState에서는 context.watch 사용 불가 — 첫 프레임 후 agentId를 읽어 요청
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final agentId = context.read<AvatarProvider>().currentAvatarId;
+      _lastAgentId = agentId;
+      _refresh(agentId: agentId);
+    });
   }
 
-  void _refresh() {
+  void _refresh({String? agentId}) {
+    if (!mounted) return;
     setState(() {
-      _appsFuture = context.read<AriAppProvider>().getApps();
+      _appsFuture = context.read<AriAppProvider>().getApps(agentId: agentId);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<AriAppProvider>();
+    final agentId = context.watch<AvatarProvider>().currentAvatarId;
     final connectedIds = provider.connectedAppIds;
+
+    // 에이전트 변경 시 같은 build 패스에서 future를 즉시 교체
+    // (addPostFrameCallback 사용 시 현재 프레임은 구 에이전트 앱을 그대로 보여주는 문제 있음)
+    if (agentId != _lastAgentId) {
+      _lastAgentId = agentId;
+      _appsFuture = context.read<AriAppProvider>().getApps(agentId: agentId);
+    }
 
     // 앱 설치/삭제 시 자동 리프레시
     if (provider.installedAppsVersion != _lastAppsVersion) {
       _lastAppsVersion = provider.installedAppsVersion;
       if (_appsFuture != null) {
-        // initState 이후 변경분만 리프레시
-        _appsFuture = provider.getApps();
+        _appsFuture = provider.getApps(agentId: agentId);
       }
     }
 
@@ -62,7 +78,7 @@ class _AppsTabState extends State<AppsTab> {
         }
 
         return RefreshIndicator(
-          onRefresh: () async => _refresh(),
+          onRefresh: () async => _refresh(agentId: agentId),
           color: const Color(0xFF6C63FF),
           backgroundColor: const Color(0xFF1A1A2E),
           child: ListView.builder(
@@ -80,8 +96,9 @@ class _AppsTabState extends State<AppsTab> {
               final isConnected = connectedIds.contains(app['name']);
               return _AppCard(
                 app: app,
+                agentId: agentId,
                 isConnected: isConnected,
-                onRefresh: _refresh,
+                onRefresh: () => _refresh(agentId: agentId),
               );
             },
           ),
@@ -148,11 +165,13 @@ class _AppsTabState extends State<AppsTab> {
 
 class _AppCard extends StatelessWidget {
   final Map<String, dynamic> app;
+  final String agentId;
   final bool isConnected;
   final VoidCallback onRefresh;
 
   const _AppCard({
     required this.app,
+    required this.agentId,
     required this.isConnected,
     required this.onRefresh,
   });
@@ -313,7 +332,7 @@ class _AppCard extends StatelessWidget {
                       if (confirm == true && context.mounted) {
                         final success = await context
                             .read<AriAppProvider>()
-                            .deleteApp(appId);
+                            .deleteApp(appId, agentId: agentId);
                         if (success) onRefresh();
                       }
                     },

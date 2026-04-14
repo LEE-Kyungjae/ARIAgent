@@ -1,9 +1,10 @@
 import { router } from "../system/router.js";
 import { saveSettings } from "../repositories/setting_repository.js";
-import { initAgent, getPluginsInfo } from "../services/agent/index.js";
-import { getCurrentState } from "../services/agent/index.js";
+import { initAgent, getPluginsInfo, getCurrentState } from "../services/agent/index.js";
 import { logger } from "../infra/logger.js";
 import { getEmbeddingStatus, initEmbeddingModel } from "../services/embedding.js";
+import { getAgentsConfig } from "../repositories/agent_repository.js";
+import { AgentsConfig } from "../models/agent.js";
 
 router.on("/SETTINGS", async (ws, params) => {
   logger.info(`[Settings] Update requested by ${ws.uuid}`);
@@ -85,9 +86,21 @@ router.on("/PLUGINS.SKILLS", async (ws, _params) => {
   ws.send("/PLUGINS.SKILLS", { ok: true, data: { skills } });
 });
 
-router.on("/PLUGINS.APPS", async (ws, _params) => {
-  logger.info(`[Plugins] Apps requested from ${ws.uuid}`);
+router.on("/PLUGINS.APPS", async (ws, params) => {
+  const agentId = params?.agentId as string | undefined;
+  logger.info(`[Plugins] Apps requested from ${ws.uuid} (agentId: ${agentId ?? "all"})`);
   const { apps } = await getPluginsInfo();
+
+  // agentId가 전달된 경우, 해당 에이전트의 appIds 기준으로 필터링
+  if (agentId) {
+    const config = getAgentsConfig(new AgentsConfig());
+    const agent = config.agents.find((a) => a.id === agentId);
+    if (agent) {
+      const filtered = agent.filterVisibleSkills(apps);
+      return ws.send("/PLUGINS.APPS", { ok: true, data: { apps: filtered } });
+    }
+  }
+
   ws.send("/PLUGINS.APPS", { ok: true, data: { apps } });
 });
 

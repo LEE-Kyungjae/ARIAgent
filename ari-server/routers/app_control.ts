@@ -9,6 +9,7 @@ import { UserSocketHandler } from "../system/ws.js";
 import { logger } from "../infra/logger.js";
 import { initAgent } from "../services/agent/index.js";
 import { execPromise } from "../tools/bash.js";
+import { removeAppIdFromAgent, isAppUsedByOtherAgents } from "../repositories/agent_repository.js";
 
 /**
  * /LAUNCH_APP
@@ -256,28 +257,43 @@ router.on("/DELETE_SKILL", async (ws, params) => {
 });
 
 router.on("/DELETE_APP", async (ws, params) => {
-  const { name } = params;
-  logger.info(`[Apps] Deleting app: ${name}`);
+  const { name, agentId } = params as { name: string; agentId?: string };
+  logger.info(`[Apps] Deleting app: ${name} (agentId: ${agentId ?? "none"})`);
   if (!name) {
     return ws.send("/DELETE_APP", { ok: false, error: "Name is required" });
   }
 
   try {
-    // 새 apps 디렉토리 우선, 레거시 skills 디렉토리도 확인
-    const appsDir = path.join(DATA_DIR, "apps", name);
-    const legacyDir = path.join(DATA_DIR, "skills", name);
-    const targetDir = fs.existsSync(appsDir) ? appsDir : fs.existsSync(legacyDir) ? legacyDir : null;
-
-    if (targetDir) {
-      rmDirSyncSafe(targetDir);
-      await initAgent();
-      logger.info(`[Apps] App ${name} deleted and agent re-initialized`);
-      ws.send("/DELETE_APP", { ok: true, data: { success: true } });
-      UserSocketHandler.broadcast("/INSTALLED_APPS_CHANGED", { appId: name });
-    } else {
-      logger.warn(`[Apps] App ${name} not found`);
-      ws.send("/DELETE_APP", { ok: false, error: "App not found" });
+    // 1. 에이전트 appIds 목록에서 제거
+    if (agentId) {
+      removeAppIdFromAgent(agentId, name);
     }
+
+    // 2. 다른 에이전트가 이 앱을 사용하는지 확인 — 없으면 폴더 삭제
+    // agentId 없이 호출된 경우 전체 에이전트 목록을 검사해 안전하게 처리
+    const usedByOthers = agentId
+      ? isAppUsedByOtherAgents(agentId, name)
+      : isAppUsedByOtherAgents("", name); // agentId ""는 어떤 에이전트와도 매칭 안 되므로 전체 체크
+
+    if (!usedByOthers) {
+      // 새 apps 디렉토리 우선, 레거시 skills 디렉토리도 확인
+      const appsDir = path.join(DATA_DIR, "apps", name);
+      const legacyDir = path.join(DATA_DIR, "skills", name);
+      const targetDir = fs.existsSync(appsDir) ? appsDir : fs.existsSync(legacyDir) ? legacyDir : null;
+
+      if (targetDir) {
+        rmDirSyncSafe(targetDir);
+        logger.info(`[Apps] App folder '${name}' removed (no other agents reference it)`);
+      } else {
+        logger.warn(`[Apps] App folder '${name}' not found on disk`);
+      }
+    } else {
+      logger.info(`[Apps] App '${name}' folder kept — still referenced by other agents`);
+    }
+
+    await initAgent();
+    ws.send("/DELETE_APP", { ok: true, data: { success: true } });
+    UserSocketHandler.broadcast("/INSTALLED_APPS_CHANGED", { appId: name });
   } catch (e) {
     logger.error(`[Apps] Error deleting app ${name}: ${e}`);
     ws.send("/DELETE_APP", { ok: false, error: String(e) });

@@ -97,13 +97,31 @@ export class AgentInfo {
 
     return skills.filter((skill) => {
       if (skill.isApp) {
-        return allowedAppIds.size === 0 || allowedAppIds.has(skill.name);
+        // appIds는 해당 에이전트가 소유한 앱 목록 — 반드시 목록에 있어야 표시
+        return allowedAppIds.has(skill.name);
       }
 
       return (
         allowedSkillNames.size === 0 || allowedSkillNames.has(skill.name)
       );
     });
+  }
+
+  addAppId(appId: string): boolean {
+    if (!this.appIds.includes(appId)) {
+      this.appIds.push(appId);
+      return true;
+    }
+    return false;
+  }
+
+  removeAppId(appId: string): boolean {
+    const idx = this.appIds.indexOf(appId);
+    if (idx !== -1) {
+      this.appIds.splice(idx, 1);
+      return true;
+    }
+    return false;
   }
 
   toLoadedSkills<

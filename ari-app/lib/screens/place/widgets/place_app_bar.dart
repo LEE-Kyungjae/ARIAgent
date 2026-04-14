@@ -116,7 +116,7 @@ class PlaceAppBar extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: apps.map((app) {
                         final iconName = app['icon'] as String?;
-                        final appId = app['id'] as String;
+                        final appId = app['name'] as String;
                         final isConnected = connectedAppIds.contains(appId);
 
                         return Padding(

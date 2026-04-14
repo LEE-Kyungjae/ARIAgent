@@ -15,6 +15,9 @@ import {
 import { DATA_DIR } from "../infra/data.js";
 import { loadAllApps } from "../skills/index.js";
 import { execPromise } from "./bash.js";
+import { getExecutionContext } from "../services/agent/execution_context.js";
+import { addAppIdToAgent, getAgentsConfig } from "../repositories/agent_repository.js";
+import { AgentsConfig } from "../models/agent.js";
 
 function resolveAppExecutable(appName: string): string {
   const executable = findAppExecutable(appName);
@@ -338,7 +341,7 @@ export const installAppTool: AgentTool = {
     logger.info(`[AppInstall] Starting installation for ${appId} from ${url}`);
 
     const tempDir = path.join(DATA_DIR, "tmp_install", appId);
-    const skillsDir = path.join(DATA_DIR, "apps", appId);
+    const appInstallDir = path.join(DATA_DIR, "apps", appId);
 
     try {
       // 2. 준비
@@ -380,7 +383,7 @@ export const installAppTool: AgentTool = {
 
       // 6. 버전 확인 로직
       const newInfoPath = path.join(sourceDir, "app_info.json");
-      const oldInfoPath = path.join(skillsDir, "app_info.json");
+      const oldInfoPath = path.join(appInstallDir, "app_info.json");
 
       if (fs.existsSync(newInfoPath) && fs.existsSync(oldInfoPath)) {
         try {
@@ -391,17 +394,27 @@ export const installAppTool: AgentTool = {
           const oldVer = oldInfo.version_code ?? oldInfo.version;
 
           if (newVer <= oldVer && !force) {
+            // 버전이 같아도 해당 에이전트 목록에는 추가해줌
+            const ctx = getExecutionContext();
+            const addedToAgent = ctx?.agentId ? (addAppIdToAgent(ctx.agentId, appId), true) : false;
+            if (!addedToAgent) {
+              logger.warn(`[AppInstall] No execution context — '${appId}' not added to any agent's list`);
+            }
+            const agentNote = addedToAgent
+              ? `\n✅ 이 에이전트의 앱 목록에 추가되었습니다.`
+              : "";
             return {
               content: [
                 {
                   type: "text",
-                  text: `ℹ️ 이미 최신 버전(${oldInfo.version})이 설치되어 있습니다. (새로 설치하려는 버전: ${newInfo.version})\n강제로 설치하려면 '강제 설치' 옵션을 사용하세요.`,
+                  text: `ℹ️ 이미 최신 버전(${oldInfo.version})이 설치되어 있습니다.${agentNote}`,
                 },
               ],
               details: {
                 appId,
                 success: true,
                 updated: false,
+                addedToAgent,
                 currentVersion: oldInfo.version,
               },
             };
@@ -414,19 +427,27 @@ export const installAppTool: AgentTool = {
       }
 
       // 7. 실제 설치
-      if (fs.existsSync(skillsDir)) {
-        logger.info(`[AppInstall] Removing existing app at ${skillsDir}`);
-        fs.rmSync(skillsDir, { recursive: true, force: true });
+      if (fs.existsSync(appInstallDir)) {
+        logger.info(`[AppInstall] Removing existing app at ${appInstallDir}`);
+        fs.rmSync(appInstallDir, { recursive: true, force: true });
       }
-      fs.mkdirSync(path.dirname(skillsDir), { recursive: true });
+      fs.mkdirSync(path.dirname(appInstallDir), { recursive: true });
 
-      logger.info(`[AppInstall] Moving ${sourceDir} to ${skillsDir}`);
-      fs.renameSync(sourceDir, skillsDir);
+      logger.info(`[AppInstall] Moving ${sourceDir} to ${appInstallDir}`);
+      fs.renameSync(sourceDir, appInstallDir);
 
-      // 8. 스킬 리로드
+      // 8. 앱 리로드
       await loadAllApps();
 
-      // 9. 클라이언트에 설치된 앱 목록 변경 알림
+      // 9. 현재 에이전트의 appIds 목록에 추가
+      const ctx = getExecutionContext();
+      if (ctx?.agentId) {
+        addAppIdToAgent(ctx.agentId, appId);
+      } else {
+        logger.warn(`[AppInstall] No execution context — '${appId}' not added to any agent's list`);
+      }
+
+      // 10. 클라이언트에 설치된 앱 목록 변경 알림
       UserSocketHandler.broadcast("/INSTALLED_APPS_CHANGED", { appId });
 
       return {
@@ -471,7 +492,16 @@ export const listAppsTool: AgentTool = {
     // 1. 실시간 연결된 앱 ID 가져오기
     const connectedIds = UserSocketHandler.getConnectedAppIds();
 
-    // 2. 설치된 앱 목록 가져오기 (폴더 기준)
+    // 2. 현재 에이전트의 appIds로 필터링
+    const ctx = getExecutionContext();
+    const agentAppIds: Set<string> | null = (() => {
+      if (!ctx?.agentId) return null;
+      const config = getAgentsConfig(new AgentsConfig());
+      const agent = config.agents.find((a) => a.id === ctx.agentId);
+      return agent ? new Set(agent.appIds) : null;
+    })();
+
+    // 3. 설치된 앱 목록 가져오기 (폴더 기준, 에이전트 appIds 필터 적용)
     const bundleRoots = getBundleRoots();
     const installedApps: string[] = [];
 
@@ -479,9 +509,8 @@ export const listAppsTool: AgentTool = {
       if (fs.existsSync(root)) {
         const items = fs.readdirSync(root).filter((dir) => {
           const stats = fs.statSync(path.join(root, dir));
-          return (
-            stats.isDirectory() && !dir.startsWith(".") && dir !== "__MACOSX"
-          );
+          if (!stats.isDirectory() || dir.startsWith(".") || dir === "__MACOSX") return false;
+          return agentAppIds ? agentAppIds.has(dir) : true;
         });
         installedApps.push(...items);
       }

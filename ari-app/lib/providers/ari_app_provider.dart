@@ -78,10 +78,10 @@ class AriAppProvider extends ChangeNotifier {
     }
   }
 
-  /// 앱 삭제
-  Future<bool> deleteApp(String name) async {
+  /// 앱 삭제 (에이전트 목록에서 제거, 다른 에이전트가 없으면 폴더도 삭제)
+  Future<bool> deleteApp(String name, {required String agentId}) async {
     try {
-      await AriAgent.call('/DELETE_APP', {'name': name});
+      await AriAgent.call('/DELETE_APP', {'name': name, 'agentId': agentId});
       return true;
     } catch (e) {
       debugPrint('[AriAppProvider] deleteApp failed: $e');
@@ -101,9 +101,12 @@ class AriAppProvider extends ChangeNotifier {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getApps() async {
+  Future<List<Map<String, dynamic>>> getApps({String? agentId}) async {
     try {
-      final res = await AriAgent.call('/PLUGINS.APPS');
+      final res = await AriAgent.call(
+        '/PLUGINS.APPS',
+        agentId != null ? {'agentId': agentId} : {},
+      );
       return (res['apps'] as List? ?? [])
           .whereType<Map<String, dynamic>>()
           .toList();
