@@ -20,6 +20,8 @@ export 'avatar/providers/agent_provider.dart';
 
 export 'avatar/models/agent_schedule.dart';
 
+export 'tasks/task_provider.dart';
+
 export 'update/app_update_service.dart';
 export 'update/widgets/ari_update_banner.dart';
 export 'layouts/ari_base_layout.dart';
