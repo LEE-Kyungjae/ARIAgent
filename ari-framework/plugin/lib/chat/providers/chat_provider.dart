@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import '../../bridge/ws/AriAgent.dart';
 import '../models/ari_chat_message.dart';
 import '../models/ari_queued_follow_up.dart';
+import '../repositories/chat_repository.dart';
 
 export '../models/ari_chat_message.dart';
 
 /// ARI 에이전트 스트림을 구독하여 채팅 메시지 상태를 관리하는 Provider.
 class AriChatProvider extends ChangeNotifier {
+  final ChatRepository _repository = ChatRepository();
+
   final List<AriChatMessage> _messages = [];
   StreamSubscription? _agentPushSub;
   StreamSubscription? _agentRequestSub;
@@ -259,43 +262,7 @@ class AriChatProvider extends ChangeNotifier {
   Future<void> loadServerHistory(String agentId) async {
     if (!AriAgent.isConnected) return;
     try {
-      final response = await AriAgent.call('/CHAT.GET_HISTORY', {
-        'agentId': agentId,
-        'index': 0,
-        'size': 50,
-      });
-
-      final List logs = response['logs'] ?? [];
-      final List<AriChatMessage> history = [];
-      if (logs.isNotEmpty) {
-        for (final log in logs.reversed) {
-          if (log['type'] == 'chat') {
-            history.add(AriChatMessage(
-              text: log['message']?.toString() ?? '',
-              isUser: log['isUser'] == true,
-              isError: log['isError'] == true,
-              createdAt: DateTime.now(),
-              requestId: log['requestId']?.toString(),
-            ));
-          } else if (log['type'] == 'notice') {
-            history.add(AriChatMessage(
-              text: log['message']?.toString() ?? '',
-              isUser: false,
-              isNotice: true,
-              createdAt: DateTime.now(),
-              requestId: log['noticeId']?.toString(),
-            ));
-          } else if (log['type'] == 'task') {
-            final label = log['label'] ?? '스케줄 작업';
-            final result = log['result'] ?? '';
-            history.add(AriChatMessage(
-              text: '🕒 [$label] 실행 결과:\n$result',
-              isUser: false,
-              createdAt: DateTime.now(),
-            ));
-          }
-        }
-      }
+      final history = await _repository.fetchHistory(agentId);
       setMessages(history);
     } catch (e) {
       debugPrint('[AriChatProvider] 히스토리 로드 실패: $e');
@@ -320,16 +287,16 @@ class AriChatProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await AriAgent.call('/AGENT', {
-        'message': text,
-        'requestId': requestId,
-        if (agentId != null) 'agentId': agentId,
-        if (persona != null) 'persona': persona,
-        if (avatarName != null) 'avatarName': avatarName,
-        if (appId != null) 'appId': appId,
-        if (details != null) 'details': details,
-        'platform': platform,
-      });
+      await _repository.sendMessage(
+        message: text,
+        requestId: requestId,
+        agentId: agentId,
+        persona: persona,
+        avatarName: avatarName,
+        appId: appId,
+        details: details,
+        platform: platform,
+      );
     } catch (e, st) {
       debugPrint('[AriChatProvider] sendAgentMessage 오류: $e\n$st');
       _inFlightRequestIds.remove(requestId);
@@ -357,9 +324,7 @@ class AriChatProvider extends ChangeNotifier {
   /// 송신 취소
   void cancelAgentMessage({String? agentId}) {
     if (!_isLoading) return;
-    final payload = <String, dynamic>{};
-    if (agentId != null) payload['agentId'] = agentId;
-    AriAgent.emit('/AGENT.CANCEL', payload);
+    _repository.cancelMessage(agentId: agentId);
     _clearPendingSystemMessages();
     if (_activeRequestId != null) {
       _inFlightRequestIds.remove(_activeRequestId);
@@ -463,11 +428,8 @@ class AriChatProvider extends ChangeNotifier {
   }
 
   Future<void> resetAgentSession({String? agentId}) async {
-    final payload = <String, dynamic>{};
-    if (agentId != null) payload['agentId'] = agentId;
-
     try {
-      await AriAgent.call('/AGENT.RESET', payload);
+      await _repository.resetSession(agentId: agentId);
     } catch (e) {
       debugPrint('[AriChatProvider] 세션 리셋 실패: $e');
     }
@@ -477,7 +439,7 @@ class AriChatProvider extends ChangeNotifier {
 
   /// 서버의 대화 이력을 삭제하고 로컬 메시지도 초기화합니다.
   Future<void> clearServerHistory(String agentId) async {
-    AriAgent.emit('/CHAT.CLEAR', {'agentId': agentId});
+    _repository.clearHistory(agentId);
     clearMessages();
   }
 
