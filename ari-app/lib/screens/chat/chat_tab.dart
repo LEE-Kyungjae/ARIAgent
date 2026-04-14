@@ -53,7 +53,7 @@ class _ChatTabState extends State<ChatTab> {
     final chatProvider = context.watch<AriChatProvider>();
     final server = context.watch<ServerProvider>();
     final config = context.watch<ConfigProvider>();
-    final avatar = context.watch<AvatarProvider>();
+    final avatar = context.watch<AgentProvider>();
 
     final isServerRunning = server.isRunning;
     final hasApiKey = config.hasApiKey;

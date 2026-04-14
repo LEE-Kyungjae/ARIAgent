@@ -1,4 +1,4 @@
-class AgentInfo {
+class AgentModel {
   final String id;
   final String name;
   final String imagePath;
@@ -7,7 +7,7 @@ class AgentInfo {
   final List<String> skillNames;
   final List<String> appIds;
 
-  AgentInfo({
+  AgentModel({
     required this.id,
     this.name = 'ARI',
     this.imagePath = '',
@@ -17,7 +17,7 @@ class AgentInfo {
     this.appIds = const [],
   });
 
-  AgentInfo copyWith({
+  AgentModel copyWith({
     String? name,
     String? imagePath,
     String? description,
@@ -25,7 +25,7 @@ class AgentInfo {
     List<String>? skillNames,
     List<String>? appIds,
   }) {
-    return AgentInfo(
+    return AgentModel(
       id: id,
       name: name ?? this.name,
       imagePath: imagePath ?? this.imagePath,
@@ -48,8 +48,8 @@ class AgentInfo {
     };
   }
 
-  factory AgentInfo.fromMap(Map<String, dynamic> map) {
-    return AgentInfo(
+  factory AgentModel.fromMap(Map<String, dynamic> map) {
+    return AgentModel(
       id: map['id'] ?? '',
       name: map['name'] ?? 'ARI',
       imagePath: map['imagePath'] ?? '',

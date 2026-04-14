@@ -31,7 +31,7 @@ class _ProfileTabState extends State<ProfileTab> {
 
   @override
   Widget build(BuildContext context) {
-    final avatar = context.watch<AvatarProvider>();
+    final avatar = context.watch<AgentProvider>();
     final imagePath = avatar.imagePath.trim();
     final isAssetImage = imagePath.startsWith('assets/');
     final avatarImageFile = imagePath.isNotEmpty && !isAssetImage

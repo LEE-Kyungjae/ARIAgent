@@ -47,7 +47,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
   Future<void> _refreshTasks() async {
     setState(() => _isLoading = true);
     try {
-      await context.read<AriTaskProvider>().refresh();
+      await context.read<AgentProvider>().refreshTasks();
     } catch (e) {
       debugPrint('[Schedule] ❌ 갱신 실패: $e');
     }
@@ -71,9 +71,8 @@ class _ScheduleTabState extends State<ScheduleTab> {
 
   @override
   Widget build(BuildContext context) {
-    final avatar = context.watch<AvatarProvider>();
-    final taskProvider = context.watch<AriTaskProvider>();
-    final allTasks = taskProvider.tasksForAgent(avatar.currentAvatarId);
+    final agent = context.watch<AgentProvider>();
+    final allTasks = agent.tasksForAgent(agent.currentAvatarId);
 
     final dayTaskLists = List.generate(7, (_) => <AriScheduledTask>[]);
     for (final task in allTasks) {
@@ -90,7 +89,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           child: TabSectionHeader(
             icon: Icons.calendar_month_outlined,
-            title: '${avatar.name}의 스케줄',
+            title: '${agent.name}의 스케줄',
             description: '에이전트가 정해진 시간에 알아서 처리하는 일들이에요.',
             trailing: GestureDetector(
               onTap: _refreshTasks,
@@ -233,12 +232,12 @@ class _ScheduleTabState extends State<ScheduleTab> {
             tasks: _selectedTasks,
             onClose: () => setState(() => _selectedTasks = []),
             onDelete: (task) async {
-              await taskProvider.deleteTask(task.id);
+              await agent.deleteTask(task.id);
               setState(() => _selectedTasks =
                   _selectedTasks.where((t) => t.id != task.id).toList());
             },
             onToggle: (task) async {
-              await taskProvider.toggleTask(task.id);
+              await agent.toggleTask(task.id);
             },
           ),
       ],

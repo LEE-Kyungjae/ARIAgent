@@ -12,8 +12,6 @@ import 'screens/home_screen.dart';
 import 'repositories/config_repository.dart';
 import 'providers/config_provider.dart';
 import 'providers/home_assistant_provider.dart';
-import 'providers/channel_provider.dart';
-import 'providers/ari_app_provider.dart';
 import 'providers/server_provider.dart';
 import 'services/desktop_notification_service.dart';
 import 'screens/place/providers/place_agent_status_provider.dart';
@@ -43,19 +41,16 @@ void main() async {
   final configRepo = ConfigRepository();
   await configRepo.init();
 
+  // AriAgent 초기화 (Repository에서 URL 가져옴) — Provider init 전에 먼저
+  AriAgent.init(url: configRepo.wsUrl);
+
   // Provider 초기화
   await ConfigProvider().init();
-  await AvatarProvider().init();
-  await AriAppProvider().init();
+  await AgentProvider().init();
   await PlaceAgentStatusProvider().init();
-
-  // AriAgent 초기화 (Repository에서 URL 가져옴)
-  AriAgent.init(url: configRepo.wsUrl);
 
   // 에이전트 시작 (비동기)
   unawaited(ServerProvider().start(version: version));
-
-  unawaited(AriTaskProvider().init());
 
   // window_manager 초기화
   await windowManager.ensureInitialized();
@@ -198,16 +193,11 @@ class _ARIAppState extends State<ARIApp> with WindowListener {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<ConfigProvider>.value(value: ConfigProvider()),
-        ChangeNotifierProvider<AvatarProvider>.value(value: AvatarProvider()),
+        ChangeNotifierProvider<AgentProvider>.value(value: AgentProvider()),
         ChangeNotifierProvider<ServerProvider>.value(value: ServerProvider()),
-        ChangeNotifierProvider<AriTaskProvider>.value(value: AriTaskProvider()),
         ChangeNotifierProvider<HomeAssistantProvider>.value(
           value: HomeAssistantProvider(),
         ),
-        ChangeNotifierProvider<ChannelProvider>.value(
-          value: ChannelProvider(),
-        ),
-        ChangeNotifierProvider<AriAppProvider>.value(value: AriAppProvider()),
         ChangeNotifierProvider<PlaceAgentStatusProvider>.value(
           value: PlaceAgentStatusProvider(),
         ),

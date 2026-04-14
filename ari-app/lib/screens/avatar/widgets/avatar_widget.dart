@@ -116,7 +116,7 @@ class _AvatarWidgetState extends State<AvatarWidget>
             ClipOval(
               child: Builder(
                 builder: (context) {
-                  final avatar = context.watch<AvatarProvider>();
+                  final avatar = context.watch<AgentProvider>();
                   final imagePath = avatar.imagePath.trim();
                   if (imagePath.startsWith('assets/')) {
                     return Image.asset(

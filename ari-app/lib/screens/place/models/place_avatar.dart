@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ari_plugin/ari_plugin.dart';
 
 class PlaceAvatar {
-  final AgentInfo profile;
+  final AgentModel profile;
   final Offset position;
   final String status;
 
@@ -12,7 +12,7 @@ class PlaceAvatar {
     required this.status,
   });
 
-  PlaceAvatar copyWith({AgentInfo? profile, Offset? position, String? status}) {
+  PlaceAvatar copyWith({AgentModel? profile, Offset? position, String? status}) {
     return PlaceAvatar(
       profile: profile ?? this.profile,
       position: position ?? this.position,

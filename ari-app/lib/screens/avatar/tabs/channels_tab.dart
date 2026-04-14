@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../providers/channel_provider.dart';
+import 'package:ari_plugin/ari_plugin.dart';
 import '../widgets/tab_section_header.dart';
 
 class ChannelsTab extends StatefulWidget {
@@ -11,17 +11,30 @@ class ChannelsTab extends StatefulWidget {
 }
 
 class _ChannelsTabState extends State<ChannelsTab> {
+  String? _lastAgentId;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ChannelProvider>().loadTelegram();
+      if (!mounted) return;
+      final agentId = context.read<AgentProvider>().currentAvatarId;
+      _lastAgentId = agentId;
+      context.read<AgentProvider>().loadTelegram();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<ChannelProvider>();
+    final provider = context.watch<AgentProvider>();
+
+    // 에이전트 전환 시 채널 데이터 재로드
+    if (_lastAgentId != null && _lastAgentId != provider.currentAvatarId) {
+      _lastAgentId = provider.currentAvatarId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) provider.loadTelegram();
+      });
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -33,7 +46,7 @@ class _ChannelsTabState extends State<ChannelsTab> {
             title: '채널',
             description: '에이전트가 외부와 소통하는 메시지 채널이에요.',
           ),
-          if (provider.isLoading)
+          if (provider.channelLoading)
             const Center(
               child: Padding(
                 padding: EdgeInsets.all(32),
@@ -49,7 +62,6 @@ class _ChannelsTabState extends State<ChannelsTab> {
       ),
     );
   }
-
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -77,8 +89,18 @@ class _TelegramCardState extends State<_TelegramCard> {
   @override
   void initState() {
     super.initState();
-    // 토큰이 저장된 상태면 기본으로 펼쳐두기 (필드는 항상 비워둠)
     if (widget.state.hasToken) _expanded = true;
+  }
+
+  @override
+  void didUpdateWidget(covariant _TelegramCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 에이전트 전환 후 새 상태 반영 — 토큰 없으면 접기
+    if (oldWidget.state.agentId != widget.state.agentId) {
+      _tokenController.clear();
+      _testResult = null;
+      _expanded = widget.state.hasToken;
+    }
   }
 
   @override
@@ -87,20 +109,13 @@ class _TelegramCardState extends State<_TelegramCard> {
     super.dispose();
   }
 
-  bool get _tokenIsNew {
-    final t = _tokenController.text.trim();
-    return t.isNotEmpty;
-  }
+  bool get _tokenIsNew => _tokenController.text.trim().isNotEmpty;
 
-  // 간단한 토큰 형식 검증: "숫자:문자열"
-  bool _isValidTokenFormat(String token) {
-    return RegExp(r'^\d+:[A-Za-z0-9_-]+$').hasMatch(token);
-  }
+  bool _isValidTokenFormat(String token) =>
+      RegExp(r'^\d+:[A-Za-z0-9_-]+$').hasMatch(token);
 
   Future<void> _onTest() async {
     final token = _tokenController.text.trim();
-
-    // 새로 입력된 토큰이 있으면 그걸로, 없으면 저장된 토큰을 서버에서 사용
     if (token.isNotEmpty && !_isValidTokenFormat(token)) {
       _showSnack('토큰 형식이 올바르지 않습니다. (예: 123456:ABCdef)', isError: true);
       return;
@@ -109,15 +124,12 @@ class _TelegramCardState extends State<_TelegramCard> {
       _showSnack('Bot Token을 먼저 입력하세요.', isError: true);
       return;
     }
-
     setState(() {
       _isTesting = true;
       _testResult = null;
     });
-
-    final result = await context.read<ChannelProvider>().testTelegram(token);
+    final result = await context.read<AgentProvider>().testTelegram(token);
     if (!mounted) return;
-
     setState(() {
       _isTesting = false;
       _testOk = result['ok'] == true;
@@ -129,38 +141,26 @@ class _TelegramCardState extends State<_TelegramCard> {
 
   Future<void> _onSave() async {
     setState(() => _isSaving = true);
-
-    final provider = context.read<ChannelProvider>();
-    final newToken = _tokenIsNew ? _tokenController.text.trim() : null;
-
-    final ok = await provider.saveTelegram(
-      botToken: newToken,
+    final ok = await context.read<AgentProvider>().saveTelegram(
+      botToken: _tokenIsNew ? _tokenController.text.trim() : null,
     );
-
     if (!mounted) return;
     setState(() => _isSaving = false);
-
     _showSnack(ok ? '저장되었습니다.' : '저장 실패', isError: !ok);
   }
 
   Future<void> _onToggle(bool value) async {
-    final provider = context.read<ChannelProvider>();
-
+    final provider = context.read<AgentProvider>();
     if (value && !widget.state.hasToken && !_tokenIsNew) {
       _showSnack('Bot Token을 먼저 저장하세요.', isError: true);
       return;
     }
-
-    // 새 토큰 입력된 상태면 먼저 저장
-    if (value && _tokenIsNew) {
-      await _onSave();
-    }
-
+    if (value && _tokenIsNew) await _onSave();
     final ok = await provider.toggleTelegram(value);
     if (!mounted) return;
     if (!ok) {
-      _showSnack(provider.errorMessage ?? '오류가 발생했습니다.', isError: true);
-      provider.clearError();
+      _showSnack(provider.channelError ?? '오류가 발생했습니다.', isError: true);
+      provider.clearChannelError();
     }
   }
 
@@ -184,12 +184,11 @@ class _TelegramCardState extends State<_TelegramCard> {
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: const Color(0xFF6C63FF).withOpacity(0.2),
+          color: const Color(0xFF6C63FF).withValues(alpha:0.2),
         ),
       ),
       child: Column(
         children: [
-          // ── 헤더 (항상 표시) ──
           GestureDetector(
             onTap: () => setState(() => _expanded = !_expanded),
             behavior: HitTestBehavior.opaque,
@@ -201,7 +200,7 @@ class _TelegramCardState extends State<_TelegramCard> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6C63FF).withOpacity(0.15),
+                      color: const Color(0xFF6C63FF).withValues(alpha:0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Center(
@@ -236,7 +235,6 @@ class _TelegramCardState extends State<_TelegramCard> {
                       ],
                     ),
                   ),
-                  // 토글
                   Transform.scale(
                     scale: 0.65,
                     child: Switch(
@@ -258,8 +256,6 @@ class _TelegramCardState extends State<_TelegramCard> {
               ),
             ),
           ),
-
-          // ── 펼쳐지는 설정 ──
           if (_expanded) ...[
             const Divider(color: Colors.white10, height: 1),
             Padding(
@@ -267,7 +263,6 @@ class _TelegramCardState extends State<_TelegramCard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Bot Token
                   Row(
                     children: [
                       _label('Bot Token'),
@@ -277,7 +272,7 @@ class _TelegramCardState extends State<_TelegramCard> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF4CAF50).withOpacity(0.15),
+                            color: const Color(0xFF4CAF50).withValues(alpha:0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Text(
@@ -296,8 +291,7 @@ class _TelegramCardState extends State<_TelegramCard> {
                   if (state.hasToken && !_tokenIsNew)
                     Text(
                       '${state.botTokenMasked}  •  변경하려면 아래에 새 토큰을 입력하세요.',
-                      style: const TextStyle(
-                          fontSize: 11, color: Colors.white38),
+                      style: const TextStyle(fontSize: 11, color: Colors.white38),
                     ),
                   const SizedBox(height: 6),
                   Row(
@@ -323,8 +317,8 @@ class _TelegramCardState extends State<_TelegramCard> {
                                 size: 16,
                                 color: Colors.white38,
                               ),
-                              onPressed: () => setState(
-                                  () => _tokenObscured = !_tokenObscured),
+                              onPressed: () =>
+                                  setState(() => _tokenObscured = !_tokenObscured),
                             ),
                           ),
                         ),
@@ -362,10 +356,7 @@ class _TelegramCardState extends State<_TelegramCard> {
                       ],
                     ),
                   ],
-
                   const SizedBox(height: 20),
-
-                  // 저장 버튼
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -405,69 +396,60 @@ class _TelegramCardState extends State<_TelegramCard> {
     );
   }
 
-  Widget _label(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: Colors.white54,
-        fontSize: 11,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.5,
-      ),
-    );
-  }
+  Widget _label(String text) => Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white54,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+        ),
+      );
 
-  InputDecoration _inputDecoration({required String hint, Widget? suffix}) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white24, fontSize: 12),
-      suffixIcon: suffix,
-      filled: true,
-      fillColor: Colors.white.withOpacity(0.05),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide:
-            const BorderSide(color: Color(0xFF6C63FF), width: 1.5),
-      ),
-    );
-  }
-
-  Widget _outlinedButton({
-    required String label,
-    required VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: onTap == null
-                ? Colors.white12
-                : const Color(0xFF6C63FF).withOpacity(0.5),
-          ),
+  InputDecoration _inputDecoration({required String hint, Widget? suffix}) =>
+      InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white24, fontSize: 12),
+        suffixIcon: suffix,
+        filled: true,
+        fillColor: Colors.white.withValues(alpha:0.05),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha:0.1)),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: onTap == null ? Colors.white24 : const Color(0xFF6C63FF),
-            fontWeight: FontWeight.w600,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha:0.1)),
+        ),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(8)),
+          borderSide: BorderSide(color: Color(0xFF6C63FF), width: 1.5),
+        ),
+      );
+
+  Widget _outlinedButton({required String label, required VoidCallback? onTap}) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: onTap == null
+                  ? Colors.white12
+                  : const Color(0xFF6C63FF).withValues(alpha:0.5),
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: onTap == null ? Colors.white24 : const Color(0xFF6C63FF),
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
-      ),
-    );
-  }
-
+      );
 }

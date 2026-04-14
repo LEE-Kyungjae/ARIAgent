@@ -40,7 +40,7 @@ class _StandardMemorySectionState extends State<StandardMemorySection> {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final memory = await context.read<AvatarProvider>().getMemory();
+      final memory = await context.read<AgentProvider>().getMemory();
       if (mounted) {
         setState(() {
           _coreMemoryController.text = memory['core'] ?? '';
@@ -61,7 +61,7 @@ class _StandardMemorySectionState extends State<StandardMemorySection> {
   Future<void> _saveCoreMemory() async {
     setState(() => _isSaving = true);
     try {
-      await context.read<AvatarProvider>().updateMemory(
+      await context.read<AgentProvider>().updateMemory(
             _coreMemoryController.text,
           );
       if (mounted) {
@@ -85,7 +85,7 @@ class _StandardMemorySectionState extends State<StandardMemorySection> {
 
   @override
   Widget build(BuildContext context) {
-    final avatar = context.watch<AvatarProvider>();
+    final avatar = context.watch<AgentProvider>();
 
     // 아바타가 바뀌었을 때 다시 불러오기
     if (_lastAvatarId != avatar.currentAvatarId) {

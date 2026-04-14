@@ -59,7 +59,7 @@ class _MemoryTabState extends State<MemoryTab> {
       onRefresh: () async {
         setState(
           () {},
-        ); // 각 섹션은 내부적으로 AvatarProvider를 watch하고 있으므로 여기서 갱신 신호만 주면 됨
+        ); // 각 섹션은 내부적으로 AgentProvider를 watch하고 있으므로 여기서 갱신 신호만 주면 됨
       },
       color: const Color(0xFF6C63FF),
       backgroundColor: const Color(0xFF1F1F3D),

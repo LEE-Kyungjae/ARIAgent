@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../providers/ari_app_provider.dart';
+import 'package:ari_plugin/ari_plugin.dart';
 import '../widgets/tab_section_header.dart';
 
 class SkillsTab extends StatefulWidget {
@@ -21,7 +21,7 @@ class _SkillsTabState extends State<SkillsTab> {
 
   void _refresh() {
     setState(() {
-      _skillsFuture = context.read<AriAppProvider>().getSkills();
+      _skillsFuture = context.read<AgentProvider>().getSkills();
     });
   }
 
@@ -199,7 +199,7 @@ class _SkillCardState extends State<_SkillCard> {
                             size: 18,
                           ),
                           onPressed: () async {
-                            final provider = context.read<AriAppProvider>();
+                            final provider = context.read<AgentProvider>();
                             final confirm = await showDialog<bool>(
                               context: context,
                               builder: (ctx) => AlertDialog(

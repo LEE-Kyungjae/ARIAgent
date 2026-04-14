@@ -12,11 +12,12 @@ export 'chat/chat_panel.dart';
 export 'chat/widgets/chat_input_area.dart';
 export 'chat/models/ari_chat_message.dart';
 
-export 'tasks/providers/ari_task_provider.dart';
-
-export 'avatar/models/agent_info.dart';
+export 'avatar/models/agent_model.dart';
+export 'avatar/models/telegram_channel_state.dart';
 export 'avatar/repositories/avatar_repository.dart';
-export 'avatar/providers/avatar_provider.dart';
+export 'avatar/providers/agent_provider.dart';
+
+export 'tasks/models/ari_scheduled_task.dart';
 
 export 'update/app_update_service.dart';
 export 'update/widgets/ari_update_banner.dart';

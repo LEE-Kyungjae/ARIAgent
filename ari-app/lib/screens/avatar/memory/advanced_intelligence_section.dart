@@ -30,7 +30,7 @@ class _AdvancedIntelligenceSectionState extends State<AdvancedIntelligenceSectio
     if (!mounted) return;
     setState(() => _isLoadingStats = true);
     try {
-      final stats = await context.read<AvatarProvider>().getMemoryStats();
+      final stats = await context.read<AgentProvider>().getMemoryStats();
       if (mounted) {
         setState(() {
           _stats = stats;
@@ -44,7 +44,7 @@ class _AdvancedIntelligenceSectionState extends State<AdvancedIntelligenceSectio
 
   @override
   Widget build(BuildContext context) {
-    final avatar = context.watch<AvatarProvider>();
+    final avatar = context.watch<AgentProvider>();
 
     if (_lastAvatarId != avatar.currentAvatarId) {
       _lastAvatarId = avatar.currentAvatarId;

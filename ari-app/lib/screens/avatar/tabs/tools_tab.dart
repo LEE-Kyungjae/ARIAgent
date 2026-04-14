@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../providers/ari_app_provider.dart';
+import 'package:ari_plugin/ari_plugin.dart';
 import '../widgets/tab_section_header.dart';
 
 class ToolsTab extends StatefulWidget {
@@ -21,7 +21,7 @@ class _ToolsTabState extends State<ToolsTab> {
 
   void _refresh() {
     setState(() {
-      _toolsFuture = context.read<AriAppProvider>().getTools();
+      _toolsFuture = context.read<AgentProvider>().getTools();
     });
   }
 

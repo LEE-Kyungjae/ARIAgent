@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ari_plugin/ari_plugin.dart';
-import '../../../providers/ari_app_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../widgets/tab_section_header.dart';
 
 class AppsTab extends StatefulWidget {
@@ -24,7 +24,7 @@ class _AppsTabState extends State<AppsTab> {
     // initState에서는 context.watch 사용 불가 — 첫 프레임 후 agentId를 읽어 요청
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final agentId = context.read<AvatarProvider>().currentAvatarId;
+      final agentId = context.read<AgentProvider>().currentAvatarId;
       _lastAgentId = agentId;
       _refresh(agentId: agentId);
     });
@@ -33,77 +33,94 @@ class _AppsTabState extends State<AppsTab> {
   void _refresh({String? agentId}) {
     if (!mounted) return;
     setState(() {
-      _appsFuture = context.read<AriAppProvider>().getApps(agentId: agentId);
+      _appsFuture = context.read<AgentProvider>().getApps(agentId: agentId);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<AriAppProvider>();
-    final agentId = context.watch<AvatarProvider>().currentAvatarId;
+    final provider = context.watch<AgentProvider>();
+    final agentId = context.watch<AgentProvider>().currentAvatarId;
     final connectedIds = provider.connectedAppIds;
 
     // 에이전트 변경 시 같은 build 패스에서 future를 즉시 교체
     // (addPostFrameCallback 사용 시 현재 프레임은 구 에이전트 앱을 그대로 보여주는 문제 있음)
     if (agentId != _lastAgentId) {
       _lastAgentId = agentId;
-      _appsFuture = context.read<AriAppProvider>().getApps(agentId: agentId);
+      _appsFuture = context.read<AgentProvider>().getApps(agentId: agentId);
     }
 
-    // 앱 설치/삭제 시 자동 리프레시
+    // 앱 설치/삭제 또는 서버 연결 시 자동 리프레시
     if (provider.installedAppsVersion != _lastAppsVersion) {
       _lastAppsVersion = provider.installedAppsVersion;
-      if (_appsFuture != null) {
-        _appsFuture = provider.getApps(agentId: agentId);
-      }
+      _appsFuture = provider.getApps(agentId: agentId);
     }
 
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _appsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFF6C63FF)),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return _buildErrorState();
-        }
-
-        final apps = snapshot.data ?? [];
-
-        if (apps.isEmpty) {
-          return _buildEmptyState();
-        }
-
-        return RefreshIndicator(
-          onRefresh: () async => _refresh(agentId: agentId),
-          color: const Color(0xFF6C63FF),
-          backgroundColor: const Color(0xFF1A1A2E),
-          child: ListView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: apps.length + 1,
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                return const TabSectionHeader(
-                  icon: Icons.apps_rounded,
-                  title: '앱',
-                  description: '에이전트가 연동해서 활용하는 앱들이에요.',
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          child: TabSectionHeader(
+            icon: Icons.apps_rounded,
+            title: '앱',
+            description: '에이전트가 연동해서 활용하는 앱들이에요.',
+            trailing: TextButton.icon(
+              onPressed: () async {
+                final uri = Uri.parse('https://ariwith.me/store');
+                if (await canLaunchUrl(uri)) launchUrl(uri);
+              },
+              icon: const Icon(Icons.storefront_rounded, size: 14, color: Color(0xFF6C63FF)),
+              label: const Text('앱스토어', style: TextStyle(fontSize: 12, color: Color(0xFF6C63FF))),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: _appsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF6C63FF)),
                 );
               }
-              final app = apps[index - 1];
-              final isConnected = connectedIds.contains(app['name']);
-              return _AppCard(
-                app: app,
-                agentId: agentId,
-                isConnected: isConnected,
-                onRefresh: () => _refresh(agentId: agentId),
+
+              if (snapshot.hasError) {
+                return _buildErrorState();
+              }
+
+              final apps = snapshot.data ?? [];
+
+              if (apps.isEmpty) {
+                return _buildEmptyState();
+              }
+
+              return RefreshIndicator(
+                onRefresh: () async => _refresh(agentId: agentId),
+                color: const Color(0xFF6C63FF),
+                backgroundColor: const Color(0xFF1A1A2E),
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: apps.length,
+                  itemBuilder: (context, index) {
+                    final app = apps[index];
+                    final isConnected = connectedIds.contains(app['name']);
+                    return _AppCard(
+                      app: app,
+                      agentId: agentId,
+                      isConnected: isConnected,
+                      onRefresh: () => _refresh(agentId: agentId),
+                    );
+                  },
+                ),
               );
             },
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 
@@ -290,7 +307,7 @@ class _AppCard extends StatelessWidget {
                         size: 24,
                       ),
                       onPressed: () async {
-                        await context.read<AriAppProvider>().launchApp(appId);
+                        await context.read<AgentProvider>().launchApp(appId);
                       },
                     ),
                   IconButton(
@@ -331,7 +348,7 @@ class _AppCard extends StatelessWidget {
                       );
                       if (confirm == true && context.mounted) {
                         final success = await context
-                            .read<AriAppProvider>()
+                            .read<AgentProvider>()
                             .deleteApp(appId, agentId: agentId);
                         if (success) onRefresh();
                       }

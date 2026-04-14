@@ -25,7 +25,8 @@ class _SettingsTabContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final avatar = context.watch<AvatarProvider>();
+    final agent = context.watch<AgentProvider>();
+    final avatarList = context.watch<AgentProvider>();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
@@ -42,7 +43,7 @@ class _SettingsTabContent extends StatelessWidget {
             icon: Icons.token_outlined,
             title: '토큰 관리',
             description: '이 아바타의 AI 모델 토큰 사용량을 확인하고 한도를 설정합니다.',
-            destination: TokenManagementScreen(agentId: avatar.currentAvatarId),
+            destination: TokenManagementScreen(agentId: agent.currentAvatarId),
             destinationTitle: '토큰 관리',
           ),
           const SizedBox(height: 12),
@@ -56,7 +57,7 @@ class _SettingsTabContent extends StatelessWidget {
               context,
               '기억 초기화',
               '정말로 이 아바타의 모든 기억을 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
-              () => avatar.initializeMemory(),
+              () => agent.initializeMemory(),
             ),
           ),
           const SizedBox(height: 12),
@@ -70,7 +71,7 @@ class _SettingsTabContent extends StatelessWidget {
               '대화 초기화',
               '현재 아바타와의 모든 대화 내용을 삭제하시겠습니까?',
               () async {
-                final avatarId = avatar.currentAvatarId;
+                final avatarId = agent.currentAvatarId;
                 if (context.mounted) {
                   await context.read<AriChatProvider>().clearServerHistory(
                     avatarId,
@@ -92,13 +93,13 @@ class _SettingsTabContent extends StatelessWidget {
             description:
                 '이 아바타의 모든 데이터(프로필, 로그, 설정)를 영구히 삭제합니다.\n기본 아바타(ARI)는 삭제할 수 없습니다.',
             isCritical: true,
-            onPressed: avatar.currentAvatarId == 'default'
+            onPressed: agent.currentAvatarId == 'default'
                 ? null
                 : () => _confirmAction(
                     context,
                     '아바타 삭제',
-                    '정말로 "${avatar.name}" 아바타를 영구 삭제하시겠습니까?\n모든 관련 데이터가 즉시 삭제됩니다.',
-                    () => avatar.deleteAvatar(),
+                    '정말로 "${agent.name}" 아바타를 영구 삭제하시겠습니까?\n모든 관련 데이터가 즉시 삭제됩니다.',
+                    () => avatarList.deleteAvatar(),
                   ),
           ),
           const SizedBox(height: 12),

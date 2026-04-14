@@ -1,11 +1,14 @@
 import 'dart:async';
-import 'package:ari_plugin/avatar/models/agent_info.dart';
+import 'package:ari_plugin/avatar/models/agent_model.dart';
 import 'package:ari_plugin/bridge/ws/AriAgent.dart';
 import 'package:flutter/foundation.dart';
 
 /// 에이전트 프로필 정보를 관리하는 레포지토리.
 /// 서버(WebSocket)를 기본 데이터 소스로 사용합니다.
 class AvatarRepository {
+  static final AvatarRepository _instance = AvatarRepository._internal();
+  factory AvatarRepository() => _instance;
+  AvatarRepository._internal();
   Map<String, dynamic> _agentsMap = {};
   String _selectedAgentId = 'default';
 
@@ -52,16 +55,16 @@ class AvatarRepository {
     }
   }
 
-  List<AgentInfo> getAllAgents() {
+  List<AgentModel> getAllAgents() {
     return _agentsMap.values
-        .map((e) => AgentInfo.fromMap(Map<String, dynamic>.from(e)))
+        .map((e) => AgentModel.fromMap(Map<String, dynamic>.from(e)))
         .toList();
   }
 
-  AgentInfo getAgent(String id) {
+  AgentModel getAgent(String id) {
     final raw = _agentsMap[id];
-    if (raw == null) return AgentInfo(id: 'default');
-    return AgentInfo.fromMap(Map<String, dynamic>.from(raw));
+    if (raw == null) return AgentModel(id: 'default');
+    return AgentModel.fromMap(Map<String, dynamic>.from(raw));
   }
 
   bool hasAgent(String id) {
@@ -116,7 +119,7 @@ class AvatarRepository {
     return rawPath;
   }
 
-  Future<void> saveAgent(AgentInfo agent) async {
+  Future<void> saveAgent(AgentModel agent) async {
     String processedPath = await _processAvatarImage(agent.id, agent.imagePath);
     final updatedAgent = agent.copyWith(imagePath: processedPath);
 

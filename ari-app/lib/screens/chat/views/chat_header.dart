@@ -19,7 +19,7 @@ class _ChatHeaderState extends State<ChatHeader> {
   @override
   Widget build(BuildContext context) {
     final server = context.watch<ServerProvider>();
-    final avatar = context.watch<AvatarProvider>();
+    final avatar = context.watch<AgentProvider>();
     final config = context.watch<ConfigProvider>();
 
     final isConnected = server.isRunning;
@@ -160,7 +160,7 @@ class _ChatHeaderState extends State<ChatHeader> {
         );
 
         if (confirmed == true && context.mounted) {
-          final avatarId = context.read<AvatarProvider>().currentAvatarId;
+          final avatarId = context.read<AgentProvider>().currentAvatarId;
           await context.read<AriChatProvider>().clearServerHistory(avatarId);
         }
       },

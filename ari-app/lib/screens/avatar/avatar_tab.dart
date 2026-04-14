@@ -34,7 +34,7 @@ class AvatarTab extends StatefulWidget {
 class _AvatarTabState extends State<AvatarTab> {
   @override
   Widget build(BuildContext context) {
-    final avatar = context.watch<AvatarProvider>();
+    final agent = context.watch<AgentProvider>();
     final config = context.watch<ConfigProvider>();
     final showAdvanced = config.showAdvancedDeveloperUI;
 
@@ -104,13 +104,13 @@ class _AvatarTabState extends State<AvatarTab> {
               child: TabBarView(children: views),
             ),
           ),
-          _buildBottomSelector(context, avatar),
+          _buildBottomSelector(context, agent),
         ],
       ),
     );
   }
 
-  Widget _buildBottomSelector(BuildContext context, AvatarProvider avatar) {
+  Widget _buildBottomSelector(BuildContext context, AgentProvider avatar) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: BoxDecoration(
@@ -165,7 +165,7 @@ class _AvatarTabState extends State<AvatarTab> {
   }
 
   void _showAvatarGrid(BuildContext context) {
-    final avatarProv = context.read<AvatarProvider>();
+    final agentProv = context.read<AgentProvider>();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -178,10 +178,10 @@ class _AvatarTabState extends State<AvatarTab> {
           expand: false,
           builder: (context, scrollController) {
             return ListenableBuilder(
-              listenable: avatarProv,
+              listenable: agentProv,
               builder: (context, _) {
-                final agents = avatarProv.allAvatars;
-                final currentId = avatarProv.currentAvatarId;
+                final agents = agentProv.allAvatars;
+                final currentId = agentProv.currentAvatarId;
 
                 return Container(
                   decoration: BoxDecoration(
@@ -264,7 +264,7 @@ class _AvatarTabState extends State<AvatarTab> {
 
     return GestureDetector(
       onTap: () {
-        context.read<AvatarProvider>().switchAvatar(agent.id);
+        context.read<AgentProvider>().switchAvatar(agent.id);
         Navigator.pop(context);
       },
       child: Container(
@@ -369,7 +369,7 @@ class _AvatarTabState extends State<AvatarTab> {
     return GestureDetector(
       onTap: () async {
         final id = 'agent_${DateTime.now().millisecondsSinceEpoch}';
-        await context.read<AvatarProvider>().createAndSwitchAvatar(id, '아리');
+        await context.read<AgentProvider>().createAndSwitchAvatar(id, '아리');
         // 전환 후 시각적 피드백을 위해 바텀시트를 닫거나 유지할 수 있음. 여기서는 닫음.
         if (context.mounted) Navigator.pop(context);
       },
