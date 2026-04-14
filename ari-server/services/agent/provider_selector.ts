@@ -10,7 +10,7 @@ import type { OAuthProvider } from "../../repositories/oauth_repository.js";
 export const ARI_CLOUD_PROVIDER = "ari-cloud";
 
 // ARICloud 프록시 엔드포인트 (was.daierconnect.com)
-const ARI_CLOUD_BASE_URL = "https://ai.dev.daierconnect.com/ari/v1";
+const ARI_CLOUD_BASE_URL = "https://ai.daierconnect.com/ari/v1";
 
 // setup agent 전용 모델 — openai-completions API를 ARICloud baseUrl로 라우팅
 const ARI_CLOUD_SETUP_MODEL = {
