@@ -178,6 +178,7 @@ class AgentProvider extends ChangeNotifier {
     for (final agent in agentListNotifier.value) {
       await agent.loadApps();
     }
+    notifyListeners();
   }
 
   // ── 에이전트 액션 ─────────────────────────────────────────

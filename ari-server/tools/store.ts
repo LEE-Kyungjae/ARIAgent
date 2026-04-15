@@ -30,7 +30,7 @@ export const searchStoreAppTool: AgentTool = {
     try {
       logger.info(`[StoreTool] Searching apps with query: "${searchTerm}"`);
 
-      const apiUrl = `https://ariwith.me/api/search-apps?q=${encodeURIComponent(searchTerm)}`;
+      const apiUrl = `https://ariwith.me/api/search-apps?q=${encodeURIComponent(searchTerm)}&limit=5`;
       const { data } = await axios.get(apiUrl);
 
       if (!data.success) {

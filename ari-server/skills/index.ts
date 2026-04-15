@@ -85,16 +85,25 @@ function loadSkillsFromDir(dirPath: string): SkillDefinition[] {
     if (!content) continue;
 
     const iconFilePath = path.join(skillDir, "icon.png");
+    const appInfoPath = path.join(skillDir, "app_info.json");
+    let appInfo: { name?: string; description?: string } | null = null;
+    if (fs.existsSync(appInfoPath)) {
+      try {
+        appInfo = JSON.parse(fs.readFileSync(appInfoPath, "utf8"));
+      } catch {
+        appInfo = null;
+      }
+    }
     skills.push({
       name: entry,
-      title: entry,
-      description: parseSkillDescription(content),
+      title: appInfo?.name ?? entry,
+      description: appInfo?.description ?? parseSkillDescription(content),
       tools: parseSkillTools(content),
       icon: parseSkillIcon(content),
       iconPath: fs.existsSync(iconFilePath) ? iconFilePath : undefined,
       content,
       filePath: skillFilePath,
-      isApp: fs.existsSync(path.join(skillDir, "app.app")) || fs.existsSync(path.join(skillDir, "app_info.json")),
+      isApp: fs.existsSync(path.join(skillDir, "app.app")) || fs.existsSync(appInfoPath),
     });
   }
   return skills;

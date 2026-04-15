@@ -137,7 +137,7 @@ export async function initAgent(providersConfig?: AIProviders): Promise<void> {
     const cloudSetupProvider = new AIProviderConfig({
       provider: ARI_CLOUD_PROVIDER,
       model: "gpt-4.1-mini",
-      apiKey: "ari-setup-7f3k9mXpQ2wLdRvN",
+      apiKey: "ari-cloud",
       authType: "apikey",
     });
     state.setAvailableProviders([cloudSetupProvider]);
