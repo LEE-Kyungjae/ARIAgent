@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:ari_plugin/avatar/models/agent_schedule.dart';
 import 'package:ari_plugin/avatar/repositories/task_repository.dart';
-import 'package:ari_plugin/bridge/ws/AriAgent.dart';
+import 'package:ari_plugin/bridge/agent/AriAgent.dart';
 import 'package:flutter/foundation.dart';
 
 /// 앱별 스케줄 태스크 상태를 관리하는 Provider.

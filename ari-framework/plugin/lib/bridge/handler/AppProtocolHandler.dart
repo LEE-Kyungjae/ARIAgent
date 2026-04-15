@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import '../ws/AriAgent.dart';
+import '../agent/AriAgent.dart';
 
 class AppProtocolHandler {
   final String appId;

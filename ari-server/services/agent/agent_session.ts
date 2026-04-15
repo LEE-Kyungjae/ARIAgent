@@ -260,8 +260,6 @@ export class AgentSession {
     const finalText =
       responseText ||
       this.currentResponseText ||
-      extractTextFromAgentMessage(this.agent.state.messages.at(-1)) ||
-      extractFinalResponseText(this.agent) ||
       this.agent.state.error ||
       "처리 중 오류가 발생했습니다.";
 
@@ -338,10 +336,15 @@ export class AgentSession {
           return;
         }
 
-        this.finalizeCurrentRequest(
-          this.currentResponseText ||
-            extractTextFromAgentMessage(event.message),
-        );
+        const turnText =
+          this.currentResponseText || extractTextFromAgentMessage(event.message);
+        if (!turnText) {
+          // 텍스트 없이 끝난 턴 — 프로바이더 실패 후 재시도 중일 수 있으므로 스킵
+          this.currentResponseText = "";
+          return;
+        }
+
+        this.finalizeCurrentRequest(turnText);
         return;
       }
 
@@ -351,6 +354,11 @@ export class AgentSession {
           markAgentIdle(this.currentPendingResponse.agentId);
           this.removeRequest(this.currentPendingResponse.requestId);
           this.currentResponseText = "";
+          return;
+        }
+
+        // error도 없고 response text도 없으면 spurious event (replaceMessages 등에 의한 것) — 스킵
+        if (!errorMessage && !this.currentResponseText) {
           return;
         }
 
@@ -562,6 +570,15 @@ export class AgentSession {
       !!lastError &&
       (lastError.name === "AbortError" ||
         lastError.message?.toLowerCase().includes("abort"));
+
+    // 모든 프로바이더가 실패했고 아직 request가 finalize되지 않은 경우 직접 에러를 브로드캐스트
+    if (this.currentPendingResponse && !isAborted) {
+      const errorMsg = lastError?.message
+        ? `❌ 모든 프로바이더에서 오류가 발생했습니다: ${lastError.message}`
+        : "❌ 사용 가능한 프로바이더가 없습니다.";
+      this.finalizeCurrentRequest(errorMsg);
+    }
+
     return {
       responseText: "",
       lastError,

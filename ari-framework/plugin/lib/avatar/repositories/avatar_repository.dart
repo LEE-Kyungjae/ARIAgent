@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:ari_plugin/avatar/models/agent_model.dart';
-import 'package:ari_plugin/bridge/ws/AriAgent.dart';
+import 'package:ari_plugin/bridge/agent/AriAgent.dart';
 import 'package:flutter/foundation.dart';
 
 /// 에이전트 프로필 정보를 관리하는 레포지토리.

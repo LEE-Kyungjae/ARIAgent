@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'WebSocketService.dart';
-import 'settings_loader_stub.dart'
-    if (dart.library.io) 'settings_loader_io.dart';
+import '../ws/WebSocketService.dart';
+import '../ws/settings_loader_stub.dart'
+    if (dart.library.io) '../ws/settings_loader_io.dart';
 
 void _logDebug(Object message) {
   print(message);

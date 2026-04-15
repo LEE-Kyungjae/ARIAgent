@@ -1,4 +1,4 @@
-import '../../bridge/ws/AriAgent.dart';
+import '../../bridge/agent/AriAgent.dart';
 import '../models/ari_chat_message.dart';
 
 /// 채팅 서버 통신 전담 Repository.

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../bridge/ws/AriAgent.dart';
+import '../../bridge/agent/AriAgent.dart';
 import '../models/ari_chat_message.dart';
 import '../models/ari_queued_follow_up.dart';
 import '../repositories/chat_repository.dart';

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:ari_plugin/avatar/models/agent_model.dart';
 import 'package:ari_plugin/avatar/models/telegram_channel_state.dart';
 import 'package:ari_plugin/avatar/repositories/avatar_repository.dart';
-import 'package:ari_plugin/bridge/ws/AriAgent.dart';
+import 'package:ari_plugin/bridge/agent/AriAgent.dart';
 import 'package:ari_plugin/avatar/models/agent_schedule.dart';
 import 'package:ari_plugin/avatar/repositories/task_repository.dart';
 import 'package:flutter/foundation.dart';

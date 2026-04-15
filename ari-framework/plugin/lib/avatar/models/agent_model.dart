@@ -1,6 +1,6 @@
 import 'package:ari_plugin/avatar/models/agent_token_usage.dart';
 import 'package:ari_plugin/avatar/models/telegram_channel_state.dart';
-import 'package:ari_plugin/bridge/ws/AriAgent.dart';
+import 'package:ari_plugin/bridge/agent/AriAgent.dart';
 import 'package:ari_plugin/avatar/models/agent_schedule.dart';
 import 'package:flutter/foundation.dart';
 

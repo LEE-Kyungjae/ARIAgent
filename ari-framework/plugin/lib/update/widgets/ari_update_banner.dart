@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../app_update_service.dart';
-import '../../bridge/ws/AriAgent.dart';
+import '../../bridge/agent/AriAgent.dart';
 
 /// ARI 프레임워크 통합 업데이트 배너 위젯.
 ///

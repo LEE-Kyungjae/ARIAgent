@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
-import '../../bridge/ws/AriAgent.dart';
+import '../../bridge/agent/AriAgent.dart';
 import '../../theme/ari_chat_theme.dart';
 import '../providers/chat_provider.dart';
 import 'chat_default_header.dart';

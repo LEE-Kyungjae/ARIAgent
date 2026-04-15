@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../bridge/ws/AriAgent.dart';
+import '../../bridge/agent/AriAgent.dart';
 
 class ConnectionWarningBanner extends StatelessWidget {
   const ConnectionWarningBanner({super.key});
