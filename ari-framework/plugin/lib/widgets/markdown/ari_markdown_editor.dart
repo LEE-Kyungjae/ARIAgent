@@ -11,6 +11,7 @@ class AriMarkdownEditor extends StatelessWidget {
     required this.onApproveAll,
     required this.onRejectAll,
     required this.onPartialUpdate,
+    this.onBlockSelected,
   });
 
   final String content;
@@ -20,6 +21,7 @@ class AriMarkdownEditor extends StatelessWidget {
   final VoidCallback onApproveAll;
   final VoidCallback onRejectAll;
   final Function(String updatedContent, String updatedPrevious) onPartialUpdate;
+  final void Function(String? selectedBlock)? onBlockSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +35,6 @@ class AriMarkdownEditor extends StatelessWidget {
       );
     }
 
-    return AriMarkdownView(content: content);
+    return AriMarkdownView(content: content, onBlockSelected: onBlockSelected);
   }
 }
