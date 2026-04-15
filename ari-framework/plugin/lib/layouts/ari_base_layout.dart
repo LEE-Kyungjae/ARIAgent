@@ -35,6 +35,7 @@ class AriBaseLayout extends StatefulWidget {
     this.chatTheme = const AriChatTheme(),
     this.chatFollowUpMessage,
     this.chatFollowUpCount = 0,
+    this.chatEmptyStateMessage,
   });
 
   final String appId;
@@ -59,6 +60,7 @@ class AriBaseLayout extends StatefulWidget {
   final AriChatTheme chatTheme;
   final String? chatFollowUpMessage;
   final int chatFollowUpCount;
+  final String? chatEmptyStateMessage;
 
   @override
   State<AriBaseLayout> createState() => _AriBaseLayoutState();
@@ -119,9 +121,7 @@ class _AriBaseLayoutState extends State<AriBaseLayout> {
                             child: Container(
                               width: 1,
                               height: double.infinity,
-                              color: Theme.of(context)
-                                  .dividerColor
-                                  .withOpacity(0.1),
+                              color: Colors.transparent,
                             ),
                           ),
                         ),
@@ -185,6 +185,7 @@ class _AriBaseLayoutState extends State<AriBaseLayout> {
           theme: widget.chatTheme,
           followUpMessage: p.latestFollowUpMessage,
           followUpCount: p.queuedFollowUpCount,
+          emptyStateMessage: widget.chatEmptyStateMessage,
         ),
       );
     }
@@ -201,6 +202,7 @@ class _AriBaseLayoutState extends State<AriBaseLayout> {
       theme: widget.chatTheme,
       followUpMessage: widget.chatFollowUpMessage,
       followUpCount: widget.chatFollowUpCount,
+      emptyStateMessage: widget.chatEmptyStateMessage,
     );
   }
 }
