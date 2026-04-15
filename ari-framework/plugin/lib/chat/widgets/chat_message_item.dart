@@ -84,6 +84,55 @@ class AriChatMessageItem extends StatelessWidget {
       );
     }
 
+    if (message.isError) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 24),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 4),
+              width: 28,
+              height: 28,
+              decoration: const BoxDecoration(
+                color: Color(0xFFEF5350),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.error_outline_rounded,
+                size: 16,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF5350).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16).copyWith(
+                    bottomLeft: const Radius.circular(4),
+                  ),
+                  border: Border.all(
+                    color: const Color(0xFFEF5350).withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Text(
+                  message.text,
+                  style: const TextStyle(
+                    color: Color(0xFFEF5350),
+                    height: 1.4,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Row(

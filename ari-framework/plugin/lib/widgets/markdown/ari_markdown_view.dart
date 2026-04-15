@@ -39,13 +39,13 @@ class _AriMarkdownViewState extends State<AriMarkdownView> {
         .toList();
 
     final style = MarkdownStyleSheet(
-      p: TextStyle(fontSize: 14, height: 1.7, color: widget.textMainColor),
+      p: TextStyle(fontSize: 12, height: 1.6, color: widget.textMainColor),
       strong: TextStyle(fontWeight: FontWeight.w700, color: widget.textMainColor),
-      h1: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: widget.textMainColor),
-      h2: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: widget.textMainColor),
-      h3: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: widget.textMainColor),
-      listBullet: TextStyle(color: widget.textMainColor),
-      blockquote: TextStyle(color: widget.textSubColor, fontSize: 14, height: 1.6),
+      h1: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: widget.textMainColor),
+      h2: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: widget.textMainColor),
+      h3: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: widget.textMainColor),
+      listBullet: TextStyle(fontSize: 12, color: widget.textMainColor),
+      blockquote: TextStyle(color: widget.textSubColor, fontSize: 12, height: 1.6),
     );
 
     return Container(

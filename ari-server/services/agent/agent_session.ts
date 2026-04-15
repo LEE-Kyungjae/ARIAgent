@@ -30,6 +30,17 @@ import { getSettings } from "../../repositories/setting_repository.js";
 import { Settings } from "../../models/settings.js";
 import { markAgentIdle, markAgentWorking } from "./runtime_state.js";
 
+function parseProviderErrorMessage(raw: string): string {
+  if (!raw) return "";
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed?.detail) return String(parsed.detail);
+    if (parsed?.message) return String(parsed.message);
+    if (parsed?.error) return String(parsed.error);
+  } catch {}
+  return raw;
+}
+
 export class AgentSession {
   agent!: Agent;
   agentInfo: AgentInfo;
@@ -49,6 +60,7 @@ export class AgentSession {
   currentProvider = "";
   currentModel = "";
   private _pendingMeta: { provider: string; model: string; usage: any } | null = null;
+  private _isInRetryLoop = false;
 
   constructor(agentInfo: AgentInfo) {
     this.agentInfo = agentInfo;
@@ -192,7 +204,7 @@ export class AgentSession {
     this.currentRequestAnnounced = false;
   }
 
-  completeCurrentRequest(responseText: string): void {
+  completeCurrentRequest(responseText: string, isError = false): void {
     const pending = this.currentPendingResponse ?? this.pendingResponses[0];
     if (!pending) {
       return;
@@ -239,20 +251,33 @@ export class AgentSession {
         });
       }
 
-      UserSocketHandler.broadcast("/APP.PUSH", {
-        ok: true,
-        data: {
-          response: responseText,
-          requestId: pending.requestId,
-          agentId: pending.agentId,
-          appId: pending.appId,
-          source: pending.source || "user",
-        },
-      });
+      if (isError) {
+        UserSocketHandler.broadcast("/APP.ERROR", {
+          ok: false,
+          data: {
+            message: responseText,
+            requestId: pending.requestId,
+            agentId: pending.agentId,
+            appId: pending.appId,
+            source: pending.source || "user",
+          },
+        });
+      } else {
+        UserSocketHandler.broadcast("/APP.PUSH", {
+          ok: true,
+          data: {
+            response: responseText,
+            requestId: pending.requestId,
+            agentId: pending.agentId,
+            appId: pending.appId,
+            source: pending.source || "user",
+          },
+        });
+      }
     }
   }
 
-  private finalizeCurrentRequest(responseText?: string): void {
+  private finalizeCurrentRequest(responseText?: string, isError = false): void {
     if (!this.currentPendingResponse) {
       return;
     }
@@ -263,7 +288,7 @@ export class AgentSession {
       this.agent.state.error ||
       "처리 중 오류가 발생했습니다.";
 
-    this.completeCurrentRequest(finalText);
+    this.completeCurrentRequest(finalText, isError);
     this.currentResponseText = "";
   }
 
@@ -357,6 +382,11 @@ export class AgentSession {
           return;
         }
 
+        // 재시도 루프 중에는 agent_end 에러를 무시 — runInference가 직접 처리
+        if (this._isInRetryLoop && errorMessage) {
+          return;
+        }
+
         // error도 없고 response text도 없으면 spurious event (replaceMessages 등에 의한 것) — 스킵
         if (!errorMessage && !this.currentResponseText) {
           return;
@@ -395,6 +425,7 @@ export class AgentSession {
     const baseSkills = cloneActiveSkills(this.agentInfo.activeSkills);
     let lastError: Error | null = null;
 
+    this._isInRetryLoop = true;
     for (const providerIndex of getAttemptOrder(
       activeProviders.length,
       providers.startingAvailableProviderIndex,
@@ -561,6 +592,7 @@ export class AgentSession {
       };
     }
 
+    this._isInRetryLoop = false;
     agent.replaceMessages(baseMessages);
     agent.state.error = undefined;
     this.agentInfo.activeSkills = baseSkills;
@@ -573,10 +605,12 @@ export class AgentSession {
 
     // 모든 프로바이더가 실패했고 아직 request가 finalize되지 않은 경우 직접 에러를 브로드캐스트
     if (this.currentPendingResponse && !isAborted) {
-      const errorMsg = lastError?.message
-        ? `❌ 모든 프로바이더에서 오류가 발생했습니다: ${lastError.message}`
-        : "❌ 사용 가능한 프로바이더가 없습니다.";
-      this.finalizeCurrentRequest(errorMsg);
+      const rawMsg = lastError?.message ?? "";
+      const parsedMsg = parseProviderErrorMessage(rawMsg);
+      const errorMsg = parsedMsg
+        ? `모든 프로바이더에서 오류가 발생했습니다: ${parsedMsg}`
+        : "사용 가능한 프로바이더가 없습니다.";
+      this.finalizeCurrentRequest(errorMsg, true);
     }
 
     return {

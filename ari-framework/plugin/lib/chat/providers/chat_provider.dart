@@ -19,6 +19,7 @@ class AriChatProvider extends ChangeNotifier {
   StreamSubscription? _cancelSub;
   StreamSubscription? _taskResultSub;
   StreamSubscription? _noticeSub;
+  StreamSubscription? _errorSub;
   final List<StreamSubscription> _customSubs = [];
   final Set<String> _inFlightRequestIds = {};
   final Set<String> _backgroundRequestIds = {};
@@ -222,6 +223,28 @@ class AriChatProvider extends ChangeNotifier {
         isNotice: true,
         createdAt: DateTime.now(),
         requestId: noticeId,
+      ));
+      notifyListeners();
+    });
+
+    _errorSub = AriAgent.on('/APP.ERROR', (data) {
+      final payload = data['data'] is Map ? data['data'] as Map : data;
+      final message = payload['message']?.toString() ?? '';
+      final requestId = payload['requestId']?.toString() ?? '';
+      final msgAgent = payload['agentId']?.toString() ?? 'default';
+
+      if (message.isEmpty) return;
+      if (_filterAgentId != null && msgAgent != _filterAgentId) return;
+
+      if (requestId.isNotEmpty) removeSystemMessage(requestId);
+      onResponseReceived(requestId);
+
+      _messages.add(AriChatMessage(
+        text: message,
+        isUser: false,
+        isError: true,
+        createdAt: DateTime.now(),
+        requestId: requestId.isNotEmpty ? requestId : null,
       ));
       notifyListeners();
     });
@@ -452,6 +475,7 @@ class AriChatProvider extends ChangeNotifier {
     _cancelSub?.cancel();
     _taskResultSub?.cancel();
     _noticeSub?.cancel();
+    _errorSub?.cancel();
     for (final sub in _customSubs) {
       sub.cancel();
     }
