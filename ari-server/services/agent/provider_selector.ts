@@ -61,9 +61,7 @@ export function isOAuthProvider(provider: string): boolean {
 // OAuth 프로바이더의 API Key를 동적으로 획득한다
 export async function resolveApiKey(config: AIProviderConfig): Promise<string | null> {
   if (config.authType === "oauth" || isOAuthProvider(config.provider)) {
-    // accountId가 없으면 레거시 호환으로 provider id 사용
-    const accountId = config.accountId || config.provider;
-    return await getOAuthApiKeyForAccount(accountId);
+    return await getOAuthApiKeyForAccount(config.accountId);
   }
   return config.apiKey || null;
 }

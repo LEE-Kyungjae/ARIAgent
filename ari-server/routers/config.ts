@@ -15,12 +15,10 @@ router.on("/SETTINGS", async (ws, params) => {
     const existing = state.providers || [];
 
     const nextProviders = incoming.map((inc) => {
-      // accountId 누락 시 provider id로 fallback (레거시 호환)
-      inc.accountId = inc.accountId || inc.provider;
       if (!inc.apiKey || inc.apiKey.includes("••")) {
         // accountId 우선 매칭, 없으면 provider로 fallback
         const matched =
-          existing.find((ex: any) => ex.accountId === inc.accountId) ??
+          (inc.accountId && existing.find((ex: any) => ex.accountId === inc.accountId)) ??
           existing.find((ex: any) => ex.provider === inc.provider);
         inc.apiKey = matched?.apiKey || "";
       }

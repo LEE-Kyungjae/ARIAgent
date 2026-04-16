@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { AgentTool } from "@mariozechner/pi-agent-core";
 import { SkillDefinition } from "../skills/index.js";
 import { logger } from "../infra/logger.js";
@@ -21,9 +22,9 @@ export class AIProviderConfig {
     this.model = data?.model || "";
     this.apiKey = data?.apiKey || "";
     this.authType = data?.authType || "apikey";
-    // 레거시 엔트리는 accountId 누락 → provider id를 fallback으로
-    // (기존 단일 OAuth 계정을 그대로 유지)
-    this.accountId = data?.accountId || this.provider;
+    // accountId 누락 시 uuid 생성. 레거시 매핑(기존 단일 OAuth 유지)은
+    // setting_repository.getSettings에서 1회 마이그레이션 후 디스크에 저장된다.
+    this.accountId = data?.accountId || randomUUID();
   }
 }
 
@@ -34,7 +35,9 @@ export class AIProviders {
   currentProvider: string;
 
   constructor(data: any = {}) {
-    this.providers = this.normalizeProviders(data?.providers ?? data?.PROVIDERS);
+    this.providers = this.dedupeAccountIds(
+      this.normalizeProviders(data?.providers ?? data?.PROVIDERS),
+    );
     this.availableProviders = this.normalizeProviders(
       data?.availableProviders,
     );
@@ -54,7 +57,7 @@ export class AIProviders {
   }
 
   setProviders(providers: AIProviderConfig[]): void {
-    this.providers = this.normalizeProviders(providers);
+    this.providers = this.dedupeAccountIds(this.normalizeProviders(providers));
     this.availableProviders = [];
     const current =
       this.activeConfig ??
@@ -134,6 +137,19 @@ export class AIProviders {
         ? provider
         : new AIProviderConfig(provider),
     );
+  }
+
+  // 같은 accountId를 가진 엔트리가 여럿이면 두 번째부터 새 uuid로 재발급.
+  // 첫 엔트리는 기존 값을 유지 → 레거시 OAuth credentials 보존.
+  private dedupeAccountIds(providers: AIProviderConfig[]): AIProviderConfig[] {
+    const seen = new Set<string>();
+    for (const p of providers) {
+      if (!p.accountId || seen.has(p.accountId)) {
+        p.accountId = randomUUID();
+      }
+      seen.add(p.accountId);
+    }
+    return providers;
   }
 
   private findProvider(providerName?: string, modelName?: string): AIProviderConfig | undefined {

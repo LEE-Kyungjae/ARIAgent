@@ -61,19 +61,26 @@ class _ModelSettingsState extends State<ModelSettings> {
       setState(() {
         if (data['providers'] != null &&
             (data['providers'] as List).isNotEmpty) {
+          final seenIds = <String>{};
           _providers = (data['providers'] as List).map((p) {
             final id = p['provider'] as String? ?? 'openai-codex';
             final meta = metaFor(id);
             final authType =
                 (p['authType'] as String?) ??
                 (meta.isOAuth ? 'oauth' : 'apikey');
+            // 서버가 주는 accountId 유지. 누락/중복이면 새로 발급 (방어 로직).
+            String? accountId = p['accountId'] as String?;
+            if (accountId == null || seenIds.contains(accountId)) {
+              accountId = null; // ProviderItem 생성자가 uuid 발급
+            } else {
+              seenIds.add(accountId);
+            }
             return ProviderItem(
               provider: id,
               model: p['model'] ?? metaFor(id).models.firstOrNull ?? '',
               hasApiKey: p['hasApiKey'] == true,
               authType: authType,
-              // 서버가 주는 accountId를 유지. 없으면 자동 생성.
-              accountId: p['accountId'] as String?,
+              accountId: accountId,
             );
           }).toList();
         } else {
