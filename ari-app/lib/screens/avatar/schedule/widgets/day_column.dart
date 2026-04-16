@@ -9,7 +9,7 @@ class _HourSlot {
 
   const _HourSlot(this.hour, this.minute, this.tasks);
 
-  double get topPx => hour * _kHourH + minute * _kHourH / 60 + _kCardTopPad;
+  double get topPx => hour * _kHourH + _kCardTopPad;
 }
 
 // ── DayColumn ────────────────────────────────────────────
@@ -58,15 +58,13 @@ class DayColumn extends StatelessWidget {
     DateTime occAt(int h, int m) =>
         DateTime(displayDate.year, displayDate.month, displayDate.day, h, m);
 
-    // 발화 시각이 유효 범위인지 확인
+    // 발화 시각이 유효 범위인지 확인 (시작/종료는 '날짜' 기준, endAt 정각은 포함)
     bool inRange(int h, int m) {
       if (viewDay.isBefore(startDay)) return false;
-      // startAt 당일: 지정된 시각 이후만
-      if (viewDay == startDay && occAt(h, m).isBefore(startAt)) return false;
       if (endAt != null) {
         final endDay = DateTime(endAt.year, endAt.month, endAt.day);
         if (viewDay.isAfter(endDay)) return false;
-        if (viewDay == endDay && !occAt(h, m).isBefore(endAt)) return false;
+        if (viewDay == endDay && occAt(h, m).isAfter(endAt)) return false;
       }
       return true;
     }
@@ -81,18 +79,12 @@ class DayColumn extends StatelessWidget {
 
     if (type == 'every_n_hours') {
       final every = (t.scheduleSpec!['every'] as num).toInt().clamp(1, 24);
-      return [
-        for (int h = 0; h < 24; h += every)
-          if (inRange(h, 0)) (t, h, 0),
-      ];
+      return _expandInterval(t, startAt, Duration(hours: every), viewDay, inRange);
     }
 
     if (type == 'every_n_minutes') {
       final every = (t.scheduleSpec!['every'] as num).toInt().clamp(1, 1440);
-      return [
-        for (int m = 0; m < 1440; m += every)
-          if (inRange(m ~/ 60, m % 60)) (t, m ~/ 60, m % 60),
-      ];
+      return _expandInterval(t, startAt, Duration(minutes: every), viewDay, inRange);
     }
 
     // weekly: 해당 요일인지 확인
@@ -107,6 +99,34 @@ class DayColumn extends StatelessWidget {
     final h = _hour(t);
     final m = _minute(t);
     return inRange(h, m) ? [(t, h, m)] : [];
+  }
+
+  /// startAt 기점으로 step 간격의 발화 시각을 viewDay 당일에서 추림
+  static List<(AgentSchedule, int hour, int minute)> _expandInterval(
+    AgentSchedule t,
+    DateTime startAt,
+    Duration step,
+    DateTime viewDay,
+    bool Function(int h, int m) inRange,
+  ) {
+    final dayEnd = viewDay.add(const Duration(days: 1));
+    DateTime occ;
+    if (!startAt.isBefore(viewDay)) {
+      occ = startAt;
+    } else {
+      final diffUs = viewDay.difference(startAt).inMicroseconds;
+      final stepUs = step.inMicroseconds;
+      final k = (diffUs + stepUs - 1) ~/ stepUs;
+      occ = startAt.add(Duration(microseconds: k * stepUs));
+    }
+    final result = <(AgentSchedule, int, int)>[];
+    while (occ.isBefore(dayEnd)) {
+      if (inRange(occ.hour, occ.minute)) {
+        result.add((t, occ.hour, occ.minute));
+      }
+      occ = occ.add(step);
+    }
+    return result;
   }
 
   @override
