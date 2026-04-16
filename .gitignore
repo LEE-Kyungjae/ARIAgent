@@ -69,3 +69,4 @@ ari-app/pubspec.lock
 # Local tool and analysis settings
 **/analysis_options.yaml
 **/devtools_options.yaml
+ari-framework/sample_layout/pubspec.lock
