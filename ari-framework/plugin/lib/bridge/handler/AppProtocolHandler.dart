@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import '../agent/AriAgent.dart';
 
@@ -6,11 +7,14 @@ class AppProtocolHandler {
   final String appId;
   final FutureOr<dynamic> Function(String command, Map<String, dynamic> params)? onCommand;
   final Map<String, dynamic> Function()? onGetState;
+  /// 선택적 종료 훅. false를 반환하면 종료를 취소합니다. null/true면 정상 종료.
+  final FutureOr<bool?> Function()? onShutdown;
 
   AppProtocolHandler({
     required this.appId,
     this.onCommand,
     this.onGetState,
+    this.onShutdown,
   });
 
   final List<StreamSubscription> _subscriptions = [];
@@ -91,6 +95,23 @@ class AppProtocolHandler {
       final state = onGetState!();
       if (requestId != null) {
         AriAgent.sendResponse(requestId: requestId, result: state);
+      }
+      return;
+    }
+
+    // Handle reserved command: SHUTDOWN
+    if (command == 'SHUTDOWN') {
+      final proceed = (await onShutdown?.call()) ?? true;
+      if (requestId != null) {
+        AriAgent.sendResponse(
+          requestId: requestId,
+          result: {'ok': proceed, 'shuttingDown': proceed},
+        );
+      }
+      if (proceed) {
+        // 응답이 소켓으로 빠져나간 뒤 종료되도록 짧게 지연
+        await Future.delayed(const Duration(milliseconds: 300));
+        exit(0);
       }
       return;
     }

@@ -87,8 +87,7 @@ Flutter 앱 (쉘) <-> 로컬 서버 (ari-server) <-> 에이전트 런타임 (age
   - 클라이언트 측에서 이 프로토콜은 `AppProtocolHandler`(Flutter 앱의 경우)를 통해 추상화되어 `appId`, `onCommand`, `onGetState` 콜백을 간단히 주입할 수 있습니다.
 
 - **범용 도구 (Universal Tools)**:
-  - `launch_app(appName, parameters)`: 번들/폴더 이름으로 앱을 실행합니다.
-  - `terminate_app(appId)`: 통신 ID로 실행 중인 앱을 종료합니다.
+  - `app_lifecycle(action, appName, env?, args?)`: `action: "launch"`로 앱을 실행하거나 `action: "terminate"`로 종료합니다.
   - `read_app_state(appId)`: 앱의 실시간 동적 상태를 가져옵니다.
   - `send_app_command(appId, command, data)`: 앱에 특정 명령을 보냅니다.
 
@@ -100,7 +99,7 @@ Flutter 앱 (쉘) <-> 로컬 서버 (ari-server) <-> 에이전트 런타임 (age
   - `reload_skills` 도구를 사용하여 서버를 재시작하지 않고 파일 변경 사항을 동기화할 수 있습니다.
 - **주요 메인 도구**:
   - `execute_bash`: 직접적인 쉘 실행.
-  - `launch_app`, `terminate_app`, `read_app_state`, `send_app_command`: 통합된 앱 라이프사이클 및 통신 제어.
+  - `app_lifecycle`, `read_app_state`, `send_app_command`: 통합된 앱 라이프사이클 및 통신 제어.
   - `create_skill`: ARI가 자신의 능력을 확장하기 위한 자기 진화형 도구.
   - `web_browse`, `web_fetch`: 외부 정보 수집.
   - `update_core_memory`, `append_daily_memory`: 지속성 및 컨텍스트 관리.
