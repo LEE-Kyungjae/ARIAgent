@@ -266,27 +266,30 @@ class ConfigProvider extends ChangeNotifier {
     }
   }
 
-  // ─── OAuth 관련 ─────────────────────────────────────────────
+  // ─── OAuth 관련 (accountId 단위로 다중 계정 지원) ─────────
 
-  /// 지원되는 OAuth 프로바이더 목록 + 로그인 상태 조회
-  Future<List<Map<String, dynamic>>?> getOAuthProviders() async {
+  /// 저장된 OAuth 계정 목록 조회
+  Future<List<Map<String, dynamic>>?> getOAuthAccounts() async {
     try {
       final result = await AriAgent.call('/OAUTH_PROVIDERS');
-      final providers = result['providers'];
-      if (providers is List) {
-        return providers.cast<Map<String, dynamic>>();
+      final accounts = result['accounts'];
+      if (accounts is List) {
+        return accounts.cast<Map<String, dynamic>>();
       }
       return null;
     } catch (e) {
-      debugPrint('[ConfigProvider] getOAuthProviders failed: $e');
+      debugPrint('[ConfigProvider] getOAuthAccounts failed: $e');
       return null;
     }
   }
 
   /// OAuth 로그인 시작 (진행 상황은 /OAUTH_EVENT push로 수신)
-  Future<bool> startOAuthLogin(String provider) async {
+  Future<bool> startOAuthLogin(String accountId, String provider) async {
     try {
-      await AriAgent.call('/OAUTH_LOGIN', {'provider': provider});
+      await AriAgent.call('/OAUTH_LOGIN', {
+        'accountId': accountId,
+        'provider': provider,
+      });
       return true;
     } catch (e) {
       debugPrint('[ConfigProvider] startOAuthLogin failed: $e');
@@ -295,10 +298,10 @@ class ConfigProvider extends ChangeNotifier {
   }
 
   /// OAuth prompt에 사용자 입력값 전달 (코드 입력 등)
-  Future<bool> sendOAuthPrompt(String provider, String value) async {
+  Future<bool> sendOAuthPrompt(String accountId, String value) async {
     try {
       await AriAgent.call('/OAUTH_PROMPT', {
-        'provider': provider,
+        'accountId': accountId,
         'value': value,
       });
       return true;
@@ -309,9 +312,9 @@ class ConfigProvider extends ChangeNotifier {
   }
 
   /// OAuth 로그인 상태 조회
-  Future<Map<String, dynamic>?> getOAuthStatus(String provider) async {
+  Future<Map<String, dynamic>?> getOAuthStatus(String accountId) async {
     try {
-      return await AriAgent.call('/OAUTH_STATUS', {'provider': provider});
+      return await AriAgent.call('/OAUTH_STATUS', {'accountId': accountId});
     } catch (e) {
       debugPrint('[ConfigProvider] getOAuthStatus failed: $e');
       return null;
@@ -319,9 +322,9 @@ class ConfigProvider extends ChangeNotifier {
   }
 
   /// OAuth 로그아웃
-  Future<bool> logoutOAuth(String provider) async {
+  Future<bool> logoutOAuth(String accountId) async {
     try {
-      await AriAgent.call('/OAUTH_LOGOUT', {'provider': provider});
+      await AriAgent.call('/OAUTH_LOGOUT', {'accountId': accountId});
       return true;
     } catch (e) {
       debugPrint('[ConfigProvider] logoutOAuth failed: $e');

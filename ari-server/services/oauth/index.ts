@@ -1,6 +1,6 @@
 import { loginOpenAICodex, loginAnthropic, loginGitHubCopilot, loginGeminiCli, loginAntigravity, getOAuthApiKey } from "@mariozechner/pi-ai";
-import type { OAuthCredentials } from "@mariozechner/pi-ai";
-import { type OAuthProvider, getProviderCredentials, setProviderCredentials, deleteProviderCredentials } from "../../repositories/oauth_repository.js";
+import type { OAuthCredentials as PiOAuthCredentials } from "@mariozechner/pi-ai";
+import { type OAuthProvider, getEntry, setEntry, deleteEntry, listEntries } from "../../repositories/oauth_repository.js";
 import { logger } from "../../infra/logger.js";
 
 // ─── 프로바이더별 표시명 ─────────────────────────────────────
@@ -23,25 +23,29 @@ export type LoginEvent =
 type LoginProgressCallback = (event: LoginEvent) => void;
 
 // ─── 현재 진행 중인 로그인 플로우의 prompt 대기 큐 ─────────
-// 앱이 /OAUTH_PROMPT 를 통해 응답을 보낼 때까지 resolve를 보관
-const pendingPrompts: Map<OAuthProvider, (value: string) => void> = new Map();
+// accountId 단위로 대기. 같은 provider라도 account별로 독립.
+const pendingPrompts: Map<string, (value: string) => void> = new Map();
 
 // ─── 프로바이더별 로그인 플로우 ─────────────────────────────
-export async function startOAuthLogin(provider: OAuthProvider, onEvent: LoginProgressCallback): Promise<void> {
-  let credentials: OAuthCredentials;
+export async function startOAuthLogin(
+  accountId: string,
+  provider: OAuthProvider,
+  onEvent: LoginProgressCallback,
+): Promise<void> {
+  let credentials: PiOAuthCredentials;
 
   try {
     switch (provider) {
       case "openai-codex":
         credentials = await loginOpenAICodex({
           onAuth: (info) => {
-            logger.info(`[OAuth] Auth URL for openai-codex: ${info.url}`);
+            logger.info(`[OAuth] Auth URL for openai-codex (${accountId}): ${info.url}`);
             onEvent({ type: "auth_url", authUrl: info.url, instructions: info.instructions });
           },
           onPrompt: async (prompt) => {
-            logger.info(`[OAuth] Prompt for openai-codex: ${prompt.message}`);
+            logger.info(`[OAuth] Prompt for openai-codex (${accountId}): ${prompt.message}`);
             onEvent({ type: "prompt", promptMessage: prompt.message });
-            return waitForPromptReply(provider);
+            return waitForPromptReply(accountId);
           },
           onProgress: (message) => {
             onEvent({ type: "progress", message });
@@ -52,12 +56,12 @@ export async function startOAuthLogin(provider: OAuthProvider, onEvent: LoginPro
       case "anthropic":
         credentials = await loginAnthropic(
           (url) => {
-            logger.info(`[OAuth] Auth URL for anthropic: ${url}`);
+            logger.info(`[OAuth] Auth URL for anthropic (${accountId}): ${url}`);
             onEvent({ type: "auth_url", authUrl: url });
           },
           async () => {
             onEvent({ type: "prompt", promptMessage: "인증 코드를 입력하세요" });
-            return waitForPromptReply(provider);
+            return waitForPromptReply(accountId);
           },
         );
         break;
@@ -65,12 +69,12 @@ export async function startOAuthLogin(provider: OAuthProvider, onEvent: LoginPro
       case "github-copilot":
         credentials = await loginGitHubCopilot({
           onAuth: (url, instructions) => {
-            logger.info(`[OAuth] Auth URL for github-copilot: ${url}`);
+            logger.info(`[OAuth] Auth URL for github-copilot (${accountId}): ${url}`);
             onEvent({ type: "auth_url", authUrl: url, instructions });
           },
           onPrompt: async (prompt) => {
             onEvent({ type: "prompt", promptMessage: prompt.message });
-            return waitForPromptReply(provider);
+            return waitForPromptReply(accountId);
           },
           onProgress: (message) => {
             onEvent({ type: "progress", message });
@@ -81,7 +85,7 @@ export async function startOAuthLogin(provider: OAuthProvider, onEvent: LoginPro
       case "google-gemini-cli":
         credentials = await loginGeminiCli(
           (info) => {
-            logger.info(`[OAuth] Auth URL for google-gemini-cli: ${info.url}`);
+            logger.info(`[OAuth] Auth URL for google-gemini-cli (${accountId}): ${info.url}`);
             onEvent({ type: "auth_url", authUrl: info.url, instructions: info.instructions });
           },
           (message) => {
@@ -93,7 +97,7 @@ export async function startOAuthLogin(provider: OAuthProvider, onEvent: LoginPro
       case "google-antigravity":
         credentials = await loginAntigravity(
           (info) => {
-            logger.info(`[OAuth] Auth URL for google-antigravity: ${info.url}`);
+            logger.info(`[OAuth] Auth URL for google-antigravity (${accountId}): ${info.url}`);
             onEvent({ type: "auth_url", authUrl: info.url, instructions: info.instructions });
           },
           (message) => {
@@ -106,26 +110,29 @@ export async function startOAuthLogin(provider: OAuthProvider, onEvent: LoginPro
         throw new Error(`Unsupported OAuth provider: ${provider}`);
     }
 
-    setProviderCredentials(provider, { type: "oauth", ...credentials });
-    logger.info(`[OAuth] Login successful for ${provider}`);
+    setEntry(accountId, {
+      provider,
+      credentials: { type: "oauth", ...credentials },
+    });
+    logger.info(`[OAuth] Login successful for ${provider} (${accountId})`);
     onEvent({ type: "done", message: "로그인 완료" });
   } catch (err: any) {
-    logger.error(`[OAuth] Login failed for ${provider}:`, err);
+    logger.error(`[OAuth] Login failed for ${provider} (${accountId}):`, err);
     onEvent({ type: "error", message: err?.message || "로그인 실패" });
   }
 }
 
 // ─── prompt 응답을 앱에서 보낼 때 사용 ─────────────────────
-function waitForPromptReply(provider: OAuthProvider): Promise<string> {
+function waitForPromptReply(accountId: string): Promise<string> {
   return new Promise<string>((resolve) => {
-    pendingPrompts.set(provider, resolve);
+    pendingPrompts.set(accountId, resolve);
   });
 }
 
-export function resolveOAuthPrompt(provider: OAuthProvider, value: string): boolean {
-  const resolve = pendingPrompts.get(provider);
+export function resolveOAuthPrompt(accountId: string, value: string): boolean {
+  const resolve = pendingPrompts.get(accountId);
   if (resolve) {
-    pendingPrompts.delete(provider);
+    pendingPrompts.delete(accountId);
     resolve(value);
     return true;
   }
@@ -133,45 +140,62 @@ export function resolveOAuthPrompt(provider: OAuthProvider, value: string): bool
 }
 
 // ─── 저장된 credentials로 API Key 획득 (자동 토큰 갱신) ────
-export async function getOAuthApiKeyForProvider(provider: OAuthProvider): Promise<string | null> {
-  const credentials = getProviderCredentials(provider);
-  if (!credentials) return null;
+export async function getOAuthApiKeyForAccount(accountId: string): Promise<string | null> {
+  const entry = getEntry(accountId);
+  if (!entry) return null;
 
+  const { provider, credentials } = entry;
+  // pi-ai 라이브러리는 { [provider]: credentials } 맵을 받는다
   const credMap = { [provider]: credentials } as any;
 
   try {
     const result = await getOAuthApiKey(provider as any, credMap);
     if (!result) {
-      logger.warn(`[OAuth] getOAuthApiKey returned null for ${provider}`);
+      logger.warn(`[OAuth] getOAuthApiKey returned null for ${provider} (${accountId})`);
       return null;
     }
 
     // 갱신된 credentials가 있으면 저장
     if (result.newCredentials) {
-      setProviderCredentials(provider, { type: "oauth", ...result.newCredentials });
+      setEntry(accountId, {
+        provider,
+        credentials: { type: "oauth", ...result.newCredentials },
+      });
     }
 
     return result.apiKey;
   } catch (err) {
-    logger.error(`[OAuth] Failed to get API key for ${provider}:`, err);
+    logger.error(`[OAuth] Failed to get API key for ${provider} (${accountId}):`, err);
     return null;
   }
 }
 
 // ─── 로그인 상태 확인 ────────────────────────────────────────
-export function getOAuthStatus(provider: OAuthProvider): { loggedIn: boolean; provider: OAuthProvider } {
-  const credentials = getProviderCredentials(provider);
-  return { loggedIn: !!credentials, provider };
+export function getOAuthStatus(accountId: string): {
+  loggedIn: boolean;
+  accountId: string;
+  provider: OAuthProvider | null;
+} {
+  const entry = getEntry(accountId);
+  return {
+    accountId,
+    loggedIn: !!entry,
+    provider: entry?.provider ?? null,
+  };
 }
 
 // ─── 로그아웃 ────────────────────────────────────────────────
-export function logoutOAuth(provider: OAuthProvider): void {
-  deleteProviderCredentials(provider);
-  logger.info(`[OAuth] Logged out from ${provider}`);
+export function logoutOAuth(accountId: string): void {
+  deleteEntry(accountId);
+  logger.info(`[OAuth] Logged out account ${accountId}`);
 }
 
-// ─── 모든 OAuth 프로바이더 상태 ────────────────────────────
-export function getAllOAuthStatuses() {
-  const providers: OAuthProvider[] = ["openai-codex", "anthropic", "github-copilot", "google-gemini-cli", "google-antigravity"];
-  return providers.map(getOAuthStatus);
+// ─── 저장된 계정 전체 상태 ────────────────────────────────
+export function getAllOAuthAccounts() {
+  return listEntries().map((e) => ({
+    accountId: e.accountId,
+    provider: e.provider,
+    label: OAUTH_PROVIDER_LABELS[e.provider],
+    loggedIn: true,
+  }));
 }

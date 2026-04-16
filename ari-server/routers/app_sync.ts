@@ -23,6 +23,8 @@ router.on("/HEALTH", async (ws) => {
         provider: p.provider,
         model: p.model,
         hasApiKey: !!p.apiKey,
+        authType: p.authType,
+        accountId: p.accountId || p.provider,
       })),
       model: state.currentModel,
       provider: state.currentProvider,

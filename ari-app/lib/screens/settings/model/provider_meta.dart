@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
+
+const _uuid = Uuid();
 
 // ─── 프로바이더 메타데이터 ───────────────────────────────────
 
@@ -191,6 +194,7 @@ class ProviderItem {
   bool apiKeyObscured;
   String authType; // 'apikey' | 'oauth'
   bool oauthLoggedIn;
+  String accountId; // OAuth 다중 계정 구분자. 서버/로컬 어디서든 고유.
   final TextEditingController apiKeyController;
 
   ProviderItem({
@@ -199,7 +203,9 @@ class ProviderItem {
     required this.hasApiKey,
     this.authType = 'apikey',
     this.oauthLoggedIn = false,
-  }) : apiKeyObscured = true,
+    String? accountId,
+  }) : accountId = accountId ?? _uuid.v4(),
+       apiKeyObscured = true,
        apiKeyController = TextEditingController(
          text: hasApiKey ? '••••••••••••••••' : '',
        );
@@ -213,6 +219,7 @@ class ProviderItem {
       'provider': provider,
       'model': model,
       'authType': authType,
+      'accountId': accountId,
       if (authType != 'oauth')
         'apiKey': apiKeyController.text.contains('••')
             ? null

@@ -1,7 +1,6 @@
 import { getModel } from "@mariozechner/pi-ai";
 import { AIProviderConfig, AIProviders } from "../../models/settings.js";
-import { getOAuthApiKeyForProvider } from "../oauth/index.js";
-import type { OAuthProvider } from "../../repositories/oauth_repository.js";
+import { getOAuthApiKeyForAccount } from "../oauth/index.js";
 
 // 이제 서버는 별도의 매핑 테이블을 관리하지 않습니다.
 // 모든 ID 제어는 클라이언트(ari-app)의 provider_meta.dart에서 수행합니다.
@@ -62,7 +61,9 @@ export function isOAuthProvider(provider: string): boolean {
 // OAuth 프로바이더의 API Key를 동적으로 획득한다
 export async function resolveApiKey(config: AIProviderConfig): Promise<string | null> {
   if (config.authType === "oauth" || isOAuthProvider(config.provider)) {
-    return await getOAuthApiKeyForProvider(config.provider as OAuthProvider);
+    // accountId가 없으면 레거시 호환으로 provider id 사용
+    const accountId = config.accountId || config.provider;
+    return await getOAuthApiKeyForAccount(accountId);
   }
   return config.apiKey || null;
 }

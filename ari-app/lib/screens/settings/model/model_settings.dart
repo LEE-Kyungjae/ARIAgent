@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/config_provider.dart';
@@ -5,7 +6,6 @@ import 'package:ari_plugin/ari_plugin.dart';
 import 'provider_meta.dart';
 import 'provider_card.dart';
 import 'widgets/add_provider_button.dart';
-import 'widgets/save_button.dart';
 import 'widgets/help_section.dart';
 import 'widgets/server_connection_notice.dart';
 
@@ -18,9 +18,10 @@ class ModelSettings extends StatefulWidget {
 
 class _ModelSettingsState extends State<ModelSettings> {
   List<ProviderItem> _providers = [];
-  bool _isSaving = false;
-  String _statusMessage = '';
   bool _showHelp = false;
+  Timer? _saveDebounce;
+  Timer? _statusClearTimer;
+  String _saveStatus = ''; // '', 'saving', 'saved', 'error'
 
   @override
   void initState() {
@@ -33,6 +34,8 @@ class _ModelSettingsState extends State<ModelSettings> {
   @override
   void dispose() {
     AriAgent.connectionNotifier.removeListener(_onConnectionChanged);
+    _saveDebounce?.cancel();
+    _statusClearTimer?.cancel();
     for (var p in _providers) {
       p.dispose();
     }
@@ -50,6 +53,11 @@ class _ModelSettingsState extends State<ModelSettings> {
     final data = await cfg.getServerHealth();
 
     if (data != null && mounted) {
+      // 자동저장 대기 중이면 서버 상태로 덮어쓰지 않음 (race 방지)
+      if (_saveDebounce?.isActive ?? false) return;
+      if (_saveStatus == 'saving') return;
+
+      final old = _providers;
       setState(() {
         if (data['providers'] != null &&
             (data['providers'] as List).isNotEmpty) {
@@ -64,6 +72,8 @@ class _ModelSettingsState extends State<ModelSettings> {
               model: p['model'] ?? metaFor(id).models.firstOrNull ?? '',
               hasApiKey: p['hasApiKey'] == true,
               authType: authType,
+              // 서버가 주는 accountId를 유지. 없으면 자동 생성.
+              accountId: p['accountId'] as String?,
             );
           }).toList();
         } else {
@@ -80,24 +90,37 @@ class _ModelSettingsState extends State<ModelSettings> {
           ];
         }
       });
+      // 이전 controller 메모리 누수 방지
+      for (var p in old) {
+        p.dispose();
+      }
     }
   }
 
-  Future<void> _saveSettings() async {
-    setState(() {
-      _isSaving = true;
-      _statusMessage = '';
-    });
+  // ─── 자동 저장 ────────────────────────────────────────────
+
+  void _scheduleSave({
+    Duration delay = const Duration(milliseconds: 500),
+  }) {
+    _saveDebounce?.cancel();
+    _saveDebounce = Timer(delay, _persistChanges);
+  }
+
+  Future<void> _persistChanges() async {
+    if (!mounted) return;
+    setState(() => _saveStatus = 'saving');
     final cfg = Provider.of<ConfigProvider>(context, listen: false);
     final success = await cfg.saveProviders(
       _providers.map((p) => p.toJson()).toList(),
     );
-    if (mounted) {
-      setState(() {
-        _isSaving = false;
-        _statusMessage = success ? '✅ 설정 저장 완료.' : '❌ 저장 실패';
-      });
-    }
+    if (!mounted) return;
+    setState(() => _saveStatus = success ? 'saved' : 'error');
+    _statusClearTimer?.cancel();
+    _statusClearTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted && _saveStatus != 'saving') {
+        setState(() => _saveStatus = '');
+      }
+    });
   }
 
   // ─── 목록 조작 ────────────────────────────────────────────
@@ -113,6 +136,7 @@ class _ModelSettingsState extends State<ModelSettings> {
         ),
       );
     });
+    _scheduleSave(delay: const Duration(milliseconds: 100));
   }
 
   void _removeProvider(int index) {
@@ -120,17 +144,20 @@ class _ModelSettingsState extends State<ModelSettings> {
       _providers[index].dispose();
       _providers.removeAt(index);
     });
+    _scheduleSave(delay: const Duration(milliseconds: 100));
   }
 
   void _moveUp(int index) {
     if (index > 0) {
       setState(() => _providers.insert(index - 1, _providers.removeAt(index)));
+      _scheduleSave(delay: const Duration(milliseconds: 100));
     }
   }
 
   void _moveDown(int index) {
     if (index < _providers.length - 1) {
       setState(() => _providers.insert(index + 1, _providers.removeAt(index)));
+      _scheduleSave(delay: const Duration(milliseconds: 100));
     }
   }
 
@@ -142,103 +169,112 @@ class _ModelSettingsState extends State<ModelSettings> {
       return const ServerConnectionNotice();
     }
 
-    return Column(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'AI Providers (우선순위 순)',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => setState(() => _showHelp = !_showHelp),
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: Icon(
-                          _showHelp ? Icons.help : Icons.help_outline,
-                          size: 16,
-                          color: _showHelp
-                              ? const Color(0xFF6C63FF)
-                              : Colors.white.withValues(alpha: 0.3),
-                        ),
-                      ),
-                    ),
-                  ],
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'AI Providers (우선순위 순)',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.6),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.0,
                 ),
-                if (_showHelp) ...[
-                  const SizedBox(height: 12),
-                  const HelpSection(),
-                ],
-                const SizedBox(height: 16),
-                ...List.generate(
-                  _providers.length,
-                  (i) => ProviderCard(
-                    key: ValueKey('provider_${_providers[i].provider}_$i'),
-                    item: _providers[i],
-                    index: i,
-                    totalCount: _providers.length,
-                    onMoveUp: () => _moveUp(i),
-                    onMoveDown: () => _moveDown(i),
-                    onRemove: () => _removeProvider(i),
-                    onChanged: () => setState(() {}),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildAutoSaveIndicator(),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () => setState(() => _showHelp = !_showHelp),
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: Icon(
+                        _showHelp ? Icons.help : Icons.help_outline,
+                        size: 16,
+                        color: _showHelp
+                            ? const Color(0xFF6C63FF)
+                            : Colors.white.withValues(alpha: 0.3),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                AddProviderButton(onTap: _addProvider),
-                const SizedBox(height: 32),
-              ],
+                ],
+              ),
+            ],
+          ),
+          if (_showHelp) ...[
+            const SizedBox(height: 12),
+            const HelpSection(),
+          ],
+          const SizedBox(height: 16),
+          ...List.generate(
+            _providers.length,
+            (i) => ProviderCard(
+              key: ValueKey('provider_${_providers[i].accountId}'),
+              item: _providers[i],
+              index: i,
+              totalCount: _providers.length,
+              onMoveUp: () => _moveUp(i),
+              onMoveDown: () => _moveDown(i),
+              onRemove: () => _removeProvider(i),
+              onChanged: () {
+                setState(() {});
+                _scheduleSave();
+              },
             ),
           ),
-        ),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0D0D1A),
-            border: Border(
-              top: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
-            ),
-          ),
-          child: SafeArea(
-            top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildStatusMessage(),
-                const SizedBox(height: 8),
-                SaveButton(isSaving: _isSaving, onTap: _saveSettings),
-              ],
-            ),
-          ),
-        ),
-      ],
+          const SizedBox(height: 12),
+          AddProviderButton(onTap: _addProvider),
+          const SizedBox(height: 32),
+        ],
+      ),
     );
   }
 
-  Widget _buildStatusMessage() {
-    if (_statusMessage.isEmpty) return const SizedBox();
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Text(
-        _statusMessage,
-        style: TextStyle(
-          color: _statusMessage.startsWith('✅')
-              ? const Color(0xFF4ADE80)
-              : const Color(0xFFFF6B6B),
-          fontSize: 12,
-        ),
-      ),
+  Widget _buildAutoSaveIndicator() {
+    if (_saveStatus.isEmpty) return const SizedBox.shrink();
+    Color color;
+    String text;
+    Widget leading;
+    switch (_saveStatus) {
+      case 'saving':
+        color = Colors.white.withValues(alpha: 0.5);
+        text = '저장 중...';
+        leading = SizedBox(
+          width: 10,
+          height: 10,
+          child: CircularProgressIndicator(
+            strokeWidth: 1.5,
+            color: color,
+          ),
+        );
+        break;
+      case 'saved':
+        color = const Color(0xFF4ADE80);
+        text = '저장됨';
+        leading = Icon(Icons.check_circle_outline, size: 12, color: color);
+        break;
+      case 'error':
+        color = const Color(0xFFFF6B6B);
+        text = '저장 실패';
+        leading = Icon(Icons.error_outline, size: 12, color: color);
+        break;
+      default:
+        return const SizedBox.shrink();
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        leading,
+        const SizedBox(width: 4),
+        Text(text, style: TextStyle(color: color, fontSize: 11)),
+      ],
     );
   }
 }

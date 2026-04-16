@@ -10,8 +10,9 @@ import 'oauth_prompt_dialog.dart';
 
 class OAuthSection extends StatefulWidget {
   final ProviderItem item;
+  final VoidCallback? onChanged;
 
-  const OAuthSection({super.key, required this.item});
+  const OAuthSection({super.key, required this.item, this.onChanged});
 
   @override
   State<OAuthSection> createState() => _OAuthSectionState();
@@ -25,6 +26,7 @@ class _OAuthSectionState extends State<OAuthSection> {
   Timer? _pollTimer;
 
   String get _provider => widget.item.provider;
+  String get _accountId => widget.item.accountId;
 
   @override
   void initState() {
@@ -36,7 +38,8 @@ class _OAuthSectionState extends State<OAuthSection> {
   @override
   void didUpdateWidget(OAuthSection old) {
     super.didUpdateWidget(old);
-    if (old.item.provider != widget.item.provider) {
+    if (old.item.accountId != widget.item.accountId ||
+        old.item.provider != widget.item.provider) {
       _eventSub?.cancel();
       setState(() {
         _isLoggedIn = false;
@@ -64,7 +67,7 @@ class _OAuthSectionState extends State<OAuthSection> {
     _pollTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
       if (!mounted) return;
       final cfg = Provider.of<ConfigProvider>(context, listen: false);
-      final result = await cfg.getOAuthStatus(_provider);
+      final result = await cfg.getOAuthStatus(_accountId);
       if (mounted && result != null && result['loggedIn'] == true) {
         setState(() {
           _isLoggedIn = true;
@@ -73,6 +76,7 @@ class _OAuthSectionState extends State<OAuthSection> {
         });
         _closeDialog();
         _stopPolling();
+        widget.onChanged?.call();
       }
     });
   }
@@ -90,7 +94,7 @@ class _OAuthSectionState extends State<OAuthSection> {
 
   Future<void> _loadInitialStatus() async {
     final cfg = Provider.of<ConfigProvider>(context, listen: false);
-    final result = await cfg.getOAuthStatus(_provider);
+    final result = await cfg.getOAuthStatus(_accountId);
     if (mounted && result != null) {
       setState(() => _isLoggedIn = result['loggedIn'] == true);
       widget.item.oauthLoggedIn = _isLoggedIn;
@@ -101,7 +105,12 @@ class _OAuthSectionState extends State<OAuthSection> {
 
   void _subscribeEvents() {
     _eventSub = AriAgent.on('/OAUTH_EVENT', (data) {
-      if (data['provider'] != _provider || !mounted) return;
+      // accountId가 있는 이벤트는 accountId로 필터, 레거시는 provider로
+      final eventAccountId = data['accountId'] as String?;
+      final matches = eventAccountId != null
+          ? eventAccountId == _accountId
+          : data['provider'] == _provider;
+      if (!matches || !mounted) return;
       final type = data['type'] as String?;
       if (type == null) return;
 
@@ -141,7 +150,7 @@ class _OAuthSectionState extends State<OAuthSection> {
               _isDialogOpen = true;
               showOAuthPromptDialog(
                 context,
-                provider: _provider,
+                accountId: _accountId,
                 promptMessage: msg,
               ).then((_) {
                 if (mounted) _isDialogOpen = false;
@@ -157,6 +166,7 @@ class _OAuthSectionState extends State<OAuthSection> {
             widget.item.oauthLoggedIn = true;
             _closeDialog();
             _stopPolling();
+            widget.onChanged?.call();
             break;
           case 'error':
             _statusMsg = '❌ ${data['message'] ?? '오류 발생'}';
@@ -171,18 +181,19 @@ class _OAuthSectionState extends State<OAuthSection> {
   Future<void> _login() async {
     setState(() => _statusMsg = '로그인 시작 중...');
     final cfg = Provider.of<ConfigProvider>(context, listen: false);
-    await cfg.startOAuthLogin(_provider);
+    await cfg.startOAuthLogin(_accountId, _provider);
   }
 
   Future<void> _logout() async {
     final cfg = Provider.of<ConfigProvider>(context, listen: false);
-    await cfg.logoutOAuth(_provider);
+    await cfg.logoutOAuth(_accountId);
     if (mounted) {
       setState(() {
         _isLoggedIn = false;
         _statusMsg = '';
         widget.item.oauthLoggedIn = false;
       });
+      widget.onChanged?.call();
     }
   }
 

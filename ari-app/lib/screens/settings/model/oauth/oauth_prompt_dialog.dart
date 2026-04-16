@@ -5,7 +5,7 @@ import '../../../../providers/config_provider.dart';
 /// 인증 코드 입력 다이얼로그
 Future<void> showOAuthPromptDialog(
   BuildContext context, {
-  required String provider,
+  required String accountId,
   required String promptMessage,
 }) async {
   final controller = TextEditingController();
@@ -62,7 +62,7 @@ Future<void> showOAuthPromptDialog(
             Navigator.of(ctx).pop();
             if (value.isNotEmpty) {
               final cfg = Provider.of<ConfigProvider>(ctx, listen: false);
-              await cfg.sendOAuthPrompt(provider, value);
+              await cfg.sendOAuthPrompt(accountId, value);
             }
           },
           child: const Text('확인', style: TextStyle(color: Colors.white)),

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 import 'provider_meta.dart';
 import 'oauth/oauth_section.dart';
 import 'widgets/api_key_input.dart';
 import 'widgets/settings_dropdown.dart';
+
+const _uuid = Uuid();
 
 class ProviderCard extends StatefulWidget {
   final ProviderItem item;
@@ -51,9 +54,9 @@ class _ProviderCardState extends State<ProviderCard> {
           _buildDropdownRow(meta),
           const SizedBox(height: 8),
           if (meta.isOAuth)
-            OAuthSection(item: item)
+            OAuthSection(item: item, onChanged: widget.onChanged)
           else
-            ApiKeyInput(item: item, onChanged: () => setState(() {})),
+            ApiKeyInput(item: item, onChanged: widget.onChanged),
         ],
       ),
     );
@@ -125,17 +128,19 @@ class _ProviderCardState extends State<ProviderCard> {
                 .map((m) => DropdownMenuItem(value: m.id, child: Text(m.label)))
                 .toList(),
             onChanged: (v) {
-              if (v != null) {
+              if (v != null && v != item.provider) {
                 final newMeta = metaFor(v);
                 setState(() {
                   item.provider = v;
                   item.authType = newMeta.isOAuth ? 'oauth' : 'apikey';
                   item.model = newMeta.models.firstOrNull?.id ?? '';
+                  // 프로바이더가 바뀌면 이전 상태를 전부 비워준다.
+                  // accountId도 새로 발급 — 이전 OAuth 계정과 완전 분리.
+                  item.accountId = _uuid.v4();
                   item.oauthLoggedIn = false;
-                  if (!newMeta.isOAuth) {
-                    item.apiKeyController.clear();
-                    item.hasApiKey = false;
-                  }
+                  item.hasApiKey = false;
+                  item.apiKeyController.clear();
+                  item.apiKeyObscured = true;
                 });
                 widget.onChanged();
               }

@@ -14,12 +14,16 @@ export class AIProviderConfig {
   model: string;
   apiKey: string;
   authType: AuthType;
+  accountId: string;
 
   constructor(data: any = {}) {
     this.provider = data?.provider || "";
     this.model = data?.model || "";
     this.apiKey = data?.apiKey || "";
     this.authType = data?.authType || "apikey";
+    // 레거시 엔트리는 accountId 누락 → provider id를 fallback으로
+    // (기존 단일 OAuth 계정을 그대로 유지)
+    this.accountId = data?.accountId || this.provider;
   }
 }
 

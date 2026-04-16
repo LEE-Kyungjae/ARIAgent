@@ -45,6 +45,7 @@ class _ApiKeyInputState extends State<ApiKeyInput> {
                   item.apiKeyController.clear();
                 }
               },
+              onChanged: (_) => widget.onChanged(),
             ),
           ),
           IconButton(
@@ -55,7 +56,6 @@ class _ApiKeyInputState extends State<ApiKeyInput> {
             ),
             onPressed: () {
               setState(() => item.apiKeyObscured = !item.apiKeyObscured);
-              widget.onChanged();
             },
           ),
         ],
