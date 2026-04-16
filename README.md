@@ -87,9 +87,9 @@ Flutter 앱 (쉘) <-> 로컬 서버 (ari-server) <-> 에이전트 런타임 (age
   - 클라이언트 측에서 이 프로토콜은 `AppProtocolHandler`(Flutter 앱의 경우)를 통해 추상화되어 `appId`, `onCommand`, `onGetState` 콜백을 간단히 주입할 수 있습니다.
 
 - **범용 도구 (Universal Tools)**:
-  - `app_lifecycle(action, appName, env?, args?)`: `action: "launch"`로 앱을 실행하거나 `action: "terminate"`로 종료합니다.
+  - `control_app(app, command, params?, env?, args?)`: 앱에 명령을 보냅니다. 앱이 꺼져 있으면 자동으로 실행 후 연결을 기다립니다. `command: "SHUTDOWN"`을 보내면 앱이 스스로 정리 후 종료합니다.
   - `read_app_state(appId)`: 앱의 실시간 동적 상태를 가져옵니다.
-  - `send_app_command(appId, command, data)`: 앱에 특정 명령을 보냅니다.
+  - `list_apps()`: 연결·설치된 앱 목록을 조회합니다.
 
 ## 현재 도구 / 스킬 규칙
 
@@ -99,7 +99,7 @@ Flutter 앱 (쉘) <-> 로컬 서버 (ari-server) <-> 에이전트 런타임 (age
   - `reload_skills` 도구를 사용하여 서버를 재시작하지 않고 파일 변경 사항을 동기화할 수 있습니다.
 - **주요 메인 도구**:
   - `execute_bash`: 직접적인 쉘 실행.
-  - `app_lifecycle`, `read_app_state`, `send_app_command`: 통합된 앱 라이프사이클 및 통신 제어.
+  - `control_app`, `read_app_state`, `list_apps`: 통합된 앱 라이프사이클 및 통신 제어.
   - `create_skill`: ARI가 자신의 능력을 확장하기 위한 자기 진화형 도구.
   - `web_browse`, `web_fetch`: 외부 정보 수집.
   - `update_core_memory`, `append_daily_memory`: 지속성 및 컨텍스트 관리.
@@ -135,7 +135,7 @@ ARI 프레임워크를 활용하여 개발된 예제 프로젝트들입니다. �
 
 1. **앱 단위로 생각하기**: 기능은 이상적으로 표준화된 인터페이스를 가진 '앱'으로 캡슐화되어야 합니다.
 2. **권한은 `ari-server`에 있음**: 앱은 상태를 보고하지만, 다음에 일어날 일은 서버가 결정합니다.
-3. **표준 프로토콜 우선**: `send_app_command`로 달성할 수 있다면 앱 전용 도구(예: `notepad_write`)를 만드는 것을 피하세요.
+3. **표준 프로토콜 우선**: `control_app`으로 달성할 수 있다면 앱 전용 도구(예: `notepad_write`)를 만드는 것을 피하세요.
 4. **자기 진화 (Self-Evolution)**: ARI가 `~/.ari-agent/` 아래에 자신의 도구와 스킬을 직접 생성할 수 있도록 지원합니다.
 5. **로깅**: 모든 백엔드 작업에는 `ari-server/infra/logger.ts`의 `logger`를 사용하세요.
 6. **인코딩**: 모든 텍스트 파일(소스 코드, 마크다운, JSON 등)은 교차 플랫폼 호환성을 위해 **UTF-8 (BOM 없음)**으로 저장하고 **LF**를 줄바꿈 문자로 사용해야 합니다.

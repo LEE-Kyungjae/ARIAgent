@@ -1,11 +1,3 @@
-/**
- * [LEGACY] 앱 제어 도구 세트
- *
- * 이 파일은 `control_app.ts`(실험적 통합 도구)와의 A/B 테스트를 위한 **레거시 arm**입니다.
- * `read_app_state`, `list_apps`는 공통 도구이므로 `app_status.ts`로 이동되었습니다.
- *
- * A/B 테스트가 종료되어 `control_app`으로 완전 전환이 결정되면 이 파일 전체를 삭제하면 됩니다.
- */
 import { AgentTool } from "@mariozechner/pi-agent-core";
 import { Type } from "@mariozechner/pi-ai";
 import { spawn } from "child_process";
@@ -17,106 +9,36 @@ import { logger } from "../infra/logger.js";
 import { findAppExecutable } from "../infra/runtime_paths.js";
 import { DATA_DIR } from "../infra/data.js";
 
+const LAUNCH_WAIT_TIMEOUT_MS = 15_000;
+const LAUNCH_POLL_INTERVAL_MS = 300;
+const SHUTDOWN_COMMAND = "SHUTDOWN";
+
 function resolveAppExecutable(appName: string): string {
   const executable = findAppExecutable(appName);
   if (executable) return executable;
   throw new Error(`로컬 ${appName} 실행 파일을 찾지 못했습니다.`);
 }
 
-export const sendAppCommandTool: AgentTool = {
-  name: "send_app_command",
-  label: "앱 명령 전송",
-  description:
-    "실행 중인 특정 앱에 제어 명령을 보냅니다. 해당 앱의 SKILL.md 파일에서 지원하는 명령어 목록을 먼저 확인하십시오.",
-  parameters: Type.Object({
-    appId: Type.String({
-      description: "명령을 받을 앱의 식별자 (예: youtube_player, notepad)",
-    }),
-    command: Type.String({
-      description: "실행할 명령어 (예: UPDATE, PLAY, PAUSE 등)",
-    }),
-    params: Type.Optional(
-      Type.Any({ description: "명령어에 필요한 파라미터 객체" }),
-    ),
-  }),
-  execute: async (_id, params) => {
-    const {
-      appId,
-      command,
-      params: cmdParams,
-    } = params as { appId: string; command: string; params?: any };
+async function waitForAppConnection(
+  appId: string,
+  timeoutMs: number,
+): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (UserSocketHandler.isAppConnected(appId)) return true;
+    await new Promise((r) => setTimeout(r, LAUNCH_POLL_INTERVAL_MS));
+  }
+  return UserSocketHandler.isAppConnected(appId);
+}
 
-    try {
-      const result = await UserSocketHandler.commandApp(
-        appId,
-        command,
-        cmdParams || {},
-      );
-
-      const isAppError = result?.status === "error" || result?.ok === false;
-
-      if (isAppError) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `❌ '${appId}' 앱에서 명령 실행 중 에러가 발생했습니다:\n${result?.message || JSON.stringify(result)}`,
-            },
-          ],
-          details: {
-            appId,
-            command,
-            params: cmdParams,
-            result,
-            success: false,
-            error: result?.message,
-          },
-        };
-      }
-
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `🚀 '${appId}' 앱의 '${command}' 실행 결과:\n${JSON.stringify(result, null, 2)}`,
-          },
-        ],
-        details: { appId, command, params: cmdParams, result, success: true },
-      };
-    } catch (error: any) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `❌ '${appId}' 앱으로 명령 전송 또는 실행 실패: ${error.message}`,
-          },
-        ],
-        details: { appId, command, success: false, error: error.message },
-      };
-    }
-  },
-};
-
-async function launchApp(
+function spawnApp(
   appName: string,
   env?: Record<string, string>,
   args?: string[],
 ) {
-  if (UserSocketHandler.isAppConnected(appName)) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `⚠️ '${appName}' 앱이 이미 실행 중이며 서버에 연결되어 있습니다. 새로운 작업을 수행하려면 'send_app_command'를 사용하세요.`,
-        },
-      ],
-      details: { appName, success: false, alreadyRunning: true },
-    };
-  }
-
   const executable = resolveAppExecutable(appName);
   logger.info(
-    `[AppLifecycle] Launching app '${appName}' via: ${executable} (args: ${JSON.stringify(args || [])})`,
+    `[ControlApp] Launching '${appName}' via: ${executable} (args: ${JSON.stringify(args || [])})`,
   );
 
   const launchLogDir = path.join(DATA_DIR, "launch-logs");
@@ -153,101 +75,171 @@ async function launchApp(
   });
 
   child.on("error", (error: any) => {
-    logger.error(`[AppLifecycle] ${appName} 실행 실패: ${error.message}`);
+    logger.error(`[ControlApp] ${appName} 실행 실패: ${error.message}`);
   });
   child.on("spawn", () => {
     logger.info(
-      `[AppLifecycle] ${appName} spawned (pid: ${child.pid ?? "unknown"}) log: ${launchLogPath}`,
+      `[ControlApp] ${appName} spawned (pid: ${child.pid ?? "unknown"}) log: ${launchLogPath}`,
     );
   });
   child.on("exit", (code, signal) => {
     logger.warn(
-      `[AppLifecycle] ${appName} exited (code: ${code ?? "null"}, signal: ${signal ?? "null"})`,
+      `[ControlApp] ${appName} exited (code: ${code ?? "null"}, signal: ${signal ?? "null"})`,
     );
   });
   child.unref();
-
-  return {
-    content: [{ type: "text" as const, text: `✅ '${appName}' 앱을 실행했습니다.` }],
-    details: { appName, success: true },
-  };
 }
 
-async function terminateApp(appName: string) {
-  logger.info(`[AppLifecycle] Terminating app: ${appName}`);
-
-  await new Promise<void>((resolve) => {
-    let child;
-    if (process.platform === "darwin") {
-      child = spawn("pkill", ["-x", appName], { stdio: "ignore" });
-    } else if (process.platform === "win32") {
-      child = spawn("taskkill", ["/IM", `${appName}.exe`, "/F"], {
-        stdio: "ignore",
-        windowsHide: true,
-      });
-    } else {
-      resolve();
-      return;
-    }
-    child.on("error", () => resolve());
-    child.on("exit", () => resolve());
-  });
-
-  await new Promise((resolve) => setTimeout(resolve, 250));
-
-  return {
-    content: [{ type: "text" as const, text: `✅ '${appName}' 앱을 종료했습니다.` }],
-    details: { appName, success: true },
-  };
-}
-
-export const appLifecycleTool: AgentTool = {
-  name: "app_lifecycle",
-  label: "앱 실행/종료",
+/**
+ * control_app
+ *
+ * 단일 동작: 앱에 명령을 전송합니다.
+ *  - 앱이 꺼져 있으면 자동으로 실행 후 연결을 기다려 명령을 전송합니다.
+ *  - 종료도 별도 action이 아닌 'SHUTDOWN' 명령으로 처리합니다. (앱이 SHUTDOWN을 받으면 스스로 정리 후 종료)
+ *  - command === 'SHUTDOWN'이고 앱이 이미 꺼져 있다면 no-op으로 반환합니다. (종료 의도로 앱을 켜지 않음)
+ *
+ * 프리즈/무응답 앱의 강제 종료는 이 도구가 담당하지 않습니다. 필요하면 execute_bash로 OS 레벨 처리하세요.
+ */
+export const controlAppTool: AgentTool = {
+  name: "control_app",
+  label: "앱 제어",
   description:
-    "OS 레벨에서 앱 프로세스를 실행하거나 종료합니다. action으로 'launch' 또는 'terminate'를 지정합니다.",
+    "앱에 명령을 전송합니다. 앱이 꺼져 있으면 자동으로 실행 후 명령을 전달합니다. 앱을 끄고 싶을 때는 'SHUTDOWN' 명령을 보내세요 (앱이 스스로 종료).",
   parameters: Type.Object({
-    action: Type.String({
-      description: "수행할 동작: 'launch' (실행) 또는 'terminate' (종료)",
+    app: Type.String({
+      description: "대상 앱 식별자 (번들/폴더 이름이자 WebSocket appId)",
     }),
-    appName: Type.String({
-      description: "대상 앱의 이름 (번들/폴더 이름)",
+    command: Type.String({
+      description:
+        "전송할 명령어 (예: UPDATE, PLAY, PAUSE, SHUTDOWN). 'SHUTDOWN'은 앱에게 스스로 종료하라는 약속된 명령입니다.",
     }),
+    params: Type.Optional(
+      Type.Any({ description: "명령어에 필요한 파라미터 객체 (선택)" }),
+    ),
     env: Type.Optional(
       Type.Record(Type.String(), Type.String(), {
-        description: "앱에 전달할 환경변수 (launch 시 선택)",
+        description: "자동 실행 시 앱에 전달할 환경변수 (선택)",
       }),
     ),
     args: Type.Optional(
       Type.Array(Type.String(), {
-        description: "앱에 전달할 명령행 인자 (launch 시 선택)",
+        description: "자동 실행 시 앱에 전달할 명령행 인자 (선택)",
       }),
     ),
   }),
   execute: async (_id, params) => {
-    const { action, appName, env, args } = params as {
-      action: string;
-      appName: string;
+    const {
+      app,
+      command,
+      params: cmdParams,
+      env,
+      args,
+    } = params as {
+      app: string;
+      command: string;
+      params?: any;
       env?: Record<string, string>;
       args?: string[];
     };
 
-    if (action === "launch") {
-      return launchApp(appName, env, args);
+    const isConnected = UserSocketHandler.isAppConnected(app);
+    const isShutdown = command === SHUTDOWN_COMMAND;
+
+    // 종료 명령인데 이미 꺼져 있으면 no-op — 종료하려고 앱을 켤 이유가 없음
+    if (isShutdown && !isConnected) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `ℹ️ '${app}' 앱이 이미 실행되지 않은 상태입니다. SHUTDOWN을 건너뜁니다.`,
+          },
+        ],
+        details: { app, command, success: true, skipped: true },
+      };
     }
-    if (action === "terminate") {
-      return terminateApp(appName);
+
+    // 필요 시 자동 실행 + 연결 대기
+    if (!isConnected) {
+      logger.info(`[ControlApp] '${app}' 미연결 상태 — 자동 실행 시도`);
+
+      try {
+        spawnApp(app, env, args);
+      } catch (error: any) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `❌ '${app}' 앱 자동 실행 실패: ${error.message}`,
+            },
+          ],
+          details: { app, command, success: false, error: error.message },
+        };
+      }
+
+      const connected = await waitForAppConnection(app, LAUNCH_WAIT_TIMEOUT_MS);
+      if (!connected) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `❌ '${app}' 앱이 ${LAUNCH_WAIT_TIMEOUT_MS / 1000}초 내에 서버에 연결되지 않았습니다.`,
+            },
+          ],
+          details: { app, command, success: false, launched: true, connected: false },
+        };
+      }
+      logger.info(`[ControlApp] '${app}' 연결 확인됨 — 명령 전송 진행`);
     }
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: `❌ 알 수 없는 action: '${action}'. 'launch' 또는 'terminate'를 사용하세요.`,
-        },
-      ],
-      details: { appName, action, success: false },
-    };
+
+    try {
+      const result = await UserSocketHandler.commandApp(
+        app,
+        command,
+        cmdParams || {},
+      );
+
+      const isAppError = result?.status === "error" || result?.ok === false;
+
+      if (isAppError) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `❌ '${app}' 앱에서 명령 실행 중 에러가 발생했습니다:\n${result?.message || JSON.stringify(result)}`,
+            },
+          ],
+          details: {
+            app,
+            command,
+            params: cmdParams,
+            result,
+            success: false,
+            error: result?.message,
+          },
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `🚀 '${app}' 앱의 '${command}' 실행 결과:\n${JSON.stringify(result, null, 2)}`,
+          },
+        ],
+        details: { app, command, params: cmdParams, result, success: true },
+      };
+    } catch (error: any) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `❌ '${app}' 앱으로 명령 전송 또는 실행 실패: ${error.message}`,
+          },
+        ],
+        details: { app, command, success: false, error: error.message },
+      };
+    }
   },
 };
 
-export const TOOLS = [sendAppCommandTool, appLifecycleTool];
+export const TOOLS = [controlAppTool];

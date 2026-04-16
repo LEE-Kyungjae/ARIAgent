@@ -1,12 +1,5 @@
 import { AgentTool } from "@mariozechner/pi-agent-core";
 import { loadAllTools } from "../../tools/index.js";
-import { APP_CONTROL_MODE } from "../../tools/app_control_mode.js";
-
-// A/B: unified면 `control_app` 하나만, legacy면 기존 send/lifecycle 쌍을 메인툴로 노출.
-const APP_CONTROL_MAIN_TOOLS =
-  APP_CONTROL_MODE === "unified"
-    ? ["control_app"]
-    : ["send_app_command", "app_lifecycle"];
 
 const MAIN_TOOL_NAMES = new Set<string>([
   "execute_bash",
@@ -15,7 +8,7 @@ const MAIN_TOOL_NAMES = new Set<string>([
   "append_daily_memory",
   "read_skill",
   "web_fetch",
-  ...APP_CONTROL_MAIN_TOOLS,
+  "control_app",
 ]);
 
 let cachedAllTools: AgentTool[] = [];
