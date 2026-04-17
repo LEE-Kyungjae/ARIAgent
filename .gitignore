@@ -70,3 +70,8 @@ ari-app/pubspec.lock
 **/analysis_options.yaml
 **/devtools_options.yaml
 ari-framework/sample_layout/pubspec.lock
+/ari-framework/sample_control/macos
+/ari-framework/sample_layout/macos
+/ari-framework/sample_basic/macos
+/ari-framework/sample_basic/linux
+/ari-framework/sample_basic/windows
