@@ -16,6 +16,7 @@ class AriBaseLayout extends StatefulWidget {
     this.drawer,
     this.backgroundColor,
     this.scaffoldKey,
+    this.statusBar,
 
     // Chat Layout Ops
     this.showChat = false,
@@ -45,6 +46,7 @@ class AriBaseLayout extends StatefulWidget {
   final Widget? drawer;
   final Color? backgroundColor;
   final Key? scaffoldKey;
+  final Widget? statusBar;
 
   final AriChatProvider? chatProvider;
   final bool showChat;
@@ -134,6 +136,7 @@ class _AriBaseLayoutState extends State<AriBaseLayout> {
                     ],
                   ),
                 ),
+                if (widget.statusBar != null) widget.statusBar!,
               ],
             ),
           ),

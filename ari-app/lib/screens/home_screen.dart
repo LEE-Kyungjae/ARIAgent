@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'package:ari_plugin/ari_plugin.dart' show AgentProvider;
+
 import '../providers/config_provider.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/server_provider.dart';
@@ -13,6 +15,7 @@ import 'avatar/avatar_tab.dart';
 import 'chat/chat_tab.dart';
 import 'home/home_constants.dart';
 import 'home/home_drag_handle.dart';
+import 'home/home_friends_panel.dart';
 import 'home/home_server_required_overlay.dart';
 import 'home/home_tab_bar.dart';
 import 'home/home_update_banner.dart';
@@ -31,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   static const String _launcherExecutableName = 'ARI_Launcher.exe';
 
   final AppUpdateService _appUpdateService = const AppUpdateService();
-  int _currentTab = 0;
+  int _currentTab = 1;
   AppUpdateInfo? _availableUpdate;
   Timer? _updateTimer;
 
@@ -172,6 +175,10 @@ class _HomeScreenState extends State<HomeScreen> {
             currentTab: _currentTab,
             isLight: isLight,
             onTabSelected: (index) {
+              if (index == 0) {
+                AgentProvider().refreshAvatars();
+                AgentProvider().refreshTasks();
+              }
               setState(() {
                 _currentTab = index;
               });
@@ -205,7 +212,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return IndexedStack(
       index: _currentTab,
       children: [
-        ChatTab(onSettingsTap: () => setState(() => _currentTab = 3)),
+        FriendsView(onOpenChat: () => setState(() => _currentTab = 1)),
+        ChatTab(onSettingsTap: () => setState(() => _currentTab = 4)),
         _withServerGuard(const PlaceTab()),
         _withServerGuard(const AvatarTab()),
         const SettingsTab(),
@@ -218,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
       listenable: ServerProvider(),
       builder: (context, _) => !ServerProvider().isRunning
           ? HomeServerRequiredOverlay(
-              onGoToSettings: () => setState(() => _currentTab = 3),
+              onGoToSettings: () => setState(() => _currentTab = 4),
             )
           : child,
     );

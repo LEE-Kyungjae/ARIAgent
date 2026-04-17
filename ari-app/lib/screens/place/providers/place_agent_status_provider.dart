@@ -10,6 +10,7 @@ class PlaceAgentStatusProvider extends ChangeNotifier {
   PlaceAgentStatusProvider._internal();
 
   final Map<String, String> _statuses = {};
+  final Map<String, DateTime> _lastActivity = {};
   bool _initialized = false;
 
   StreamSubscription? _requestSub;
@@ -44,15 +45,19 @@ class PlaceAgentStatusProvider extends ChangeNotifier {
     return isSelected ? 'idle' : 'resting';
   }
 
+  DateTime? lastActivityFor(String agentId) => _lastActivity[agentId];
+
   void _setWorking(String? agentId) {
     if (agentId == null || agentId.isEmpty) return;
     _statuses[agentId] = 'working';
+    _lastActivity[agentId] = DateTime.now();
     notifyListeners();
   }
 
   void _setIdle(String? agentId) {
     if (agentId == null || agentId.isEmpty) return;
     _statuses[agentId] = 'idle';
+    _lastActivity[agentId] = DateTime.now();
     notifyListeners();
   }
 
