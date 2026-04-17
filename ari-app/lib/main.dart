@@ -109,17 +109,7 @@ class _ARIAppState extends State<ARIApp> with WindowListener {
     windowManager.addListener(this);
     windowManager.setPreventClose(true);
     unawaited(DesktopNotificationService.instance.init());
-  }
-
-  bool _systemTrayInitialized = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_systemTrayInitialized) {
-      _systemTrayInitialized = true;
-      _initSystemTray(context);
-    }
+    unawaited(_initSystemTray());
   }
 
   @override
@@ -129,8 +119,7 @@ class _ARIAppState extends State<ARIApp> with WindowListener {
     super.dispose();
   }
 
-  Future<void> _initSystemTray(BuildContext context) async {
-    final s = S.of(context);
+  Future<void> _initSystemTray() async {
     String iconPath = Platform.isWindows
         ? 'assets/images/app_icon.ico'
         : 'assets/images/logo_tray.png';
@@ -138,15 +127,15 @@ class _ARIAppState extends State<ARIApp> with WindowListener {
 
     await _menu.buildFrom([
       MenuItemLabel(
-        label: s.trayOpen,
+        label: 'ARI 열기',
         onClicked: (menuItem) => windowManager.show(),
       ),
       MenuItemLabel(
-        label: s.trayHide,
+        label: 'ARI 숨기기',
         onClicked: (menuItem) => windowManager.hide(),
       ),
       MenuSeparator(),
-      MenuItemLabel(label: s.trayQuit, onClicked: (menuItem) async => _shutdownApp()),
+      MenuItemLabel(label: '종료', onClicked: (menuItem) async => _shutdownApp()),
     ]);
 
     await _systemTray.setContextMenu(_menu);
