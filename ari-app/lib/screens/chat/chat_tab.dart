@@ -4,6 +4,7 @@ import 'package:ari_plugin/ari_plugin.dart';
 
 import '../../providers/server_provider.dart';
 import '../../providers/config_provider.dart';
+import '../../l10n/app_localizations.dart';
 
 import 'views/chat_header.dart';
 import 'views/chat_suggestions.dart';
@@ -93,7 +94,7 @@ class _ChatTabState extends State<ChatTab> {
       isLoading: chatProvider.isLoading,
       followUpMessage: chatProvider.latestFollowUpMessage,
       followUpCount: chatProvider.queuedFollowUpCount,
-      hintText: 'ARI에게 물어보세요...',
+      hintText: S.of(context).chatHint,
       reverseMessages: true,
       headerBuilder: (_) => ChatHeader(isLoading: chatProvider.isLoading),
       overlayWidget: overlay,

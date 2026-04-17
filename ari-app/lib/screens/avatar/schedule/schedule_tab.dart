@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ari_plugin/ari_plugin.dart';
 import '../widgets/tab_section_header.dart';
+import '../../../l10n/app_localizations.dart';
 
 part 'widgets/schedule_constants.dart';
 part 'widgets/routine_card.dart';
@@ -101,8 +102,8 @@ class _ScheduleTabState extends State<ScheduleTab> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           child: TabSectionHeader(
             icon: Icons.calendar_month_outlined,
-            title: '${agent.name}의 스케줄',
-            description: '에이전트가 정해진 시간에 알아서 처리하는 일들이에요.',
+            title: S.of(context).scheduleTitle(agent.name),
+            description: S.of(context).scheduleDesc,
             trailing: GestureDetector(
               onTap: _refreshTasks,
               child: _isLoading
@@ -122,7 +123,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
           child: Row(
             children: [
               _ViewToggleBtn(
-                label: '하루보기',
+                label: S.of(context).scheduleDayView,
                 active: _viewMode == _ViewMode.day,
                 onTap: () {
                   setState(() => _viewMode = _ViewMode.day);
@@ -132,7 +133,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
               ),
               const SizedBox(width: 6),
               _ViewToggleBtn(
-                label: '주간보기',
+                label: S.of(context).scheduleWeekView,
                 active: _viewMode == _ViewMode.week,
                 onTap: () => setState(() => _viewMode = _ViewMode.week),
               ),
@@ -146,7 +147,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
           child: allTasks.isEmpty
               ? Center(
                   child: Text(
-                    '등록된 스케줄이 없습니다\n채팅에서 "매일 9시에 뉴스 요약해줘" 라고 말해보세요',
+                    S.of(context).scheduleEmpty,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.25),
@@ -336,10 +337,16 @@ class _WeekHeader extends StatelessWidget {
   final double width;
   const _WeekHeader({required this.width});
 
-  static const _ordinals = ['첫째', '둘째', '셋째', '넷째', '다섯째'];
-
   @override
   Widget build(BuildContext context) {
+    final l10n = S.of(context);
+    final ordinals = [
+      l10n.scheduleWeekOrdinal1,
+      l10n.scheduleWeekOrdinal2,
+      l10n.scheduleWeekOrdinal3,
+      l10n.scheduleWeekOrdinal4,
+      l10n.scheduleWeekOrdinal5,
+    ];
     final now = DateTime.now();
 
     // 이번 주 일요일 ~ 토요일
@@ -349,13 +356,13 @@ class _WeekHeader extends StatelessWidget {
 
     // 몇째 주 (일요일 기준)
     final weekOfMonth = ((sunday.day - 1) ~/ 7).clamp(0, 4);
-    final ordinal = _ordinals[weekOfMonth];
+    final ordinal = ordinals[weekOfMonth];
 
     // 날짜 범위 표시
     final sameMonth = sunday.month == saturday.month;
     final range = sameMonth
-        ? '${sunday.month}월 ${sunday.day}일 - ${saturday.day}일'
-        : '${sunday.month}월 ${sunday.day}일 - ${saturday.month}월 ${saturday.day}일';
+        ? l10n.scheduleDateRangeSameMonth(sunday.month, sunday.day, saturday.day)
+        : l10n.scheduleDateRangeDiffMonth(sunday.month, sunday.day, saturday.month, saturday.day);
 
     return SizedBox(
       width: width,
@@ -370,7 +377,7 @@ class _WeekHeader extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              '이번주',
+              l10n.scheduleThisWeek,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 10,
@@ -380,7 +387,7 @@ class _WeekHeader extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            '${sunday.month}월 $ordinal 주',
+            l10n.scheduleMonthWeek(sunday.month, ordinal),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 13,

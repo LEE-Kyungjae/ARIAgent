@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../l10n/app_localizations.dart';
 
 /// 브라우저 인증 URL 다이얼로그
 Future<void> showOAuthUrlDialog(
@@ -13,7 +14,7 @@ Future<void> showOAuthUrlDialog(
     builder: (ctx) => AlertDialog(
       backgroundColor: const Color(0xFF1A1A2E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      title: const Text('브라우저 인증', style: TextStyle(color: Colors.white)),
+      title: Text(S.of(context).oauthBrowserAuthTitle, style: const TextStyle(color: Colors.white)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -41,7 +42,7 @@ Future<void> showOAuthUrlDialog(
           ),
           const SizedBox(height: 12),
           Text(
-            '브라우저에서 인증을 완료하면 자동으로 진행됩니다.',
+            S.of(context).oauthBrowserAutoProgress,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.5),
               fontSize: 12,
@@ -53,9 +54,9 @@ Future<void> showOAuthUrlDialog(
         TextButton(
           onPressed: () =>
               launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
-          child: const Text(
-            '브라우저 열기',
-            style: TextStyle(
+          child: Text(
+            S.of(context).oauthOpenBrowser,
+            style: const TextStyle(
               color: Color(0xFF6C63FF),
               fontWeight: FontWeight.bold,
             ),
@@ -63,7 +64,7 @@ Future<void> showOAuthUrlDialog(
         ),
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: const Text('닫기', style: TextStyle(color: Colors.white38)),
+          child: Text(S.of(context).close, style: const TextStyle(color: Colors.white38)),
         ),
       ],
     ),

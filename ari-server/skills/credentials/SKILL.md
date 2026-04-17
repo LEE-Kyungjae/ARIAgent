@@ -1,8 +1,10 @@
+---
+name: credentials
+description: 사용자의 아이디와 비밀번호 등 민감한 정보를 macOS 시스템 키체인에 안전하게 관리합니다. 로그인 정보 저장, 조회, 삭제 요청 시 사용.
+allowed-tools: set_credential get_credential delete_credential
+---
+
 # Credentials Management Skill
-
-이 스킬은 사용자의 아이디와 비밀번호와 같은 민감한 정보를 macOS 시스템 키체인에 안전하게 관리하는 기능을 제공합니다.
-
-사용 도구: set_credential, get_credential, delete_credential
 
 ## 가이드라인
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../provider_meta.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class ApiKeyInput extends StatefulWidget {
   final ProviderItem item;
@@ -29,7 +30,7 @@ class _ApiKeyInputState extends State<ApiKeyInput> {
               obscureText: item.apiKeyObscured,
               style: const TextStyle(color: Colors.white, fontSize: 13),
               decoration: InputDecoration(
-                hintText: 'API Key 입력 (sk-...)',
+                hintText: S.of(context).modelApiKeyHint,
                 hintStyle: TextStyle(
                   color: Colors.white.withValues(alpha: 0.3),
                   fontSize: 13,

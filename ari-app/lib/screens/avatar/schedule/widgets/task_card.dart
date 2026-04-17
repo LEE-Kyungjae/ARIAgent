@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ari_plugin/ari_plugin.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class TaskCard extends StatelessWidget {
   final Map<String, dynamic> task;
@@ -64,7 +65,7 @@ class TaskCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    task['label'] ?? '작업',
+                    task['label'] ?? S.of(context).scheduleTask,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 13,
@@ -117,7 +118,7 @@ class TaskCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '프롬프트:',
+                      S.of(context).schedulePrompt,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.3),
                         fontSize: 10,
@@ -148,7 +149,7 @@ class TaskCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '마지막 결과 (${_formatLocalTime(task['lastRunAt'])}):',
+                        S.of(context).scheduleLastResult(_formatLocalTime(task['lastRunAt'])),
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.3),
                           fontSize: 10,

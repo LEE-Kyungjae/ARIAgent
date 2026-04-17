@@ -8,6 +8,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:system_tray/system_tray.dart';
 
+import 'l10n/app_localizations.dart';
 import 'screens/home_screen.dart';
 import 'repositories/config_repository.dart';
 import 'providers/config_provider.dart';
@@ -214,21 +215,26 @@ class _ARIAppState extends State<ARIApp> with WindowListener {
           },
         ),
       ],
-      child: MaterialApp(
-        title: 'ARI Agent',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          brightness: Brightness.dark,
-          fontFamily: 'Pretendard',
-          colorScheme: const ColorScheme.dark(
-            primary: Color(0xFF6C63FF),
-            secondary: Color(0xFF9D4EDD),
-            surface: Color(0xFF12122A),
+      child: Consumer<ConfigProvider>(
+        builder: (context, config, child) => MaterialApp(
+          title: 'ARI Agent',
+          debugShowCheckedModeBanner: false,
+          locale: config.locale,
+          supportedLocales: S.supportedLocales,
+          localizationsDelegates: S.localizationsDelegates,
+          theme: ThemeData(
+            brightness: Brightness.dark,
+            fontFamily: 'Pretendard',
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFF6C63FF),
+              secondary: Color(0xFF9D4EDD),
+              surface: Color(0xFF12122A),
+            ),
+            scaffoldBackgroundColor: Colors.transparent,
           ),
-          scaffoldBackgroundColor: Colors.transparent,
+          scrollBehavior: AppScrollBehavior(),
+          home: const HomeScreen(),
         ),
-        scrollBehavior: AppScrollBehavior(),
-        home: const HomeScreen(),
       ),
     );
   }

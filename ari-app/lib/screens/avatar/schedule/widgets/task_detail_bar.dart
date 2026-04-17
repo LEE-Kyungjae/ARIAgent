@@ -42,7 +42,7 @@ class _TaskDetailBar extends StatelessWidget {
           Row(
             children: [
               Text(
-                tasks.length > 1 ? '${tasks.length}개의 루틴' : '루틴 상세',
+                tasks.length > 1 ? S.of(context).scheduleRoutineCount(tasks.length) : S.of(context).scheduleRoutineDetail,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 10,
@@ -148,7 +148,7 @@ class _TaskRow extends StatelessWidget {
           // 마지막 실행
           if (task.lastResult != null) ...[
             const SizedBox(height: 4),
-            Text('마지막 실행: ${_TaskDetailBar._fmt(task.lastRunAt)}',
+            Text(S.of(context).scheduleLastRun(_TaskDetailBar._fmt(task.lastRunAt)),
                 style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.2),
                     fontSize: 9)),

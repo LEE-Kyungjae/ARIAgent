@@ -7,6 +7,7 @@ import 'package:ari_plugin/ari_plugin.dart';
 import '../provider_meta.dart';
 import 'oauth_url_dialog.dart';
 import 'oauth_prompt_dialog.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class OAuthSection extends StatefulWidget {
   final ProviderItem item;
@@ -71,7 +72,7 @@ class _OAuthSectionState extends State<OAuthSection> {
       if (mounted && result != null && result['loggedIn'] == true) {
         setState(() {
           _isLoggedIn = true;
-          _statusMsg = '✅ 로그인 완료';
+          _statusMsg = S.of(context).oauthLoginComplete;
           widget.item.oauthLoggedIn = true;
         });
         _closeDialog();
@@ -117,7 +118,7 @@ class _OAuthSectionState extends State<OAuthSection> {
       setState(() {
         switch (type) {
           case 'auth_url':
-            _statusMsg = '🌐 브라우저에서 인증을 완료하세요';
+            _statusMsg = S.of(context).oauthBrowserAuth;
             final url = data['authUrl'] as String?;
             if (url != null) {
               // 브라우저 자동 실행 (비동기로 안전하게 실행)
@@ -144,7 +145,7 @@ class _OAuthSectionState extends State<OAuthSection> {
             }
             break;
           case 'prompt':
-            _statusMsg = '✏️ 코드 입력 필요';
+            _statusMsg = S.of(context).oauthCodeRequired;
             final msg = data['promptMessage'] as String?;
             if (msg != null) {
               _isDialogOpen = true;
@@ -158,10 +159,10 @@ class _OAuthSectionState extends State<OAuthSection> {
             }
             break;
           case 'progress':
-            _statusMsg = data['message'] as String? ?? '진행 중...';
+            _statusMsg = data['message'] as String? ?? S.of(context).oauthInProgress;
             break;
           case 'done':
-            _statusMsg = '✅ 로그인 완료';
+            _statusMsg = S.of(context).oauthLoginComplete;
             _isLoggedIn = true;
             widget.item.oauthLoggedIn = true;
             _closeDialog();
@@ -169,7 +170,7 @@ class _OAuthSectionState extends State<OAuthSection> {
             widget.onChanged?.call();
             break;
           case 'error':
-            _statusMsg = '❌ ${data['message'] ?? '오류 발생'}';
+            _statusMsg = S.of(context).oauthError(data['message'] as String? ?? S.of(context).oauthErrorDefault);
             break;
         }
       });
@@ -179,7 +180,7 @@ class _OAuthSectionState extends State<OAuthSection> {
   // ─── 액션 ─────────────────────────────────────────────────
 
   Future<void> _login() async {
-    setState(() => _statusMsg = '로그인 시작 중...');
+    setState(() => _statusMsg = S.of(context).oauthStarting);
     final cfg = Provider.of<ConfigProvider>(context, listen: false);
     await cfg.startOAuthLogin(_accountId, _provider);
   }
@@ -231,8 +232,8 @@ class _OAuthSectionState extends State<OAuthSection> {
               Expanded(
                 child: Text(
                   _isLoggedIn
-                      ? '✅ 로그인됨 (OAuth)'
-                      : (_statusMsg.isEmpty ? 'OAuth 로그인이 필요합니다' : _statusMsg),
+                      ? S.of(context).oauthLoggedIn
+                      : (_statusMsg.isEmpty ? S.of(context).oauthLoginRequired : _statusMsg),
                   style: TextStyle(
                     color: _isLoggedIn
                         ? const Color(0xFF4ADE80)
@@ -275,7 +276,7 @@ class _OAuthSectionState extends State<OAuthSection> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        _isLoggedIn ? '로그인됨' : 'OAuth 로그인',
+                        _isLoggedIn ? S.of(context).oauthLoggedInButton : S.of(context).oauthLoginButton,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
@@ -303,9 +304,9 @@ class _OAuthSectionState extends State<OAuthSection> {
                       color: Colors.redAccent.withValues(alpha: 0.3),
                     ),
                   ),
-                  child: const Text(
-                    '로그아웃',
-                    style: TextStyle(
+                  child: Text(
+                    S.of(context).oauthLogout,
+                    style: const TextStyle(
                       color: Colors.redAccent,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,

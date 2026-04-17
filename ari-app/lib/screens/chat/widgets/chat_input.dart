@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ari_plugin/ari_plugin.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// 채팅 입력 위젯
 class ChatInput extends StatefulWidget {
@@ -50,7 +51,7 @@ class _ChatInputState extends State<ChatInput> {
       controller: _controller,
       onSend: _handleSubmit,
       theme: theme,
-      hintText: 'ARI에게 물어보세요...',
+      hintText: S.of(context).chatHint,
       isLoading: widget.isLoading,
       onCancel: widget.onCancel,
       actionButtonBuilder: (context, onPressed, isLoading) => Padding(

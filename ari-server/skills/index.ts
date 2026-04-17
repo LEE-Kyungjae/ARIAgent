@@ -18,48 +18,63 @@ export interface SkillDefinition {
 
 export type AppDefinition = SkillDefinition;
 
-function parseSkillTools(content: string): string[] {
-  const lines = content.split(/\r?\n/);
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    // Remove markdown bold formatting, but DO NOT remove underscores because tool names use them!
-    const plainLine = line.replace(/\*/g, "");
-    
-    // Match variations like "사용 도구:", "Tools:", "사용 도구 (Tools):"
-    const match = plainLine.match(/^(?:사용\s*도구|Tools).*?:\s*(.+)$/i);
-    if (!match?.[1]) continue;
-
-    return match[1]
-      .split(",")
-      .map((value) => value.replace(/`/g, "").trim())
-      .filter((value) => value.length > 0);
-  }
-
-  return [];
+interface SkillFrontmatter {
+  name?: string;
+  description?: string;
+  "allowed-tools"?: string;
+  "user-invocable"?: string;
+  "disable-model-invocation"?: string;
+  icon?: string;
+  [key: string]: string | undefined;
 }
 
-function parseSkillDescription(content: string): string {
-  const lines = content.split(/\r?\n/);
+function parseFrontmatter(raw: string): { frontmatter: SkillFrontmatter; body: string } {
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith("---")) {
+    return { frontmatter: {}, body: raw };
+  }
+
+  const endIndex = trimmed.indexOf("---", 3);
+  if (endIndex === -1) {
+    return { frontmatter: {}, body: raw };
+  }
+
+  const fmBlock = trimmed.slice(3, endIndex).trim();
+  const body = trimmed.slice(endIndex + 3).trim();
+  const frontmatter: SkillFrontmatter = {};
+
+  for (const line of fmBlock.split(/\r?\n/)) {
+    const colonIndex = line.indexOf(":");
+    if (colonIndex === -1) continue;
+    const key = line.slice(0, colonIndex).trim();
+    const value = line.slice(colonIndex + 1).trim();
+    if (key) {
+      frontmatter[key] = value;
+    }
+  }
+
+  return { frontmatter, body };
+}
+
+function parseToolsFromFrontmatter(fm: SkillFrontmatter): string[] {
+  const raw = fm["allowed-tools"];
+  if (!raw) return [];
+  return raw
+    .split(/[\s,]+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
+}
+
+function parseDescriptionFallback(body: string): string {
+  const lines = body.split(/\r?\n/);
   for (const rawLine of lines) {
     const line = rawLine.trim();
     if (!line) continue;
     if (line.startsWith("#")) continue;
     if (line.startsWith("```")) continue;
-    if (/^(?:사용 도구|Tools)\s*:/i.test(line)) continue;
     return line;
   }
   return "추가 지침을 담고 있는 스킬입니다.";
-}
-
-function parseSkillIcon(content: string): string | undefined {
-  const lines = content.split(/\r?\n/);
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    // Case-insensitive match for "Icon: <name>"
-    const match = line.match(/^Icon\s*:\s*(.+)$/i);
-    if (match?.[1]) return match[1].trim();
-  }
-  return undefined;
 }
 
 function loadSkillsFromDir(dirPath: string): SkillDefinition[] {
@@ -81,8 +96,10 @@ function loadSkillsFromDir(dirPath: string): SkillDefinition[] {
     const skillFilePath = path.join(skillDir, "SKILL.md");
     if (!fs.existsSync(skillFilePath)) continue;
 
-    const content = fs.readFileSync(skillFilePath, "utf8").trim();
-    if (!content) continue;
+    const raw = fs.readFileSync(skillFilePath, "utf8").trim();
+    if (!raw) continue;
+
+    const { frontmatter: fm, body } = parseFrontmatter(raw);
 
     const iconFilePath = path.join(skillDir, "icon.png");
     const appInfoPath = path.join(skillDir, "app_info.json");
@@ -95,13 +112,13 @@ function loadSkillsFromDir(dirPath: string): SkillDefinition[] {
       }
     }
     skills.push({
-      name: entry,
-      title: appInfo?.name ?? entry,
-      description: appInfo?.description ?? parseSkillDescription(content),
-      tools: parseSkillTools(content),
-      icon: parseSkillIcon(content),
+      name: fm.name || entry,
+      title: appInfo?.name ?? fm.name ?? entry,
+      description: fm.description || appInfo?.description || parseDescriptionFallback(body),
+      tools: parseToolsFromFrontmatter(fm),
+      icon: fm.icon,
       iconPath: fs.existsSync(iconFilePath) ? iconFilePath : undefined,
-      content,
+      content: body,
       filePath: skillFilePath,
       isApp: fs.existsSync(path.join(skillDir, "app.app")) || fs.existsSync(appInfoPath),
     });

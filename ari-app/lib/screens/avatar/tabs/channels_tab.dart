@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ari_plugin/ari_plugin.dart';
 import '../widgets/tab_section_header.dart';
+import '../../../l10n/app_localizations.dart';
 
 class ChannelsTab extends StatefulWidget {
   const ChannelsTab({super.key});
@@ -33,10 +34,10 @@ class _ChannelsTabState extends State<ChannelsTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const TabSectionHeader(
+              TabSectionHeader(
                 icon: Icons.send_rounded,
-                title: '채널',
-                description: '에이전트가 외부와 소통하는 메시지 채널이에요.',
+                title: S.of(context).channelsTitle,
+                description: S.of(context).channelsDesc,
               ),
               if (agent.channelLoading)
                 const Center(
@@ -111,11 +112,11 @@ class _TelegramCardState extends State<_TelegramCard> {
   Future<void> _onTest() async {
     final token = _tokenController.text.trim();
     if (token.isNotEmpty && !_isValidTokenFormat(token)) {
-      _showSnack('토큰 형식이 올바르지 않습니다. (예: 123456:ABCdef)', isError: true);
+      _showSnack(S.of(context).channelsTokenInvalid, isError: true);
       return;
     }
     if (token.isEmpty && !widget.state.hasToken) {
-      _showSnack('Bot Token을 먼저 입력하세요.', isError: true);
+      _showSnack(S.of(context).channelsTokenRequired, isError: true);
       return;
     }
     setState(() {
@@ -128,8 +129,8 @@ class _TelegramCardState extends State<_TelegramCard> {
       _isTesting = false;
       _testOk = result['ok'] == true;
       _testResult = _testOk
-          ? '@${result['botName'] ?? 'unknown'} 연결 성공'
-          : (result['message'] as String? ?? '연결 실패');
+          ? S.of(context).channelsConnectionSuccess(result['botName'] as String? ?? 'unknown')
+          : (result['message'] as String? ?? S.of(context).channelsConnectionFailed);
     });
   }
 
@@ -140,20 +141,20 @@ class _TelegramCardState extends State<_TelegramCard> {
     );
     if (!mounted) return;
     setState(() => _isSaving = false);
-    _showSnack(ok ? '저장되었습니다.' : '저장 실패', isError: !ok);
+    _showSnack(ok ? S.of(context).channelsSaveSuccess : S.of(context).channelsSaveFailed, isError: !ok);
   }
 
   Future<void> _onToggle(bool value) async {
     final provider = context.read<AgentProvider>();
     if (value && !widget.state.hasToken && !_tokenIsNew) {
-      _showSnack('Bot Token을 먼저 저장하세요.', isError: true);
+      _showSnack(S.of(context).channelsTokenSaveFirst, isError: true);
       return;
     }
     if (value && _tokenIsNew) await _onSave();
     final ok = await provider.toggleTelegram(value);
     if (!mounted) return;
     if (!ok) {
-      _showSnack(provider.channelError ?? '오류가 발생했습니다.', isError: true);
+      _showSnack(provider.channelError ?? S.of(context).channelsErrorOccurred, isError: true);
       provider.clearChannelError();
     }
   }
@@ -217,8 +218,8 @@ class _TelegramCardState extends State<_TelegramCard> {
                         const SizedBox(height: 2),
                         Text(
                           state.enabled
-                              ? (state.isPolling ? '● 연결 중' : '● 시작 중...')
-                              : (state.hasToken ? '연결 준비됨' : '설정 필요'),
+                              ? (state.isPolling ? S.of(context).channelsConnecting : S.of(context).channelsStarting)
+                              : (state.hasToken ? S.of(context).channelsReady : S.of(context).channelsSetupNeeded),
                           style: TextStyle(
                             color: state.enabled
                                 ? const Color(0xFF4CAF50)
@@ -269,9 +270,9 @@ class _TelegramCardState extends State<_TelegramCard> {
                             color: const Color(0xFF4CAF50).withValues(alpha:0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Text(
-                            '저장됨',
-                            style: TextStyle(
+                          child: Text(
+                            S.of(context).channelsSaved,
+                            style: const TextStyle(
                               fontSize: 10,
                               color: Color(0xFF4CAF50),
                               fontWeight: FontWeight.w600,
@@ -284,7 +285,7 @@ class _TelegramCardState extends State<_TelegramCard> {
                   const SizedBox(height: 6),
                   if (state.hasToken && !_tokenIsNew)
                     Text(
-                      '${state.botTokenMasked}  •  변경하려면 아래에 새 토큰을 입력하세요.',
+                      S.of(context).channelsMaskedTokenHint(state.botTokenMasked),
                       style: const TextStyle(fontSize: 11, color: Colors.white38),
                     ),
                   const SizedBox(height: 6),
@@ -301,7 +302,7 @@ class _TelegramCardState extends State<_TelegramCard> {
                           ),
                           decoration: _inputDecoration(
                             hint: state.hasToken
-                                ? '새 토큰 입력 (변경 시)'
+                                ? S.of(context).channelsNewTokenHint
                                 : '123456:ABC-DEF...',
                             suffix: IconButton(
                               icon: Icon(
@@ -319,7 +320,7 @@ class _TelegramCardState extends State<_TelegramCard> {
                       ),
                       const SizedBox(width: 8),
                       _outlinedButton(
-                        label: _isTesting ? '...' : '테스트',
+                        label: _isTesting ? '...' : S.of(context).channelsTest,
                         onTap: _isTesting ? null : _onTest,
                       ),
                     ],
@@ -372,9 +373,9 @@ class _TelegramCardState extends State<_TelegramCard> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text(
-                              '저장',
-                              style: TextStyle(
+                          : Text(
+                              S.of(context).save,
+                              style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
                               ),

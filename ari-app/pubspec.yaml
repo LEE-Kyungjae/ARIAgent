@@ -1,7 +1,7 @@
 name: ari_agent
 description: "ARI Avatar AI Agent - Desktop AI Assistant"
 publish_to: "none"
-version: 0.4.20+87
+version: 0.4.21+88
 
 environment:
   sdk: ^3.8.1
@@ -9,6 +9,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
   window_manager: ^0.5.1
   http: ^1.6.0
   hive: ^2.2.3
@@ -34,6 +37,7 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 
 flutter:
+  generate: true
   uses-material-design: true
   assets:
     - assets/images/

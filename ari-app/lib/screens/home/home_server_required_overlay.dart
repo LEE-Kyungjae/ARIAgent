@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class HomeServerRequiredOverlay extends StatelessWidget {
   final VoidCallback onGoToSettings;
 
@@ -37,9 +39,9 @@ class HomeServerRequiredOverlay extends StatelessWidget {
               color: Colors.white.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
-            const Text(
-              '에이전트 연결 필요',
-              style: TextStyle(
+            Text(
+              S.of(context).homeServerRequired,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -47,7 +49,7 @@ class HomeServerRequiredOverlay extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '이 기능을 사용하려면 에이전트 실행이 필요합니다.\n설정 탭에서 에이전트를 켜 주세요.',
+              S.of(context).homeServerRequiredDesc,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.6),
@@ -69,9 +71,9 @@ class HomeServerRequiredOverlay extends StatelessWidget {
                   vertical: 12,
                 ),
               ),
-              child: const Text(
-                '설정으로 이동',
-                style: TextStyle(fontWeight: FontWeight.w600),
+              child: Text(
+                S.of(context).goToSettings,
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ],

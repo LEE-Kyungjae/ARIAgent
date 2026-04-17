@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../providers/config_provider.dart';
 import '../../../providers/server_provider.dart';
 import 'server_control_panel.dart';
+import '../../../l10n/app_localizations.dart';
 
 class ServerSettings extends StatefulWidget {
   const ServerSettings({super.key});
@@ -60,12 +61,12 @@ class _ServerSettingsState extends State<ServerSettings> {
       final success = await _configProvider.savePortToServer(newPort);
       if (success) {
         await _configProvider.setPort(newPort);
-        setState(() => _statusMessage = '✅ 포트 저장 완료. (변경 시 에이전트 재시작 필요)');
+        setState(() => _statusMessage = S.of(context).serverPortSaved);
       } else {
-        setState(() => _statusMessage = '❌ 저장 실패 (에이전트 응답하지 않음)');
+        setState(() => _statusMessage = S.of(context).serverPortSaveFailedNoResponse);
       }
     } catch (e) {
-      setState(() => _statusMessage = '❌ 저장 실패');
+      setState(() => _statusMessage = S.of(context).serverPortSaveFailed);
     } finally {
       setState(() => _isSaving = false);
     }
@@ -76,7 +77,7 @@ class _ServerSettingsState extends State<ServerSettings> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('복사할 로그가 없습니다.')));
+      ).showSnackBar(SnackBar(content: Text(S.of(context).logEmpty)));
       return;
     }
 
@@ -85,7 +86,7 @@ class _ServerSettingsState extends State<ServerSettings> {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('로그를 복사했습니다.')));
+    ).showSnackBar(SnackBar(content: Text(S.of(context).logCopied)));
   }
 
   @override
@@ -138,10 +139,10 @@ class _ServerSettingsState extends State<ServerSettings> {
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    '실시간 에이전트 로그',
-                    style: TextStyle(
+                    S.of(context).logRealtime,
+                    style: const TextStyle(
                       color: Colors.white54,
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -163,9 +164,9 @@ class _ServerSettingsState extends State<ServerSettings> {
                     size: 14,
                     color: Colors.white70,
                   ),
-                  label: const Text(
-                    '복사',
-                    style: TextStyle(
+                  label: Text(
+                    S.of(context).copy,
+                    style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -187,7 +188,7 @@ class _ServerSettingsState extends State<ServerSettings> {
               child: server.logs.isEmpty
                   ? Center(
                       child: Text(
-                        '아직 로그가 없습니다.',
+                        S.of(context).serverLogEmpty,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.2),
                           fontSize: 12,
@@ -276,9 +277,9 @@ class _ServerSettingsState extends State<ServerSettings> {
                   color: Colors.white,
                 ),
               )
-            : const Text(
-                '변경',
-                style: TextStyle(
+            : Text(
+                S.of(context).serverPortChange,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,

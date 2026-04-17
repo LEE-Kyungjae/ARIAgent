@@ -33,9 +33,9 @@ class _DayViewHeader extends StatelessWidget {
 
     String label;
     if (isToday) {
-      label = '오늘';
+      label = S.of(context).scheduleToday;
     } else if (isTomorrow) {
-      label = '내일';
+      label = S.of(context).scheduleTomorrow;
     } else {
       label = '${viewDate.month}월 ${viewDate.day}일';
     }

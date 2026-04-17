@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class ServerConnectionNotice extends StatelessWidget {
   const ServerConnectionNotice({super.key});
 
@@ -15,9 +17,9 @@ class ServerConnectionNotice extends StatelessWidget {
             color: Colors.white.withValues(alpha: 0.2),
           ),
           const SizedBox(height: 16),
-          const Text(
-            '에이전트 연결이 필요합니다',
-            style: TextStyle(
+          Text(
+            S.of(context).serverConnectionRequired,
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -25,7 +27,7 @@ class ServerConnectionNotice extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '설정 > Agent 에서 에이전트를 먼저 실행해주세요.',
+            S.of(context).serverConnectionRequiredDesc,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.4),
               fontSize: 12,

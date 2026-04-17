@@ -5,6 +5,7 @@ import '../../avatar/widgets/avatar_widget.dart';
 import '../../../providers/server_provider.dart';
 import 'package:ari_plugin/ari_plugin.dart';
 import '../../../providers/config_provider.dart';
+import '../../../l10n/app_localizations.dart';
 
 class ChatHeader extends StatefulWidget {
   final bool isLoading;
@@ -76,7 +77,7 @@ class _ChatHeaderState extends State<ChatHeader> {
                   onPressed: () => config.updateIsChatCollapsed(false),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
-                  tooltip: '펼쳐보기',
+                  tooltip: S.of(context).chatTooltipExpand,
                 ),
                 _buildTrashButton(context),
               ],
@@ -97,7 +98,7 @@ class _ChatHeaderState extends State<ChatHeader> {
                           size: 20,
                         ),
                         onPressed: () => config.updateIsChatCollapsed(true),
-                        tooltip: '접기',
+                        tooltip: S.of(context).chatTooltipCollapse,
                       ),
                       _buildTrashButton(context),
                     ],
@@ -129,30 +130,31 @@ class _ChatHeaderState extends State<ChatHeader> {
     return IconButton(
       visualDensity: VisualDensity.compact,
       icon: const Icon(Icons.delete_outline, color: Colors.white54, size: 20),
-      tooltip: '대화 기록 지우기',
+      tooltip: S.of(context).chatTooltipClearHistory,
       onPressed: () async {
+        final l10n = S.of(context);
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
             backgroundColor: const Color(0xFF1E1E2E),
-            title: const Text('대화 목록 지우기', style: TextStyle(fontSize: 16)),
-            content: const Text(
-              '현재 아바타와의 대화 기록을 모두 지우시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
-              style: TextStyle(fontSize: 14),
+            title: Text(l10n.chatClearTitle, style: const TextStyle(fontSize: 16)),
+            content: Text(
+              l10n.chatClearMessage,
+              style: const TextStyle(fontSize: 14),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text(
-                  '취소',
-                  style: TextStyle(color: Colors.white54),
+                child: Text(
+                  l10n.cancel,
+                  style: const TextStyle(color: Colors.white54),
                 ),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text(
-                  '지우기',
-                  style: TextStyle(color: Color(0xFFFF6B6B)),
+                child: Text(
+                  l10n.chatClearButton,
+                  style: const TextStyle(color: Color(0xFFFF6B6B)),
                 ),
               ),
             ],

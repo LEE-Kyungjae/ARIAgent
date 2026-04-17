@@ -7,7 +7,6 @@ import { TOOLS as CONTROL_APP_TOOLS } from "./app_control.js";
 import { TOOLS as APP_STATUS_TOOLS } from "./app_status.js";
 import { TOOLS as APP_INSTALL_TOOLS } from "./app_install.js";
 import { TOOLS as BASH_TOOLS } from "./bash.js";
-import { TOOLS as CREATE_SKILL_TOOLS } from "./create_skill.js";
 import { TOOLS as CREDENTIAL_TOOLS } from "./credentials.js";
 import { TOOLS as RELOAD_SKILLS_TOOLS } from "./reload_skills.js";
 import { TOOLS as SCHEDULE_TOOLS } from "./schedule.js";
@@ -25,7 +24,6 @@ const BUILT_IN_TOOLS = [
   ...APP_STATUS_TOOLS,
   ...APP_INSTALL_TOOLS,
   ...BASH_TOOLS,
-  ...CREATE_SKILL_TOOLS,
   ...CREDENTIAL_TOOLS,
   ...RELOAD_SKILLS_TOOLS,
   ...SCHEDULE_TOOLS,

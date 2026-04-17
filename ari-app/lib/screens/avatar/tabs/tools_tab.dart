@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ari_plugin/ari_plugin.dart';
 import '../widgets/tab_section_header.dart';
+import '../../../l10n/app_localizations.dart';
 
 class ToolsTab extends StatefulWidget {
   const ToolsTab({super.key});
@@ -55,10 +56,10 @@ class _ToolsTabState extends State<ToolsTab> {
             itemCount: tools.length + 1,
             itemBuilder: (context, index) {
               if (index == 0) {
-                return const TabSectionHeader(
+                return TabSectionHeader(
                   icon: Icons.terminal_rounded,
-                  title: '도구',
-                  description: '에이전트가 작업할 때 꺼내 쓰는 도구들이에요.',
+                  title: S.of(context).toolsTitle,
+                  description: S.of(context).toolsDesc,
                 );
               }
               return _ToolCard(tool: tools[index - 1]);
@@ -77,12 +78,12 @@ class _ToolsTabState extends State<ToolsTab> {
           Icon(Icons.error_outline_rounded,
               color: Colors.redAccent.withValues(alpha: 0.5), size: 48),
           const SizedBox(height: 16),
-          const Text('도구 정보를 가져오지 못했습니다.',
-              style: TextStyle(color: Colors.white70)),
+          Text(S.of(context).errorLoadTools,
+              style: const TextStyle(color: Colors.white70)),
           TextButton(
             onPressed: _refresh,
-            child: const Text('다시 시도',
-                style: TextStyle(color: Color(0xFF6C63FF))),
+            child: Text(S.of(context).retry,
+                style: const TextStyle(color: Color(0xFF6C63FF))),
           ),
         ],
       ),
@@ -97,11 +98,11 @@ class _ToolsTabState extends State<ToolsTab> {
           Icon(Icons.terminal_rounded,
               color: Colors.white.withValues(alpha: 0.2), size: 48),
           const SizedBox(height: 16),
-          const Text('등록된 도구가 없습니다.',
-              style: TextStyle(color: Colors.white54, fontSize: 14)),
+          Text(S.of(context).toolsNoTools,
+              style: const TextStyle(color: Colors.white54, fontSize: 14)),
           const SizedBox(height: 8),
           Text(
-            '에이전트의 tools 폴더를 확인해주세요.',
+            S.of(context).toolsCheckFolder,
             style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.3), fontSize: 12),
           ),
@@ -206,7 +207,7 @@ class _ToolCardState extends State<_ToolCard> {
                               child: Padding(
                                 padding: const EdgeInsets.only(top: 8.0),
                                 child: Text(
-                                  _isExpanded ? '접기' : '더보기',
+                                  _isExpanded ? S.of(context).toolsCollapse : S.of(context).toolsExpand,
                                   style: const TextStyle(
                                     color: accentColor,
                                     fontSize: 12,

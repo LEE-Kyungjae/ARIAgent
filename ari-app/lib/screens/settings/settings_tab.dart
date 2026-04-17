@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_localizations.dart';
 import 'model/model_settings.dart';
 import 'server/server_settings.dart';
 import 'appearance/appearance_settings.dart';
@@ -36,6 +37,7 @@ class _SettingsCategoryList extends StatelessWidget {
       ]),
       builder: (context, _) {
         final isServerRunning = ServerProvider().isRunning;
+        final l10n = S.of(context);
 
         return ListView(
           padding: const EdgeInsets.all(16),
@@ -53,7 +55,7 @@ class _SettingsCategoryList extends StatelessWidget {
             _buildCategoryItem(
               context,
               Icons.dns_rounded,
-              '로컬 에이전트 상태 확인 및 제어',
+              l10n.settingsServerDesc,
               isEnabled: true,
               page: const ServerSettings(),
               title: 'Agent Settings',
@@ -61,7 +63,7 @@ class _SettingsCategoryList extends StatelessWidget {
             _buildCategoryItem(
               context,
               Icons.palette_rounded,
-              '화면 스타일 및 윈도우 핀 설정',
+              l10n.settingsAppearanceDesc,
               isEnabled: true,
               page: const AppearanceSettings(),
               title: 'Appearance',
@@ -69,7 +71,7 @@ class _SettingsCategoryList extends StatelessWidget {
             _buildCategoryItem(
               context,
               Icons.notifications_none_rounded,
-              '데몬 상태에서 수신하는 OS 레벨 알림 설정',
+              l10n.settingsNotificationDesc,
               isEnabled: true,
               page: const NotificationSettings(),
               title: 'Notification',
@@ -78,8 +80,8 @@ class _SettingsCategoryList extends StatelessWidget {
               context,
               Icons.science_outlined,
               isServerRunning
-                  ? '고급 도구 및 실험적인 기능을 설정하는 메뉴'
-                  : '고급 도구 및 실험적인 기능을 설정하는 메뉴 (에이전트 실행 필요)',
+                  ? l10n.settingsExperimentalDesc
+                  : l10n.settingsExperimentalDescDisabled,
               isEnabled: isServerRunning,
               page: const ExperimentalSettings(),
               title: 'Advanced & Labs',

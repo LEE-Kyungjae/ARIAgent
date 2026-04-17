@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../providers/config_provider.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/server_provider.dart';
 import '../services/app_update_service.dart';
 import 'avatar/avatar_tab.dart';
@@ -101,20 +102,20 @@ class _HomeScreenState extends State<HomeScreen> {
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: const Color(0xFF1E1E2A),
-          title: const Text(
-            '앱을 찾을 수 없음',
-            style: TextStyle(color: Colors.white),
+          title: Text(
+            S.of(context).errorAppNotFound,
+            style: const TextStyle(color: Colors.white),
           ),
-          content: const Text(
-            '"ARIAgent" 앱을 찾을 수 없습니다.\n앱을 수동으로 종료하신 뒤 다시 실행해 주세요.',
-            style: TextStyle(color: Colors.white70),
+          content: Text(
+            S.of(context).errorAppNotFoundMessage,
+            style: const TextStyle(color: Colors.white70),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(
-                '확인',
-                style: TextStyle(color: Color(0xFF6C63FF)),
+              child: Text(
+                S.of(context).confirm,
+                style: const TextStyle(color: Color(0xFF6C63FF)),
               ),
             ),
           ],

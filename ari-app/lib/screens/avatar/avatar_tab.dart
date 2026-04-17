@@ -13,6 +13,7 @@ import 'tabs/channels_tab.dart';
 import 'tabs/settings_tab.dart';
 import 'package:flutter/gestures.dart';
 import '../../providers/config_provider.dart';
+import '../../l10n/app_localizations.dart';
 
 /// 마우스 드래그로 스크롤 가능하게 하는 커스텀 ScrollBehavior
 class AppScrollBehavior extends MaterialScrollBehavior {
@@ -127,7 +128,7 @@ class _AvatarTabState extends State<AvatarTab> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '현재 에이전트',
+                  S.of(context).currentAgent,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.4),
                     fontSize: 10,
@@ -147,7 +148,7 @@ class _AvatarTabState extends State<AvatarTab> {
           ElevatedButton.icon(
             onPressed: () => _showAvatarGrid(context),
             icon: const Icon(Icons.grid_view_rounded, size: 16),
-            label: const Text('목록'),
+            label: Text(S.of(context).agentList),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6C63FF).withValues(alpha: 0.2),
               foregroundColor: const Color(0xFF6C63FF),
@@ -204,11 +205,11 @@ class _AvatarTabState extends State<AvatarTab> {
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                      const Padding(
-                        padding: EdgeInsets.all(20),
+                      Padding(
+                        padding: const EdgeInsets.all(20),
                         child: Text(
-                          '에이전트 선택',
-                          style: TextStyle(
+                          S.of(context).agentSelect,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -369,7 +370,7 @@ class _AvatarTabState extends State<AvatarTab> {
     return GestureDetector(
       onTap: () async {
         final id = 'agent_${DateTime.now().millisecondsSinceEpoch}';
-        await context.read<AgentProvider>().createAndSwitchAvatar(id, '아리');
+        await context.read<AgentProvider>().createAndSwitchAvatar(id, S.of(context).defaultAvatarName);
         // 전환 후 시각적 피드백을 위해 바텀시트를 닫거나 유지할 수 있음. 여기서는 닫음.
         if (context.mounted) Navigator.pop(context);
       },
@@ -393,7 +394,7 @@ class _AvatarTabState extends State<AvatarTab> {
             ),
             const SizedBox(height: 12),
             Text(
-              '새로운 아바타',
+              S.of(context).newAvatar,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.3),
                 fontSize: 13,

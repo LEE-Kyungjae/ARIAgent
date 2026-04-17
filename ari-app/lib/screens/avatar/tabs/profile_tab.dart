@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:ari_plugin/ari_plugin.dart';
+import '../../../l10n/app_localizations.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
@@ -146,7 +147,7 @@ class _ProfileTabState extends State<ProfileTab> {
             decoration: InputDecoration(
               labelText: 'Persona / System Prompt',
               labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-              hintText: 'LLM에게 부여할 역할이나 말투 등을 입력하세요. (예: 친절하고 다정한 어조로 답변해줘)',
+              hintText: S.of(context).profileSystemPromptHint,
               hintStyle: TextStyle(color: Colors.white.withOpacity(0.2)),
               filled: true,
               fillColor: const Color(0xFF1A1A2E),
@@ -164,9 +165,9 @@ class _ProfileTabState extends State<ProfileTab> {
             },
           ),
           const SizedBox(height: 16),
-          const Text(
-            '이곳에서 프로필 사진과 이름을 변경하면 채팅창 위젯에도 즉시 반영됩니다.\nPersona는 이 에이전트의 AI 성격 및 역할 정의에 사용됩니다.',
-            style: TextStyle(color: Colors.white54, fontSize: 12, height: 1.5),
+          Text(
+            S.of(context).profileDescription,
+            style: const TextStyle(color: Colors.white54, fontSize: 12, height: 1.5),
             textAlign: TextAlign.center,
           ),
         ],

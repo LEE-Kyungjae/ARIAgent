@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:provider/provider.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../providers/config_provider.dart';
 
 class AppearanceSettings extends StatelessWidget {
@@ -29,8 +30,8 @@ class AppearanceSettings extends StatelessWidget {
                       ),
                     ),
                     child: SwitchListTile(
-                      title: const Text(
-                        '데스크탑에 고정 (항상 위)',
+                      title: Text(
+                        S.of(context).settingsPinToDesktop,
                         style: TextStyle(color: Colors.white, fontSize: 13),
                       ),
                       value: configProvider.isPinned,
@@ -58,28 +59,28 @@ class AppearanceSettings extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        const Text(
-                          '아바타 크기',
-                          style: TextStyle(color: Colors.white, fontSize: 13),
+                        Text(
+                          S.of(context).settingsAvatarSize,
+                          style: const TextStyle(color: Colors.white, fontSize: 13),
                         ),
                         const Spacer(),
                         _configButton(
                           context,
-                          '작게',
+                          S.of(context).settingsAvatarSizeSmall,
                           configProvider.avatarSize == 'small',
                           () => configProvider.updateAvatarSize('small'),
                         ),
                         const SizedBox(width: 6),
                         _configButton(
                           context,
-                          '중간',
+                          S.of(context).settingsAvatarSizeMedium,
                           configProvider.avatarSize == 'medium',
                           () => configProvider.updateAvatarSize('medium'),
                         ),
                         const SizedBox(width: 6),
                         _configButton(
                           context,
-                          '크게',
+                          S.of(context).appearanceLarge,
                           configProvider.avatarSize == 'large',
                           () => configProvider.updateAvatarSize('large'),
                         ),
@@ -103,35 +104,35 @@ class AppearanceSettings extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        const Text(
-                          '배경 테마',
-                          style: TextStyle(color: Colors.white, fontSize: 13),
+                        Text(
+                          S.of(context).appearanceBgTheme,
+                          style: const TextStyle(color: Colors.white, fontSize: 13),
                         ),
                         const Spacer(),
                         _configButton(
                           context,
-                          '다크',
+                          S.of(context).appearanceDark,
                           configProvider.backgroundTheme == 'dark',
                           () => configProvider.updateBackgroundTheme('dark'),
                         ),
                         const SizedBox(width: 6),
                         _configButton(
                           context,
-                          '블루',
+                          S.of(context).appearanceBlue,
                           configProvider.backgroundTheme == 'blue',
                           () => configProvider.updateBackgroundTheme('blue'),
                         ),
                         const SizedBox(width: 6),
                         _configButton(
                           context,
-                          '퍼플',
+                          S.of(context).appearancePurple,
                           configProvider.backgroundTheme == 'purple',
                           () => configProvider.updateBackgroundTheme('purple'),
                         ),
                         const SizedBox(width: 6),
                         _configButton(
                           context,
-                          '그레이',
+                          S.of(context).appearanceGray,
                           configProvider.backgroundTheme == 'gray',
                           () => configProvider.updateBackgroundTheme('gray'),
                         ),

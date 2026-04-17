@@ -1,0 +1,9 @@
+name: ari_cli
+description: ARI Framework CLI — 프로젝트 초기화 및 관리 도구
+version: 1.0.0
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+executables:
+  ari: ari

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../providers/config_provider.dart';
 
 class NotificationSettings extends StatelessWidget {
@@ -26,12 +27,12 @@ class NotificationSettings extends StatelessWidget {
                   ),
                 ),
                 child: SwitchListTile(
-                  title: const Text(
-                    '데몬 상태 메시지 알림',
-                    style: TextStyle(color: Colors.white, fontSize: 13),
+                  title: Text(
+                    S.of(context).notificationDaemonTitle,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
                   ),
                   subtitle: Text(
-                    '창이 숨겨진 상태에서 새 응답이 오면 macOS/Windows 알림을 표시합니다.',
+                    S.of(context).notificationDaemonDesc,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.5),
                       fontSize: 11,
@@ -56,12 +57,12 @@ class NotificationSettings extends StatelessWidget {
                   ),
                 ),
                 child: SwitchListTile(
-                  title: const Text(
-                    '자동 작업 결과 채팅창 표시',
-                    style: TextStyle(color: Colors.white, fontSize: 13),
+                  title: Text(
+                    S.of(context).notificationAutoTaskTitle,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
                   ),
                   subtitle: Text(
-                    '자동 작업이 완료되면 결과를 채팅창에 표시합니다.',
+                    S.of(context).notificationAutoTaskDesc,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.5),
                       fontSize: 11,

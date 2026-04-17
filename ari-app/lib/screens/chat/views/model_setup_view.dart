@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 class ModelSetupView extends StatelessWidget {
   final VoidCallback? onSettingsTap;
 
@@ -27,9 +29,9 @@ class ModelSetupView extends StatelessWidget {
               color: Colors.white.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
-            const Text(
-              '모델 설정이 필요합니다',
-              style: TextStyle(
+            Text(
+              S.of(context).modelSetupRequired,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -53,9 +55,9 @@ class ModelSetupView extends StatelessWidget {
                   backgroundColor: const Color(0xFF6C63FF),
                   foregroundColor: Colors.white,
                 ),
-                child: const Text(
-                  '설정으로 이동',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                child: Text(
+                  S.of(context).goToSettings,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
           ],

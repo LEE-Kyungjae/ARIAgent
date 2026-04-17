@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:ari_plugin/ari_plugin.dart';
 import 'token_management_screen.dart';
 import '../widgets/tab_section_header.dart';
+import '../../../l10n/app_localizations.dart';
 
 class SettingsTab extends StatelessWidget {
   const SettingsTab({super.key});
@@ -28,6 +29,8 @@ class _SettingsTabContent extends StatelessWidget {
     final agent = context.watch<AgentProvider>();
     final avatarList = context.watch<AgentProvider>();
 
+    final l10n = S.of(context);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
       child: Column(
@@ -35,28 +38,27 @@ class _SettingsTabContent extends StatelessWidget {
         children: [
           TabSectionHeader(
             icon: Icons.folder_outlined,
-            title: '데이터 관리',
-            description: '에이전트의 기억과 대화 기록, 토큰을 관리해요.',
+            title: l10n.settingsDataManagement,
+            description: l10n.settingsDataManagementDesc,
           ),
           _buildNavigationButton(
             context,
             icon: Icons.token_outlined,
-            title: '토큰 관리',
-            description: '이 아바타의 AI 모델 토큰 사용량을 확인하고 한도를 설정합니다.',
+            title: l10n.settingsTokenManagement,
+            description: l10n.settingsTokenDesc,
             destination: TokenManagementScreen(agentId: agent.currentAvatarId),
-            destinationTitle: '토큰 관리',
+            destinationTitle: l10n.settingsTokenManagement,
           ),
           const SizedBox(height: 12),
           _buildSettingsButton(
             context,
             icon: Icons.psychology_outlined,
-            title: '기억 초기화',
-            description:
-                '이 아바타가 학습하고 기억한 벡터 데이터를 초기화합니다.\n장기 기억이 삭제되지만 페르소나는 유지됩니다.',
+            title: l10n.settingsResetMemory,
+            description: l10n.settingsResetMemoryDesc,
             onPressed: () => _confirmAction(
               context,
-              '기억 초기화',
-              '정말로 이 아바타의 모든 기억을 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+              l10n.settingsResetMemory,
+              l10n.settingsResetMemoryConfirm,
               () => agent.initializeMemory(),
             ),
           ),
@@ -64,12 +66,12 @@ class _SettingsTabContent extends StatelessWidget {
           _buildSettingsButton(
             context,
             icon: Icons.chat_bubble_outline_rounded,
-            title: '대화 초기화',
-            description: '이 아바타와 나눈 모든 채팅 로그를 삭제합니다.\n기록 탭의 내용이 모두 비워집니다.',
+            title: l10n.settingsResetConversation,
+            description: l10n.settingsResetConversationDesc,
             onPressed: () => _confirmAction(
               context,
-              '대화 초기화',
-              '현재 아바타와의 모든 대화 내용을 삭제하시겠습니까?',
+              l10n.settingsResetConversation,
+              l10n.settingsResetConversationConfirm,
               () async {
                 final avatarId = agent.currentAvatarId;
                 if (context.mounted) {
@@ -81,24 +83,23 @@ class _SettingsTabContent extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          const TabSectionHeader(
+          TabSectionHeader(
             icon: Icons.warning_amber_outlined,
-            title: '위험 구역',
-            description: '한 번 실행하면 되돌릴 수 없어요. 신중하게 눌러주세요.',
+            title: l10n.settingsDangerZone,
+            description: l10n.settingsDangerZoneDesc,
           ),
           _buildSettingsButton(
             context,
             icon: Icons.delete_forever_outlined,
-            title: '아바타 삭제',
-            description:
-                '이 아바타의 모든 데이터(프로필, 로그, 설정)를 영구히 삭제합니다.\n기본 아바타(ARI)는 삭제할 수 없습니다.',
+            title: l10n.settingsDeleteAvatar,
+            description: l10n.settingsDeleteAvatarDesc,
             isCritical: true,
             onPressed: agent.currentAvatarId == 'default'
                 ? null
                 : () => _confirmAction(
                     context,
-                    '아바타 삭제',
-                    '정말로 "${agent.name}" 아바타를 영구 삭제하시겠습니까?\n모든 관련 데이터가 즉시 삭제됩니다.',
+                    l10n.settingsDeleteAvatar,
+                    l10n.settingsDeleteAvatarConfirm(agent.name),
                     () => avatarList.deleteAvatar(),
                   ),
           ),
@@ -106,8 +107,8 @@ class _SettingsTabContent extends StatelessWidget {
           _buildSettingsButton(
             context,
             icon: Icons.folder_open_outlined,
-            title: '설정 폴더 열기',
-            description: '모든 아바타 정보와 로그가 저장된 .ari-agent 폴더를 탐색기에서 엽니다.',
+            title: l10n.settingsOpenFolder,
+            description: l10n.settingsOpenFolderDesc,
             isCritical: true,
             onPressed: () async {
               final home =
@@ -126,7 +127,7 @@ class _SettingsTabContent extends StatelessWidget {
                 }
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('사용자 홈 디렉토리를 찾을 수 없습니다.')),
+                  SnackBar(content: Text(l10n.settingsHomeDirNotFound)),
                 );
               }
             },
@@ -300,7 +301,7 @@ class _SettingsTabContent extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('취소', style: TextStyle(color: Colors.white54)),
+            child: Text(S.of(context).cancel, style: const TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -309,7 +310,7 @@ class _SettingsTabContent extends StatelessWidget {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('$title 완료되었습니다.'),
+                    content: Text(S.of(context).settingsActionCompleted(title)),
                     backgroundColor: const Color(0xFF6C63FF),
                   ),
                 );
@@ -317,11 +318,11 @@ class _SettingsTabContent extends StatelessWidget {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6C63FF),
-              foregroundColor: Colors.white, // 텍스트 컬러 명시
+              foregroundColor: Colors.white,
             ),
-            child: const Text(
-              '확인',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            child: Text(
+              S.of(context).confirm,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
         ],

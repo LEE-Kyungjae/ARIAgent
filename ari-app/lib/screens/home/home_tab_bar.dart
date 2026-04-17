@@ -1,41 +1,42 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 
 class HomeTabDefinition {
   final int index;
   final IconData icon;
-  final String label;
+  final String Function(S l10n) labelBuilder;
   final bool requiresServer;
 
   const HomeTabDefinition({
     required this.index,
     required this.icon,
-    required this.label,
+    required this.labelBuilder,
     this.requiresServer = false,
   });
 }
 
-const homeTabs = <HomeTabDefinition>[
+List<HomeTabDefinition> homeTabs = <HomeTabDefinition>[
   HomeTabDefinition(
     index: 0,
     icon: Icons.chat_bubble_rounded,
-    label: '채팅',
+    labelBuilder: (l10n) => l10n.tabChat,
   ),
   HomeTabDefinition(
     index: 1,
     icon: Icons.explore_rounded,
-    label: '플레이스',
+    labelBuilder: (l10n) => l10n.tabPlace,
     requiresServer: true,
   ),
   HomeTabDefinition(
     index: 2,
     icon: Icons.person_rounded,
-    label: '아바타',
+    labelBuilder: (l10n) => l10n.tabAvatar,
     requiresServer: true,
   ),
   HomeTabDefinition(
     index: 3,
     icon: Icons.settings_rounded,
-    label: '설정',
+    labelBuilder: (l10n) => l10n.tabSettings,
   ),
 ];
 
@@ -125,7 +126,7 @@ class _HomeTabItem extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               Text(
-                tab.label,
+                tab.labelBuilder(S.of(context)),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,

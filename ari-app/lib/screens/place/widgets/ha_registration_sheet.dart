@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../l10n/app_localizations.dart';
 
 class HARegistrationSheet extends StatefulWidget {
   final Map<String, dynamic>? existing;
@@ -104,7 +105,7 @@ class _HARegistrationSheetState extends State<HARegistrationSheet> {
                               ),
                             ),
                             Text(
-                              widget.existing != null ? '서버 연결 정보를 수정합니다' : '스마트 홈의 두뇌와 연결하세요',
+                              widget.existing != null ? S.of(context).haEditConnection : S.of(context).haConnectBrain,
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Colors.blueGrey[400],
@@ -129,16 +130,16 @@ class _HARegistrationSheetState extends State<HARegistrationSheet> {
                     controller: urlController,
                     hint: 'http://192.168.1.100:8123',
                     icon: Icons.link_rounded,
-                    label: '서버 주소 (URL)',
-                    helper: '로컬 IP 또는 외부 접속 도메인을 입력하세요.',
+                    label: S.of(context).serverAddress,
+                    helper: S.of(context).haServerUrlHelper,
                   ),
                   const SizedBox(height: 24),
                   _buildModernTextField(
                     controller: tokenController,
-                    hint: 'eyJ... 로 시작하는 토큰 문자열',
+                    hint: S.of(context).haTokenHint,
                     icon: Icons.vpn_key_rounded,
-                    label: '롱리브 액세스 토큰',
-                    helper: 'HA 프로필 하단에서 생성한 토큰을 입력하세요.',
+                    label: S.of(context).longLivedAccessToken,
+                    helper: S.of(context).haTokenHelper,
                     isPassword: true,
                   ),
                   const SizedBox(height: 40),
@@ -175,7 +176,7 @@ class _HARegistrationSheetState extends State<HARegistrationSheet> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       ),
                       child: Text(
-                        widget.existing != null ? '변경사항 저장하기' : 'Home Assistant 연동 시작',
+                        widget.existing != null ? S.of(context).haSaveChanges : S.of(context).haStartIntegration,
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -186,17 +187,17 @@ class _HARegistrationSheetState extends State<HARegistrationSheet> {
                   const SizedBox(height: 32),
                   
                   // 설치 안내 섹션
-                  const Text(
-                    '아직 Home Assistant가 없으신가요?',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+                  Text(
+                    S.of(context).haNoHaYet,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
                   ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
                         child: _buildActionCard(
-                          title: '공식 사이트',
-                          subtitle: '설치 가이드 보기',
+                          title: S.of(context).haOfficialSite,
+                          subtitle: S.of(context).haInstallGuide,
                           icon: Icons.open_in_new_rounded,
                           color: const Color(0xFF0F172A),
                           onTap: () => _launchUrl('https://www.home-assistant.io/installation/'),
@@ -205,16 +206,16 @@ class _HARegistrationSheetState extends State<HARegistrationSheet> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: _buildActionCard(
-                          title: '아리에게 묻기',
-                          subtitle: '설치 방법 상담',
+                          title: S.of(context).haAskAri,
+                          subtitle: S.of(context).haAskAriDesc,
                           icon: Icons.auto_awesome_rounded,
                           color: const Color(0xFF6C63FF),
                           onTap: () {
                             Navigator.pop(context);
                             // 참고: 실제 채팅 탭 이동 로직은 상위에서 처리하거나 가이드 메시지 노출
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('채팅 탭에서 "HA 설치 도와줘"라고 물어보세요!'),
+                              SnackBar(
+                                content: Text(S.of(context).haAskAriChat),
                                 behavior: SnackBarBehavior.floating,
                               ),
                             );

@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+
+import '../../l10n/app_localizations.dart';
 import 'package:window_manager/window_manager.dart';
 
 class HomeDragHandle extends StatelessWidget {
@@ -38,7 +40,7 @@ class HomeDragHandle extends StatelessWidget {
               top: 4,
               right: 6,
               child: IconButton(
-                tooltip: '닫기',
+                tooltip: S.of(context).close,
                 onPressed: () => windowManager.close(),
                 icon: Icon(
                   Icons.close_rounded,

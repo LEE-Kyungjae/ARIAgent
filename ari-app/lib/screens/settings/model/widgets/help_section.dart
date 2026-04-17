@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class HelpSection extends StatelessWidget {
   const HelpSection({super.key});
 
@@ -42,24 +44,24 @@ class HelpSection extends StatelessWidget {
           const SizedBox(height: 12),
           _buildHelpRow(
             '☁️ OAuth 서비스 연동 (추천)',
-            '구독형 서비스를 이미 사용하고 있다면(ChatGPT 등) 별도의 키 발급 없이 편리하게 사용합니다.',
+            S.of(context).helpOAuth,
           ),
           const SizedBox(height: 10),
           _buildHelpRow(
             '🔑 API 키 직접 입력',
-            '자신이 소유한 API 키를 직접 사용하여 가장 저렴하고 빠른 성능을 보장합니다.',
+            S.of(context).helpApiKey,
           ),
           const SizedBox(height: 10),
           _buildHelpRow(
             '🔝 우선순위 오버라이드',
-            '상단에 위치한 프로바이더를 먼저 시도하며, 오류 발생 시 아래 순서로 자동 전환됩니다.',
+            S.of(context).helpPriority,
           ),
           const SizedBox(height: 16),
           const Divider(color: Colors.white12),
           const SizedBox(height: 8),
-          const Text(
-            '키 발급 주소:',
-            style: TextStyle(color: Colors.white38, fontSize: 12),
+          Text(
+            S.of(context).helpKeyIssue,
+            style: const TextStyle(color: Colors.white38, fontSize: 12),
           ),
           const SizedBox(height: 4),
           const Text(

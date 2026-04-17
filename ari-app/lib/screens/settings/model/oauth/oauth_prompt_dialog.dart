@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../providers/config_provider.dart';
+import '../../../../l10n/app_localizations.dart';
 
 /// 인증 코드 입력 다이얼로그
 Future<void> showOAuthPromptDialog(
@@ -15,7 +16,7 @@ Future<void> showOAuthPromptDialog(
     builder: (ctx) => AlertDialog(
       backgroundColor: const Color(0xFF1A1A2E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      title: const Text('코드 입력', style: TextStyle(color: Colors.white)),
+      title: Text(S.of(context).oauthCodeInput, style: const TextStyle(color: Colors.white)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -33,7 +34,7 @@ Future<void> showOAuthPromptDialog(
             autofocus: true,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              hintText: '코드를 입력하세요',
+              hintText: S.of(context).oauthCodeHint,
               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
               filled: true,
               fillColor: const Color(0xFF111122),
@@ -49,7 +50,7 @@ Future<void> showOAuthPromptDialog(
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(),
           child: Text(
-            '취소',
+            S.of(context).cancel,
             style: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
           ),
         ),
@@ -65,7 +66,7 @@ Future<void> showOAuthPromptDialog(
               await cfg.sendOAuthPrompt(accountId, value);
             }
           },
-          child: const Text('확인', style: TextStyle(color: Colors.white)),
+          child: Text(S.of(context).confirm, style: const TextStyle(color: Colors.white)),
         ),
       ],
     ),

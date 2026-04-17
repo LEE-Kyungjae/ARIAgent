@@ -8,6 +8,7 @@ import 'provider_card.dart';
 import 'widgets/add_provider_button.dart';
 import 'widgets/help_section.dart';
 import 'widgets/server_connection_notice.dart';
+import '../../../l10n/app_localizations.dart';
 
 class ModelSettings extends StatefulWidget {
   const ModelSettings({super.key});
@@ -185,7 +186,7 @@ class _ModelSettingsState extends State<ModelSettings> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'AI Providers (우선순위 순)',
+                S.of(context).modelProvidersPriority,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.6),
                   fontSize: 12,
@@ -252,7 +253,7 @@ class _ModelSettingsState extends State<ModelSettings> {
     switch (_saveStatus) {
       case 'saving':
         color = Colors.white.withValues(alpha: 0.5);
-        text = '저장 중...';
+        text = S.of(context).modelSaving;
         leading = SizedBox(
           width: 10,
           height: 10,
@@ -264,12 +265,12 @@ class _ModelSettingsState extends State<ModelSettings> {
         break;
       case 'saved':
         color = const Color(0xFF4ADE80);
-        text = '저장됨';
+        text = S.of(context).modelSaved;
         leading = Icon(Icons.check_circle_outline, size: 12, color: color);
         break;
       case 'error':
         color = const Color(0xFFFF6B6B);
-        text = '저장 실패';
+        text = S.of(context).modelSaveFailed;
         leading = Icon(Icons.error_outline, size: 12, color: color);
         break;
       default:

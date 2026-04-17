@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class AddProviderButton extends StatelessWidget {
   final VoidCallback onTap;
 
@@ -27,7 +29,7 @@ class AddProviderButton extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              '프로바이더 추가',
+              S.of(context).addProvider,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.5),
                 fontSize: 13,

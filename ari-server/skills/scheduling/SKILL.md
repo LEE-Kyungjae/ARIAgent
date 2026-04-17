@@ -1,10 +1,12 @@
+---
+name: scheduling
+description: 일정 예약 및 알림 설정을 관리합니다. 반복 작업, 일회성 타이머/알림 등록, 조회, 삭제 시 사용.
+allowed-tools: list_schedules register_schedule delete_schedule
+---
+
 # Scheduling Skill
 
-일정 예약 및 알림 설정을 관리하기 위한 스킬입니다. 반복되는 작업이나 일회성 타이머/알림을 등록, 조회, 삭제할 수 있습니다.
-
-사용 도구: `list_schedules`, `register_schedule`, `delete_schedule`
-
-## 💡 사용 지침
+## 사용 지침
 
 1. **반복 일정 등록 (register_schedule)**: 매분, 매시간, 매일 특정 시간처럼 주기적으로 실행해야 하는 작업(예: "1분마다 알려줘", "5분마다 상태 점검해줘", "매일 아침 9시에 뉴스 브리핑")에 사용합니다.
 2. **일회성 알림 (register_schedule, scheduleType: "once")**: "5분 뒤에 알려줘", "내일 오후 1시에 전화 예약 확인해줘"처럼 한 번만 실행할 때는 `scheduleType: "once"`, `startAt: <실행일시 ISO 8601>`으로 등록합니다.

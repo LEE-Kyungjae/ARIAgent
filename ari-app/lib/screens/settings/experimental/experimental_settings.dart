@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../providers/config_provider.dart';
 
 class ExperimentalSettings extends StatefulWidget {
@@ -65,12 +66,12 @@ class _ExperimentalSettingsState extends State<ExperimentalSettings> {
               ),
             ),
             child: SwitchListTile(
-              title: const Text(
-                '고급 도구 표시',
-                style: TextStyle(color: Colors.white, fontSize: 13),
+              title: Text(
+                S.of(context).experimentalShowAdvancedTools,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
               ),
               subtitle: Text(
-                '스킬, 도구 탭 등 개발자용 고급 기능을 표시합니다.',
+                S.of(context).experimentalShowAdvancedToolsDesc,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.5),
                   fontSize: 11,
@@ -95,12 +96,12 @@ class _ExperimentalSettingsState extends State<ExperimentalSettings> {
               ),
             ),
             child: SwitchListTile(
-              title: const Text(
-                '실험기능 활성화',
-                style: TextStyle(color: Colors.white, fontSize: 13),
+              title: Text(
+                S.of(context).experimentalEnableExperimental,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
               ),
               subtitle: Text(
-                '정식 배포 전에 테스트 중인 기능을 미리 표시합니다.',
+                S.of(context).experimentalEnableExperimentalDesc,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.5),
                   fontSize: 11,
@@ -156,9 +157,9 @@ class _ExperimentalSettingsState extends State<ExperimentalSettings> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '고급 관계 지능 활성화',
-                      style: TextStyle(
+                    Text(
+                      S.of(context).experimentalAdvancedIntelligence,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -166,7 +167,7 @@ class _ExperimentalSettingsState extends State<ExperimentalSettings> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '의미론적 벡터 기억 및 관계 그래프를 활성화합니다. (아바타 > 메모리 탭에서 확인 가능)',
+                      S.of(context).experimentalAdvancedIntelligenceDesc,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.45),
                         fontSize: 11,
@@ -208,7 +209,7 @@ class _ExperimentalSettingsState extends State<ExperimentalSettings> {
             ),
             const SizedBox(width: 6),
             Text(
-              '임베딩 모델 준비 완료',
+              S.of(context).experimentalModelReady,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.6),
                 fontSize: 11,
@@ -229,7 +230,7 @@ class _ExperimentalSettingsState extends State<ExperimentalSettings> {
             ),
             const SizedBox(width: 8),
             Text(
-              '임베딩 모델 로드 중...',
+              S.of(context).experimentalModelLoading,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.6),
                 fontSize: 11,
@@ -250,7 +251,7 @@ class _ExperimentalSettingsState extends State<ExperimentalSettings> {
             ),
             const SizedBox(width: 8),
             Text(
-              '임베딩 모델 다운로드 중... (~280MB)',
+              S.of(context).experimentalModelDownloading,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.6),
                 fontSize: 11,
@@ -268,7 +269,7 @@ class _ExperimentalSettingsState extends State<ExperimentalSettings> {
             ),
             const SizedBox(width: 6),
             Text(
-              '모델 로드 실패 — 재시작 후 다시 시도',
+              S.of(context).experimentalModelFailed,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.6),
                 fontSize: 11,
@@ -286,7 +287,7 @@ class _ExperimentalSettingsState extends State<ExperimentalSettings> {
             ),
             const SizedBox(width: 6),
             Text(
-              '모델 미설치 — 활성화 시 자동 다운로드 (~280MB)',
+              S.of(context).experimentalModelNotInstalled,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.35),
                 fontSize: 11,

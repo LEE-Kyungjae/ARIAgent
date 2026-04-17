@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 class SaveButton extends StatelessWidget {
   final bool isSaving;
   final VoidCallback? onTap;
@@ -29,9 +31,9 @@ class SaveButton extends StatelessWidget {
                     color: Colors.white,
                   ),
                 )
-              : const Text(
-                  '저장',
-                  style: TextStyle(
+              : Text(
+                  S.of(context).save,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 import '../../services/app_update_service.dart';
 
 class HomeUpdateBanner extends StatelessWidget {
@@ -32,7 +34,7 @@ class HomeUpdateBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '새 버전 ${update.latestVersion} 사용 가능${update.mandatory ? " · 필수 업데이트" : ""}',
+              S.of(context).updateAvailable(update.latestVersion, update.mandatory ? S.of(context).updateMandatory : ''),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -51,7 +53,7 @@ class HomeUpdateBanner extends StatelessWidget {
               foregroundColor: accentColor,
             ),
             child: Text(
-              '업데이트',
+              S.of(context).updateButton,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,

@@ -5,6 +5,7 @@ import 'package:ari_plugin/ari_plugin.dart';
 import 'package:ari_agent/providers/home_assistant_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../l10n/app_localizations.dart';
 
 import 'models/place_avatar.dart';
 import 'models/ha_device_item.dart';
@@ -62,7 +63,7 @@ class _PlaceTabState extends State<PlaceTab> {
     return Padding(
       padding: const EdgeInsets.only(right: 6),
       child: Tooltip(
-        message: '${app['title'] ?? appId}${isConnected ? ' (연결됨)' : ''}',
+        message: '${app['title'] ?? appId}${isConnected ? ' (${S.of(context).placeConnected})' : ''}',
         child: Stack(
           children: [
             Container(
@@ -315,19 +316,19 @@ class _PlaceTabState extends State<PlaceTab> {
     if (!context.mounted) return;
     Navigator.pop(context);
     if (result['ok'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('✅ Home Assistant 서버 연동에 성공했습니다.'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(S.of(context).haIntegrationSuccess),
           backgroundColor: Colors.green));
     } else {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('연동 실패'),
-          content: Text(result['error'] ?? '알 수 없는 오류가 발생했습니다.'),
+          title: Text(S.of(context).errorIntegrationFailed),
+          content: Text(result['error'] ?? S.of(context).errorUnknown),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('확인'))
+                child: Text(S.of(context).confirm))
           ],
         ),
       );

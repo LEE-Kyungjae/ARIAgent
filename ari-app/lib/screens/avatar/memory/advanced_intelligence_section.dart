@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ari_plugin/ari_plugin.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 class AdvancedIntelligenceSection extends StatefulWidget {
   final VoidCallback onRefresh;
 
@@ -65,7 +67,7 @@ class _AdvancedIntelligenceSectionState extends State<AdvancedIntelligenceSectio
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 48),
           child: Text(
-            '통계를 불러올 수 없습니다.',
+            S.of(context).advMemoryStatsFailed,
             style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.3), fontSize: 13),
           ),
@@ -88,28 +90,28 @@ class _AdvancedIntelligenceSectionState extends State<AdvancedIntelligenceSectio
       children: [
         _buildHeaderSection(
           'Memory Graph',
-          '에이전트 메모리의 관계 그래프 현황입니다.',
+          S.of(context).advMemoryGraphDesc,
           icon: Icons.hub_rounded,
           action: IconButton(
             onPressed: _fetchStats,
             icon: Icon(Icons.refresh_rounded,
                 color: Colors.white.withValues(alpha: 0.4), size: 18),
-            tooltip: '새로고침',
+            tooltip: S.of(context).refresh,
           ),
         ),
         const SizedBox(height: 16),
 
         _buildStatCard(
-          title: '메모리 노드',
+          title: S.of(context).advMemoryNodeTitle,
           icon: Icons.memory_rounded,
           color: const Color(0xFF6C63FF),
           children: [
-            _buildStatRow('핵심 기억 (Core)', coreCount, const Color(0xFF6C63FF)),
+            _buildStatRow(S.of(context).advMemoryCoreLabel, coreCount, const Color(0xFF6C63FF)),
             const SizedBox(height: 8),
-            _buildStatRow('일일 로그 (Daily)', dailyCount, const Color(0xFF4ADE80)),
+            _buildStatRow(S.of(context).advMemoryDailyLabel, dailyCount, const Color(0xFF4ADE80)),
             const Divider(color: Colors.white12, height: 20),
             _buildStatRow(
-                '합계', coreCount + dailyCount, Colors.white54, isBold: true),
+                S.of(context).advMemoryTotal, coreCount + dailyCount, Colors.white54, isBold: true),
           ],
         ),
         const SizedBox(height: 12),
@@ -118,21 +120,21 @@ class _AdvancedIntelligenceSectionState extends State<AdvancedIntelligenceSectio
           children: [
             Expanded(
               child: _buildCompactStatCard(
-                title: '엔티티',
+                title: S.of(context).advMemoryEntityTitle,
                 icon: Icons.person_outline_rounded,
                 value: entityCount,
                 color: const Color(0xFFFF9F43),
-                subtitle: '사람, 도구, 개념...',
+                subtitle: S.of(context).advMemoryEntitySubtitle,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildCompactStatCard(
-                title: '토픽',
+                title: S.of(context).advMemoryTopicTitle,
                 icon: Icons.label_outline_rounded,
                 value: topicCount,
                 color: const Color(0xFF48CAE4),
-                subtitle: '주제 카테고리',
+                subtitle: S.of(context).advMemoryTopicSubtitle,
               ),
             ),
           ],
@@ -140,7 +142,7 @@ class _AdvancedIntelligenceSectionState extends State<AdvancedIntelligenceSectio
         const SizedBox(height: 12),
 
         _buildStatCard(
-          title: '관계 (Relationships)',
+          title: S.of(context).advMemoryRelTitle,
           icon: Icons.account_tree_rounded,
           color: const Color(0xFFFF6B6B),
           children: [
@@ -153,7 +155,7 @@ class _AdvancedIntelligenceSectionState extends State<AdvancedIntelligenceSectio
             _buildStatRow(
                 'FOLLOWS (시간 순서 체인)', followsCount, Colors.white38),
             const Divider(color: Colors.white12, height: 20),
-            _buildStatRow('총 관계 수', totalRels, Colors.white54, isBold: true),
+            _buildStatRow(S.of(context).advMemoryRelTotal, totalRels, Colors.white54, isBold: true),
           ],
         ),
       ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ari_plugin/ari_plugin.dart';
 import '../widgets/tab_section_header.dart';
+import '../../../l10n/app_localizations.dart';
 
 class SkillsTab extends StatefulWidget {
   const SkillsTab({super.key});
@@ -55,10 +56,10 @@ class _SkillsTabState extends State<SkillsTab> {
             itemCount: skills.length + 1,
             itemBuilder: (context, index) {
               if (index == 0) {
-                return const TabSectionHeader(
+                return TabSectionHeader(
                   icon: Icons.auto_fix_high_rounded,
-                  title: '스킬',
-                  description: '에이전트가 할 수 있는 능력들이에요.',
+                  title: S.of(context).skillsTitle,
+                  description: S.of(context).skillsDesc,
                 );
               }
               return _SkillCard(skill: skills[index - 1], onRefresh: _refresh);
@@ -77,12 +78,12 @@ class _SkillsTabState extends State<SkillsTab> {
           Icon(Icons.error_outline_rounded,
               color: Colors.redAccent.withValues(alpha: 0.5), size: 48),
           const SizedBox(height: 16),
-          const Text('스킬 정보를 가져오지 못했습니다.',
-              style: TextStyle(color: Colors.white70)),
+          Text(S.of(context).errorLoadSkills,
+              style: const TextStyle(color: Colors.white70)),
           TextButton(
             onPressed: _refresh,
-            child: const Text('다시 시도',
-                style: TextStyle(color: Color(0xFF6C63FF))),
+            child: Text(S.of(context).retry,
+                style: const TextStyle(color: Color(0xFF6C63FF))),
           ),
         ],
       ),
@@ -97,11 +98,11 @@ class _SkillsTabState extends State<SkillsTab> {
           Icon(Icons.auto_fix_high_rounded,
               color: Colors.white.withValues(alpha: 0.2), size: 48),
           const SizedBox(height: 16),
-          const Text('등록된 스킬이 없습니다.',
-              style: TextStyle(color: Colors.white54, fontSize: 14)),
+          Text(S.of(context).skillsNoSkills,
+              style: const TextStyle(color: Colors.white54, fontSize: 14)),
           const SizedBox(height: 8),
           Text(
-            '에이전트의 skills 폴더를 확인해주세요.',
+            S.of(context).skillsCheckFolder,
             style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.3), fontSize: 12),
           ),
@@ -200,26 +201,27 @@ class _SkillCardState extends State<_SkillCard> {
                           ),
                           onPressed: () async {
                             final provider = context.read<AgentProvider>();
+                            final l10n = S.of(context);
                             final confirm = await showDialog<bool>(
                               context: context,
                               builder: (ctx) => AlertDialog(
                                 backgroundColor: const Color(0xFF1A1A2E),
-                                title: const Text('스킬 삭제',
-                                    style: TextStyle(color: Colors.white)),
-                                content: Text('"$name" 스킬을 삭제하시겠습니까?',
+                                title: Text(l10n.skillDelete,
+                                    style: const TextStyle(color: Colors.white)),
+                                content: Text(l10n.skillDeleteConfirm(name),
                                     style: const TextStyle(
                                         color: Colors.white70)),
                                 actions: [
                                   TextButton(
                                     onPressed: () =>
                                         Navigator.pop(ctx, false),
-                                    child: const Text('취소'),
+                                    child: Text(l10n.cancel),
                                   ),
                                   TextButton(
                                     onPressed: () =>
                                         Navigator.pop(ctx, true),
-                                    child: const Text('삭제',
-                                        style: TextStyle(
+                                    child: Text(l10n.delete,
+                                        style: const TextStyle(
                                             color: Colors.redAccent)),
                                   ),
                                 ],
@@ -269,7 +271,7 @@ class _SkillCardState extends State<_SkillCard> {
                               child: Padding(
                                 padding: const EdgeInsets.only(top: 8.0),
                                 child: Text(
-                                  _isExpanded ? '접기' : '더보기',
+                                  _isExpanded ? S.of(context).skillsCollapse : S.of(context).skillsExpand,
                                   style: const TextStyle(
                                     color: Color(0xFF6C63FF),
                                     fontSize: 12,

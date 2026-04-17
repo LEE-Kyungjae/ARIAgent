@@ -18,6 +18,7 @@ class ConfigRepository {
   bool _showAdvancedDeveloperUI = false;
   String _avatarSize = 'medium';
   String _backgroundTheme = 'dark';
+  String _locale = 'ko';
   double? _windowWidth;
   double? _windowHeight;
   double? _windowPosX;
@@ -87,6 +88,9 @@ class ConfigRepository {
         if (_fullConfig['BACKGROUND_THEME'] != null) {
           _backgroundTheme = _fullConfig['BACKGROUND_THEME'].toString();
         }
+        if (_fullConfig['LOCALE'] != null) {
+          _locale = _fullConfig['LOCALE'].toString();
+        }
         _windowWidth = (_fullConfig['WINDOW_WIDTH'] as num?)?.toDouble();
         _windowHeight = (_fullConfig['WINDOW_HEIGHT'] as num?)?.toDouble();
         _windowPosX = (_fullConfig['WINDOW_POS_X'] as num?)?.toDouble();
@@ -124,6 +128,7 @@ class ConfigRepository {
     _fullConfig['SHOW_ADVANCED_DEVELOPER_UI'] = _showAdvancedDeveloperUI;
     _fullConfig['AVATAR_SIZE'] = _avatarSize;
     _fullConfig['BACKGROUND_THEME'] = _backgroundTheme;
+    _fullConfig['LOCALE'] = _locale;
     _fullConfig['WINDOW_WIDTH'] = _windowWidth;
     _fullConfig['WINDOW_HEIGHT'] = _windowHeight;
     _fullConfig['WINDOW_POS_X'] = _windowPosX;
@@ -208,6 +213,15 @@ class ConfigRepository {
 
   Future<void> updateBackgroundTheme(String theme) async {
     _backgroundTheme = theme;
+    await _saveConfig();
+  }
+
+  String getLocale() {
+    return _locale;
+  }
+
+  Future<void> updateLocale(String locale) async {
+    _locale = locale;
     await _saveConfig();
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// 채팅 말풍선 위젯
 class ChatBubble extends StatelessWidget {
@@ -211,7 +212,7 @@ class _CopyButton extends StatelessWidget {
     if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('메시지를 복사했습니다.')));
+    ).showSnackBar(SnackBar(content: Text(S.of(context).messageCopied)));
   }
 
   @override

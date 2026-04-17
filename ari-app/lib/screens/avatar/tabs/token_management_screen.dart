@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ari_plugin/ari_plugin.dart';
+import '../../../l10n/app_localizations.dart';
 
 class TokenManagementScreen extends StatefulWidget {
   final String agentId;
@@ -56,14 +57,14 @@ class _TokenManagementScreenState extends State<TokenManagementScreen> {
           children: [
             const Icon(Icons.error_outline, color: Colors.white38, size: 40),
             const SizedBox(height: 12),
-            Text('데이터를 불러올 수 없습니다',
+            Text(S.of(context).errorLoadData,
                 style:
                     TextStyle(color: Colors.white.withValues(alpha: 0.6))),
             const SizedBox(height: 16),
             TextButton(
               onPressed: _fetchAndStore,
-              child: const Text('다시 시도',
-                  style: TextStyle(color: _accentColor)),
+              child: Text(S.of(context).retry,
+                  style: const TextStyle(color: _accentColor)),
             ),
           ],
         ),
@@ -90,18 +91,18 @@ class _TokenManagementScreenState extends State<TokenManagementScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionHeader('전체 사용량'),
+            _buildSectionHeader(S.of(context).tokenTotalUsage),
             const SizedBox(height: 16),
             _buildUsageSummaryCard(usage),
             if (usage.byModel.isNotEmpty) ...[
               const SizedBox(height: 24),
-              _buildSectionHeader('모델별 사용량'),
+              _buildSectionHeader(S.of(context).tokenByModel),
               const SizedBox(height: 16),
               ..._buildModelCards(usage),
             ],
             if (usage.byDay.isNotEmpty) ...[
               const SizedBox(height: 24),
-              _buildSectionHeader('일별 사용 추이'),
+              _buildSectionHeader(S.of(context).tokenDailyTrend),
               const SizedBox(height: 16),
               _buildUsageHistoryCard(usage),
             ],
@@ -153,8 +154,8 @@ class _TokenManagementScreenState extends State<TokenManagementScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('총 사용 토큰',
-                  style: TextStyle(color: Colors.white70, fontSize: 13)),
+              Text(S.of(context).tokenTotal,
+                  style: const TextStyle(color: Colors.white70, fontSize: 13)),
               GestureDetector(
                 onTap: _fetchAndStore,
                 child: Container(
@@ -164,12 +165,12 @@ class _TokenManagementScreenState extends State<TokenManagementScreen> {
                     color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.refresh, color: Colors.white70, size: 12),
-                      SizedBox(width: 4),
-                      Text('새로고침',
-                          style: TextStyle(
+                      const Icon(Icons.refresh, color: Colors.white70, size: 12),
+                      const SizedBox(width: 4),
+                      Text(S.of(context).tokenRefresh,
+                          style: const TextStyle(
                               color: Colors.white, fontSize: 11)),
                     ],
                   ),
@@ -447,12 +448,12 @@ class _TokenManagementScreenState extends State<TokenManagementScreen> {
               size: 48,
               color: Colors.white.withValues(alpha: 0.15)),
           const SizedBox(height: 16),
-          Text('아직 토큰 사용 기록이 없습니다',
+          Text(S.of(context).tokenNoUsage,
               style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 14)),
           const SizedBox(height: 8),
-          Text('아바타와 대화를 나누면\n사용량이 여기에 표시됩니다.',
+          Text(S.of(context).tokenNoUsageDesc,
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.25),

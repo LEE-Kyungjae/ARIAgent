@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:ari_plugin/ari_plugin.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/tab_section_header.dart';
+import '../../../l10n/app_localizations.dart';
 
 class AppsTab extends StatelessWidget {
   const AppsTab({super.key});
@@ -32,8 +33,8 @@ class AppsTab extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
           child: TabSectionHeader(
             icon: Icons.apps_rounded,
-            title: '앱',
-            description: '에이전트가 연동해서 활용하는 앱들이에요.',
+            title: S.of(context).appsTitle,
+            description: S.of(context).appsDesc,
             trailing: TextButton.icon(
               onPressed: () async {
                 final uri = Uri.parse('https://ariwith.me/store');
@@ -41,8 +42,8 @@ class AppsTab extends StatelessWidget {
               },
               icon: const Icon(Icons.storefront_rounded,
                   size: 14, color: Color(0xFF6C63FF)),
-              label: const Text('앱스토어',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF6C63FF))),
+              label: Text(S.of(context).appsStore,
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF6C63FF))),
               style: TextButton.styleFrom(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -53,7 +54,7 @@ class AppsTab extends StatelessWidget {
         ),
         Expanded(
           child: apps.isEmpty
-              ? _buildEmptyState()
+              ? _buildEmptyState(context)
               : RefreshIndicator(
                   onRefresh: () => agent.loadApps(),
                   color: const Color(0xFF6C63FF),
@@ -78,7 +79,8 @@ class AppsTab extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
+    final l10n = S.of(context);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -86,11 +88,11 @@ class AppsTab extends StatelessWidget {
           Icon(Icons.apps_rounded,
               color: Colors.white.withValues(alpha: 0.2), size: 48),
           const SizedBox(height: 16),
-          const Text('설치된 앱이 없습니다.',
-              style: TextStyle(color: Colors.white54, fontSize: 14)),
+          Text(l10n.appsNoApps,
+              style: const TextStyle(color: Colors.white54, fontSize: 14)),
           const SizedBox(height: 8),
           Text(
-            '~/.ari-agent/apps 폴더를 확인해주세요.',
+            l10n.appsCheckFolder,
             style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.3), fontSize: 12),
           ),
@@ -185,7 +187,7 @@ class _AppCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                isConnected ? '연결됨' : '오프라인',
+                                isConnected ? S.of(context).appsConnected : S.of(context).appsOffline,
                                 style: TextStyle(
                                   color: isConnected
                                       ? const Color(0xFF4CAF50)
@@ -232,25 +234,26 @@ class _AppCard extends StatelessWidget {
                       size: 18,
                     ),
                     onPressed: () async {
+                      final l10n = S.of(context);
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (context) => AlertDialog(
                           backgroundColor: const Color(0xFF1A1A2E),
-                          title: const Text('앱 삭제',
-                              style: TextStyle(color: Colors.white)),
-                          content: Text('"$title" 앱을 삭제하시겠습니까?',
+                          title: Text(l10n.appsDeleteTitle,
+                              style: const TextStyle(color: Colors.white)),
+                          content: Text(l10n.appsDeleteConfirm(title),
                               style:
                                   const TextStyle(color: Colors.white70)),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context, false),
-                              child: const Text('취소'),
+                              child: Text(l10n.cancel),
                             ),
                             TextButton(
                               onPressed: () => Navigator.pop(context, true),
-                              child: const Text('삭제',
+                              child: Text(l10n.delete,
                                   style:
-                                      TextStyle(color: Colors.redAccent)),
+                                      const TextStyle(color: Colors.redAccent)),
                             ),
                           ],
                         ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 class ChatSuggestions extends StatelessWidget {
   final Function(String) onSuggestionTap;
   final bool isSetupMode;
@@ -12,7 +14,13 @@ class ChatSuggestions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chips = isSetupMode ? _setupChips : _normalChips;
+    final List<String> chips = isSetupMode
+        ? _setupChips
+        : <String>[
+            ..._normalChips,
+            S.of(context).chatSuggestion1,
+            S.of(context).chatSuggestion2,
+          ];
 
     return Padding(
       padding: const EdgeInsets.only(left: 12, right: 12, bottom: 8),
@@ -39,8 +47,6 @@ class ChatSuggestions extends StatelessWidget {
     '🔍 파일 찾아줘',
     '1분뒤 알려줘!',
     '🎵 감성적인 노래 들려줘!',
-    '비트코인 거래앱 설치해줘!',
-    '주식 자동매매 하고 싶어!',
   ];
 
   Widget _suggestionChip(String text) {

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 class ServerStoppedView extends StatelessWidget {
   const ServerStoppedView({super.key});
 
@@ -25,9 +27,9 @@ class ServerStoppedView extends StatelessWidget {
               color: Colors.white.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
-            const Text(
-              '에이전트가 정지되었습니다',
-              style: TextStyle(
+            Text(
+              S.of(context).agentStopped,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -35,7 +37,7 @@ class ServerStoppedView extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '채팅을 시작하려면 위쪽의 전원 버튼을\n눌러 에이전트를 실행해주세요.',
+              S.of(context).agentStoppedDesc,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.6),

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:ari_plugin/ari_plugin.dart';
 import '../repositories/config_repository.dart';
@@ -21,6 +22,8 @@ class ConfigProvider extends ChangeNotifier {
   bool get isExperimentalEnabled => _repository.getIsExperimentalEnabled();
   bool get showAdvancedDeveloperUI => _repository.getShowAdvancedDeveloperUI();
   String get backgroundTheme => _repository.getBackgroundTheme();
+  String get localeCode => _repository.getLocale();
+  Locale get locale => Locale(localeCode);
   double? get windowWidth => _repository.windowWidth;
   double? get windowHeight => _repository.windowHeight;
   double? get windowPosX => _repository.windowPosX;
@@ -115,6 +118,12 @@ class ConfigProvider extends ChangeNotifier {
   /// 배경 테마 설정
   Future<void> updateBackgroundTheme(String theme) async {
     await _repository.updateBackgroundTheme(theme);
+    notifyListeners();
+  }
+
+  /// 언어 설정
+  Future<void> updateLocale(String localeCode) async {
+    await _repository.updateLocale(localeCode);
     notifyListeners();
   }
 
