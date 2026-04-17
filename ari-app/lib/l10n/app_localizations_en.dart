@@ -36,6 +36,9 @@ class SEn extends S {
   String get delete => 'Delete';
 
   @override
+  String get minimize => 'Minimize';
+
+  @override
   String get close => 'Close';
 
   @override

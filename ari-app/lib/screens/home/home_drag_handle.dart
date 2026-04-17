@@ -39,22 +39,44 @@ class HomeDragHandle extends StatelessWidget {
             Positioned(
               top: 4,
               right: 6,
-              child: IconButton(
-                tooltip: S.of(context).close,
-                onPressed: () => windowManager.close(),
-                icon: Icon(
-                  Icons.close_rounded,
-                  size: 18,
-                  color: (isLight ? Colors.black : Colors.white).withValues(
-                    alpha: 0.75,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: S.of(context).minimize,
+                    onPressed: () => windowManager.minimize(),
+                    icon: Icon(
+                      Icons.remove_rounded,
+                      size: 18,
+                      color: (isLight ? Colors.black : Colors.white).withValues(
+                        alpha: 0.75,
+                      ),
+                    ),
+                    style: IconButton.styleFrom(
+                      minimumSize: const Size(24, 24),
+                      padding: const EdgeInsets.all(4),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      backgroundColor: Colors.transparent,
+                    ),
                   ),
-                ),
-                style: IconButton.styleFrom(
-                  minimumSize: const Size(24, 24),
-                  padding: const EdgeInsets.all(4),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  backgroundColor: Colors.transparent,
-                ),
+                  IconButton(
+                    tooltip: S.of(context).close,
+                    onPressed: () => windowManager.close(),
+                    icon: Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: (isLight ? Colors.black : Colors.white).withValues(
+                        alpha: 0.75,
+                      ),
+                    ),
+                    style: IconButton.styleFrom(
+                      minimumSize: const Size(24, 24),
+                      padding: const EdgeInsets.all(4),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      backgroundColor: Colors.transparent,
+                    ),
+                  ),
+                ],
               ),
             ),
         ],

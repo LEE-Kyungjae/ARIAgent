@@ -36,6 +36,9 @@ class SKo extends S {
   String get delete => '삭제';
 
   @override
+  String get minimize => '최소화';
+
+  @override
   String get close => '닫기';
 
   @override

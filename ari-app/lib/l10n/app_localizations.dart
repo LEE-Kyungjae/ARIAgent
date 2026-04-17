@@ -151,6 +151,12 @@ abstract class S {
   /// **'삭제'**
   String get delete;
 
+  /// No description provided for @minimize.
+  ///
+  /// In ko, this message translates to:
+  /// **'최소화'**
+  String get minimize;
+
   /// No description provided for @close.
   ///
   /// In ko, this message translates to:

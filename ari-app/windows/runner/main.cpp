@@ -7,6 +7,24 @@
 
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
+  // Single-instance guard: prevent duplicate processes when the app is already
+  // running as a daemon or in the system tray.
+  HANDLE app_mutex =
+      ::CreateMutexW(nullptr, TRUE, L"AriAgentSingleInstance");
+  if (::GetLastError() == ERROR_ALREADY_EXISTS) {
+    if (app_mutex) ::CloseHandle(app_mutex);
+    HWND hwnd = ::FindWindowW(nullptr, L"AriAgent");
+    if (hwnd) {
+      if (::IsIconic(hwnd)) {
+        ::ShowWindow(hwnd, SW_RESTORE);
+      } else {
+        ::ShowWindow(hwnd, SW_SHOW);
+      }
+      ::SetForegroundWindow(hwnd);
+    }
+    return EXIT_SUCCESS;
+  }
+
   // Attach to console when present (e.g., 'flutter run') or create a
   // new console when running with a debugger.
   if (!::AttachConsole(ATTACH_PARENT_PROCESS) && ::IsDebuggerPresent()) {

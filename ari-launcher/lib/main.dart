@@ -34,12 +34,7 @@ class DownloadScreen extends StatefulWidget {
 }
 
 class _DownloadScreenState extends State<DownloadScreen> {
-  static const String _launcherInstallFolderName = 'ARIAgent Launcher';
-  static const String _launcherExecutableName = 'ARI_Launcher.exe';
   static const String _appInstallFolderName = 'ARIAgent';
-  static const String _uninstallScriptName = 'Uninstall_ARIAgent.ps1';
-  static const String _windowsUninstallRegistryKey =
-      r'Software\Microsoft\Windows\CurrentVersion\Uninstall\ARIAgent';
 
   String _statusMessage = 'Checking for updates...';
   double _progress = 0.0;
@@ -69,20 +64,6 @@ class _DownloadScreenState extends State<DownloadScreen> {
 
   String? get _homeDir =>
       Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
-
-  String get _launcherInstallDir {
-    final localAppData = _localAppDataDir;
-    if (localAppData == null || localAppData.isEmpty) {
-      throw Exception('Could not determine LocalAppData.');
-    }
-    return '$localAppData\\Programs\\$_launcherInstallFolderName';
-  }
-
-  String get _installedLauncherPath =>
-      '$_launcherInstallDir\\$_launcherExecutableName';
-
-  String get _installedUninstallScriptPath =>
-      '$_launcherInstallDir\\$_uninstallScriptName';
 
   String get _windowsAppBaseDir {
     final localAppData = _localAppDataDir;
@@ -129,13 +110,6 @@ class _DownloadScreenState extends State<DownloadScreen> {
 
   Future<void> _checkAndUpdate() async {
     try {
-      if (Platform.isWindows) {
-        final relaunched = await _ensureWindowsLauncherInstalled();
-        if (relaunched) {
-          return;
-        }
-      }
-
       final homeDir = _homeDir;
       final baseDirPath = Platform.isWindows
           ? _windowsAppBaseDir
@@ -334,119 +308,16 @@ class _DownloadScreenState extends State<DownloadScreen> {
     }
   }
 
-  Future<bool> _ensureWindowsLauncherInstalled() async {
-    final currentExecutable = File(Platform.resolvedExecutable);
-    final currentDir = currentExecutable.parent;
-    final installedExecutable = File(_installedLauncherPath);
-    final installedDir = Directory(_launcherInstallDir);
-
-    final currentDirPath = currentDir.absolute.path.toLowerCase();
-    final installedDirPath = installedDir.absolute.path.toLowerCase();
-    if (currentDirPath == installedDirPath) {
-      return false;
-    }
-
-    setState(() {
-      _statusMessage = 'Installing launcher for Windows...';
-    });
-
-    if (installedDir.existsSync()) {
-      installedDir.deleteSync(recursive: true);
-    }
-    installedDir.createSync(recursive: true);
-
-    await _copyDirectory(currentDir, installedDir);
-    await _writeWindowsUninstaller(
-      uninstallScriptPath: _installedUninstallScriptPath,
-    );
-    await _createWindowsShortcuts(installedExecutable.path);
-    await _registerWindowsUninstallEntry(
-      launcherPath: installedExecutable.path,
-      uninstallScriptPath: _installedUninstallScriptPath,
-    );
-
-    if (!installedExecutable.existsSync()) {
-      throw Exception(
-        'Installed launcher executable was not found at ${installedExecutable.path}.',
-      );
-    }
-
-    await Process.start(
-      installedExecutable.path,
-      const [],
-      mode: ProcessStartMode.detached,
-      workingDirectory: installedDir.path,
-    );
-    exit(0);
-  }
-
-  Future<void> _copyDirectory(Directory source, Directory destination) async {
-    await for (final entity in source.list(recursive: false)) {
-      final name = entity.path.split(Platform.pathSeparator).last;
-      final targetPath = '${destination.path}${Platform.pathSeparator}$name';
-
-      if (entity is Directory) {
-        final newDirectory = Directory(targetPath);
-        if (!newDirectory.existsSync()) {
-          newDirectory.createSync(recursive: true);
-        }
-        await _copyDirectory(entity, newDirectory);
-      } else if (entity is File) {
-        await entity.copy(targetPath);
-      }
-    }
-  }
-
-  Future<void> _createWindowsShortcuts(String launcherPath) async {
-    final appData = Platform.environment['APPDATA'];
-    final userProfile = Platform.environment['USERPROFILE'];
-    if (appData == null ||
-        appData.isEmpty ||
-        userProfile == null ||
-        userProfile.isEmpty) {
-      return;
-    }
-
-    final startMenuDir = Directory(
-      '$appData\\Microsoft\\Windows\\Start Menu\\Programs',
-    );
-    final desktopDir = Directory('$userProfile\\Desktop');
-
-    if (!startMenuDir.existsSync()) {
-      startMenuDir.createSync(recursive: true);
-    }
-    if (!desktopDir.existsSync()) {
-      desktopDir.createSync(recursive: true);
-    }
-
-    final startMenuShortcut = '${startMenuDir.path}\\ARIAgent.lnk';
-    final desktopShortcut = '${desktopDir.path}\\ARIAgent.lnk';
-    final uninstallShortcut = '${startMenuDir.path}\\Uninstall ARIAgent.lnk';
-
-    await _createWindowsShortcut(
-      shortcutPath: startMenuShortcut,
-      targetPath: launcherPath,
-    );
-    await _createWindowsShortcut(
-      shortcutPath: desktopShortcut,
-      targetPath: launcherPath,
-    );
-    await _createWindowsShortcut(
-      shortcutPath: uninstallShortcut,
-      targetPath: 'powershell.exe',
-      arguments:
-          '-NoProfile -ExecutionPolicy Bypass -File "${_installedUninstallScriptPath.replaceAll('"', '""')}"',
-      iconLocation: launcherPath,
-    );
-  }
-
   Future<void> _killRunningApp() async {
     setState(() {
       _statusMessage = 'Stopping existing processes...';
     });
     try {
       if (Platform.isWindows) {
-        // /T option kills child processes (e.g. ari-server node instance)
+        // Graceful shutdown first so the app can clean up its tray icon.
+        await Process.run('taskkill', ['/IM', 'AriAgent.exe', '/T']);
+        await Future.delayed(const Duration(seconds: 2));
+        // Force kill any remaining processes (e.g. ari-server child).
         await Process.run('taskkill', ['/F', '/IM', 'AriAgent.exe', '/T']);
       } else {
         await Process.run('pkill', ['-f', 'AriAgent']);
@@ -455,54 +326,6 @@ class _DownloadScreenState extends State<DownloadScreen> {
       await Future.delayed(const Duration(milliseconds: 1500));
     } catch (_) {
       // Ignore errors if the process is not running
-    }
-  }
-
-  Future<void> _createWindowsShortcut({
-    required String shortcutPath,
-    required String targetPath,
-    String? arguments,
-    String? iconLocation,
-  }) async {
-    final escapedShortcutPath = shortcutPath.replaceAll("'", "''");
-    final escapedTargetPath = targetPath.replaceAll("'", "''");
-    final escapedWorkingDir = File(targetPath).parent.path.replaceAll(
-      "'",
-      "''",
-    );
-    final escapedArguments = arguments?.replaceAll("'", "''");
-    final resolvedIconLocation = (iconLocation ?? targetPath).replaceAll(
-      "'",
-      "''",
-    );
-
-    final result = await Process.run('powershell', [
-      '-NoProfile',
-      '-NonInteractive',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-Command',
-      r"$ws = New-Object -ComObject WScript.Shell; " +
-          r"$shortcut = $ws.CreateShortcut('" +
-          escapedShortcutPath +
-          r"'); " +
-          r"$shortcut.TargetPath = '" +
-          escapedTargetPath +
-          r"'; " +
-          r"$shortcut.WorkingDirectory = '" +
-          escapedWorkingDir +
-          r"'; " +
-          (escapedArguments != null
-              ? r"$shortcut.Arguments = '" + escapedArguments + r"'; "
-              : '') +
-          r"$shortcut.IconLocation = '" +
-          resolvedIconLocation +
-          r",0'; " +
-          r"$shortcut.Save()",
-    ]);
-
-    if (result.exitCode != 0) {
-      throw Exception('Shortcut creation failed: ${result.stderr}');
     }
   }
 
@@ -559,73 +382,6 @@ class _DownloadScreenState extends State<DownloadScreen> {
         );
     await Process.start('open', [appPath], mode: ProcessStartMode.detached);
     exit(0);
-  }
-
-  Future<void> _writeWindowsUninstaller({
-    required String uninstallScriptPath,
-  }) async {
-    final uninstallScript = '''
-\$ErrorActionPreference = 'SilentlyContinue'
-\$launcherDir = Split-Path -Parent \$MyInvocation.MyCommand.Path
-\$appDir = Join-Path \$env:LOCALAPPDATA 'Programs\\${_appInstallFolderName}'
-\$startMenuShortcut = Join-Path \$env:APPDATA 'Microsoft\\Windows\\Start Menu\\Programs\\ARIAgent.lnk'
-\$desktopShortcut = Join-Path \$env:USERPROFILE 'Desktop\\ARIAgent.lnk'
-\$uninstallShortcut = Join-Path \$env:APPDATA 'Microsoft\\Windows\\Start Menu\\Programs\\Uninstall ARIAgent.lnk'
-\$registryKey = 'HKCU:\\${_windowsUninstallRegistryKey}'
-\$cleanupScript = Join-Path \$env:TEMP 'ariagent_cleanup.ps1'
-
-\$cleanupContent = @"
-Start-Sleep -Seconds 2
-Remove-Item -LiteralPath '${r'$'}launcherDir' -Recurse -Force -ErrorAction SilentlyContinue
-Remove-Item -LiteralPath '${r'$'}appDir' -Recurse -Force -ErrorAction SilentlyContinue
-"@
-[System.IO.File]::WriteAllText(\$cleanupScript, \$cleanupContent, [System.Text.Encoding]::UTF8)
-
-if (Test-Path \$startMenuShortcut) { Remove-Item -LiteralPath \$startMenuShortcut -Force }
-if (Test-Path \$desktopShortcut) { Remove-Item -LiteralPath \$desktopShortcut -Force }
-if (Test-Path \$uninstallShortcut) { Remove-Item -LiteralPath \$uninstallShortcut -Force }
-if (Test-Path \$registryKey) { Remove-Item -LiteralPath \$registryKey -Recurse -Force }
-
-Get-Process AriAgent, ari-server, ARI_Launcher -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-Start-Process powershell -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',\$cleanupScript -WindowStyle Hidden
-''';
-
-    await File(uninstallScriptPath).writeAsString(uninstallScript);
-  }
-
-  Future<void> _registerWindowsUninstallEntry({
-    required String launcherPath,
-    required String uninstallScriptPath,
-  }) async {
-    final escapedKey = _windowsUninstallRegistryKey.replaceAll("'", "''");
-    final escapedLauncherPath = launcherPath.replaceAll("'", "''");
-    final escapedUninstallScriptPath = uninstallScriptPath.replaceAll(
-      "'",
-      "''",
-    );
-    final command =
-        "New-Item -Path 'HKCU:\\$escapedKey' -Force | Out-Null; "
-        "Set-ItemProperty -Path 'HKCU:\\$escapedKey' -Name 'DisplayName' -Value 'ARIAgent'; "
-        "Set-ItemProperty -Path 'HKCU:\\$escapedKey' -Name 'Publisher' -Value 'Rightsna'; "
-        "Set-ItemProperty -Path 'HKCU:\\$escapedKey' -Name 'DisplayIcon' -Value '$escapedLauncherPath'; "
-        "Set-ItemProperty -Path 'HKCU:\\$escapedKey' -Name 'InstallLocation' -Value '${_launcherInstallDir.replaceAll("'", "''")}'; "
-        "Set-ItemProperty -Path 'HKCU:\\$escapedKey' -Name 'UninstallString' -Value 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"\"$escapedUninstallScriptPath\"\"'; "
-        "Set-ItemProperty -Path 'HKCU:\\$escapedKey' -Name 'QuietUninstallString' -Value 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"\"$escapedUninstallScriptPath\"\"'; "
-        "Set-ItemProperty -Path 'HKCU:\\$escapedKey' -Name 'NoModify' -Type DWord -Value 1; "
-        "Set-ItemProperty -Path 'HKCU:\\$escapedKey' -Name 'NoRepair' -Type DWord -Value 1";
-
-    final result = await Process.run('powershell', [
-      '-NoProfile',
-      '-NonInteractive',
-      '-ExecutionPolicy',
-      'Bypass',
-      '-Command',
-      command,
-    ]);
-
-    if (result.exitCode != 0) {
-      throw Exception('Failed to register uninstall entry: ${result.stderr}');
-    }
   }
 
   @override
