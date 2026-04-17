@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/place_avatar.dart';
+import '../../../l10n/app_localizations.dart';
 
 class AgentAvatar extends StatelessWidget {
   final PlaceAvatar item;
@@ -10,7 +11,7 @@ class AgentAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final avatar = item.profile;
-    final statusText = item.status;
+    final statusText = _localizeStatus(context, item.status);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -74,6 +75,16 @@ class AgentAvatar extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String _localizeStatus(BuildContext context, String key) {
+    final l10n = S.of(context);
+    switch (key) {
+      case 'working': return l10n.placeWorking;
+      case 'idle': return l10n.placeIdle;
+      case 'resting': return l10n.placeResting;
+      default: return key;
+    }
   }
 
   Widget _buildAvatarImage(dynamic avatar) {

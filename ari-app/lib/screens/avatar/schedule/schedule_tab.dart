@@ -311,13 +311,13 @@ class _DayHeader extends StatelessWidget {
                         decoration: const BoxDecoration(
                             color: _kAccent, shape: BoxShape.circle),
                         alignment: Alignment.center,
-                        child: Text(_kDayNames[i],
+                        child: Text(_dayNames(S.of(context))[i],
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800)),
                       )
-                    : Text(_kDayNames[i],
+                    : Text(_dayNames(S.of(context))[i],
                         style: TextStyle(
                             color: color,
                             fontSize: 12,

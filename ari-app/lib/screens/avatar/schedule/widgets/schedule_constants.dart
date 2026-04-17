@@ -1,7 +1,10 @@
 part of '../schedule_tab.dart';
 
 // ── Layout constants ──────────────────────────────────────
-const List<String> _kDayNames = ['일', '월', '화', '수', '목', '금', '토'];
+List<String> _dayNames(S l10n) => [
+  l10n.dayNameSun, l10n.dayNameMon, l10n.dayNameTue, l10n.dayNameWed,
+  l10n.dayNameThu, l10n.dayNameFri, l10n.dayNameSat,
+];
 const Color _kAccent = Color(0xFF6C63FF);
 const double _kTimeColW = 44.0;  // 하루보기 시간축 너비
 const double _kCardW = 80.0;     // 루틴카드 1열 너비

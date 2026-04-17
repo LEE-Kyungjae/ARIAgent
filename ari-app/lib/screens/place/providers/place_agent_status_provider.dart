@@ -40,8 +40,8 @@ class PlaceAgentStatusProvider extends ChangeNotifier {
 
   String statusFor(String agentId, {required bool isSelected}) {
     final status = _statuses[agentId];
-    if (status == 'working') return '작업중';
-    return isSelected ? '대기중' : '쉬는중';
+    if (status == 'working') return 'working';
+    return isSelected ? 'idle' : 'resting';
   }
 
   void _setWorking(String? agentId) {

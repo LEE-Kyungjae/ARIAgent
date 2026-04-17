@@ -66,7 +66,7 @@ class _DayViewHeader extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    _kDayNames[dayIdx],
+                    _dayNames(S.of(context))[dayIdx],
                     style: TextStyle(
                       color: isToday ? Colors.white : dayColor,
                       fontSize: 11, fontWeight: FontWeight.w800),

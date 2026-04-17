@@ -28,7 +28,7 @@ class PlaceAvatar {
     required String currentAvatarId,
     required bool isWorking,
   }) {
-    if (avatarId == currentAvatarId) return isWorking ? '작업중' : '대기중';
-    return '쉬는중';
+    if (avatarId == currentAvatarId) return isWorking ? 'working' : 'idle';
+    return 'resting';
   }
 }
