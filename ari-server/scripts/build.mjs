@@ -103,6 +103,48 @@ function copyNodeModuleIfExists(moduleName, targetRoot) {
   fs.cpSync(source, target, { recursive: true });
 }
 
+function inspectDepsAtPath(modulePath, targetRoot, visited) {
+  const packageJsonPath = path.join(modulePath, "package.json");
+  if (fs.existsSync(packageJsonPath)) {
+    try {
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+      const deps = {
+        ...(packageJson.dependencies ?? {}),
+        ...(packageJson.optionalDependencies ?? {}),
+      };
+      for (const dependency of Object.keys(deps)) {
+        copyNodeModuleTree(dependency, targetRoot, visited);
+      }
+    } catch (error) {
+      console.warn(
+        `[build] Warning: failed to inspect dependencies at ${modulePath}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  const nestedDir = path.join(modulePath, "node_modules");
+  if (!fs.existsSync(nestedDir)) {
+    return;
+  }
+
+  for (const entry of fs.readdirSync(nestedDir)) {
+    if (entry.startsWith(".")) continue;
+    const entryPath = path.join(nestedDir, entry);
+    if (!fs.statSync(entryPath).isDirectory()) continue;
+
+    if (entry.startsWith("@")) {
+      for (const scoped of fs.readdirSync(entryPath)) {
+        const scopedPath = path.join(entryPath, scoped);
+        if (fs.statSync(scopedPath).isDirectory()) {
+          inspectDepsAtPath(scopedPath, targetRoot, visited);
+        }
+      }
+    } else {
+      inspectDepsAtPath(entryPath, targetRoot, visited);
+    }
+  }
+}
+
 function copyNodeModuleTree(moduleName, targetRoot, visited = new Set()) {
   if (visited.has(moduleName)) {
     return;
@@ -116,23 +158,7 @@ function copyNodeModuleTree(moduleName, targetRoot, visited = new Set()) {
   }
 
   copyNodeModuleIfExists(moduleName, targetRoot);
-
-  const packageJsonPath = path.join(source, "package.json");
-  if (!fs.existsSync(packageJsonPath)) {
-    return;
-  }
-
-  try {
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-    const dependencies = Object.keys(packageJson.dependencies ?? {});
-    for (const dependency of dependencies) {
-      copyNodeModuleTree(dependency, targetRoot, visited);
-    }
-  } catch (error) {
-    console.warn(
-      `[build] Warning: failed to inspect dependencies for ${moduleName}: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
+  inspectDepsAtPath(source, targetRoot, visited);
 }
 
 function cleanDir(targetDir) {
