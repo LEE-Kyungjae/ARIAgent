@@ -109,7 +109,7 @@ class _ARIAppState extends State<ARIApp> with WindowListener {
     windowManager.addListener(this);
     windowManager.setPreventClose(true);
     unawaited(DesktopNotificationService.instance.init());
-    _initSystemTray();
+    unawaited(_initSystemTray());
   }
 
   @override

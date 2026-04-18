@@ -184,6 +184,16 @@ async function buildStandalone() {
       sourcemap: false,
       logLevel: "info",
       external: standaloneExternalModules,
+      // @xenova/transformers의 env.js가 import.meta.url로 경로를 계산하는데,
+      // esbuild CJS 번들에서 import.meta가 빈 객체({})로 치환되어 url이 undefined가 됨.
+      // banner로 번들 상단에 실제 URL 변수를 주입하고, define으로 해당 변수를 참조해
+      // fileURLToPath(undefined) 에러를 방지.
+      banner: {
+        js: "var __bundle_import_meta_url = require('url').pathToFileURL(__filename).href;",
+      },
+      define: {
+        "import.meta.url": "__bundle_import_meta_url",
+      },
     });
 
     fs.writeFileSync(
