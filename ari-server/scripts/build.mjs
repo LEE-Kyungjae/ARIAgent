@@ -19,6 +19,8 @@ const standaloneExternalModules = [
   "fsevents",
   "sharp",
   "onnxruntime-node",
+  "@xenova/transformers",
+  "kuzu",
 ];
 const existingPath = process.env.PATH ?? process.env.Path ?? "";
 const pathWithNode = process.platform === "win32"

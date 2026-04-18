@@ -109,17 +109,7 @@ class _ARIAppState extends State<ARIApp> with WindowListener {
     windowManager.addListener(this);
     windowManager.setPreventClose(true);
     unawaited(DesktopNotificationService.instance.init());
-  }
-
-  bool _systemTrayInitialized = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_systemTrayInitialized) {
-      _systemTrayInitialized = true;
-      _initSystemTray(context);
-    }
+    _initSystemTray();
   }
 
   @override
@@ -129,8 +119,8 @@ class _ARIAppState extends State<ARIApp> with WindowListener {
     super.dispose();
   }
 
-  Future<void> _initSystemTray(BuildContext context) async {
-    final s = S.of(context);
+  Future<void> _initSystemTray() async {
+    final s = lookupS(ConfigProvider().locale);
     String iconPath = Platform.isWindows
         ? 'assets/images/app_icon.ico'
         : 'assets/images/logo_tray.png';
