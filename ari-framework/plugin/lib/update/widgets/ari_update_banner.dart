@@ -39,7 +39,7 @@ class AriUpdateBanner extends StatefulWidget {
   const AriUpdateBanner({
     super.key,
     this.feedUrl,
-    this.checkInterval = const Duration(hours: 3),
+    this.checkInterval = const Duration(hours: 12),
     this.updateInfo,
     this.appName,
     this.appId,

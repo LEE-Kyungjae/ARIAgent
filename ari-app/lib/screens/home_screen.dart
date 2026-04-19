@@ -43,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkForUpdates();
-      _updateTimer = Timer.periodic(const Duration(hours: 3), (timer) {
+      _updateTimer = Timer.periodic(const Duration(hours: 12), (timer) {
         _checkForUpdates();
       });
     });
