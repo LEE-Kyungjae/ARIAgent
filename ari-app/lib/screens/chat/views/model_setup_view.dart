@@ -39,7 +39,7 @@ class ModelSetupView extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'ARI가 답변하기 위해 사용할\nAI 프로바이더 및 API 키를 등록해주세요.',
+              S.of(context).modelSetupDesc,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.6),

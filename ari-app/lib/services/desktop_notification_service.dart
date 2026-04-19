@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../l10n/app_localizations.dart';
+import '../providers/config_provider.dart';
 import '../repositories/config_repository.dart';
 
 class DesktopNotificationService {
@@ -72,10 +74,11 @@ class DesktopNotificationService {
       return;
     }
 
+    final s = lookupS(ConfigProvider().locale);
     final title =
         requestId.startsWith('report-') || requestId.startsWith('sys-')
-        ? 'ARI 백그라운드 응답'
-        : 'ARI 새 메시지';
+        ? s.notificationTitleBackground
+        : s.notificationTitleNewMessage;
 
     await show(title: title, body: _normalizeBody(response));
   }

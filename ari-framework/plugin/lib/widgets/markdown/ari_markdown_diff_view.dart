@@ -79,6 +79,12 @@ class AriMarkdownDiffView extends StatelessWidget {
     this.accentRed = const Color(0xFFD32F2F),
     this.textMain = const Color(0xFF191F28),
     this.textSub = const Color(0xFF4E5968),
+    this.titleText = 'AI suggested markdown edits.',
+    this.rejectAllText = 'Reject All',
+    this.approveAllText = 'Approve All',
+    this.labelAddedText = 'ADDED',
+    this.labelRemovedText = 'REMOVED',
+    this.labelModifiedText = 'MODIFIED',
   });
 
   final String currentContent;
@@ -92,6 +98,13 @@ class AriMarkdownDiffView extends StatelessWidget {
   final Color accentRed;
   final Color textMain;
   final Color textSub;
+
+  final String titleText;
+  final String rejectAllText;
+  final String approveAllText;
+  final String labelAddedText;
+  final String labelRemovedText;
+  final String labelModifiedText;
 
   @override
   Widget build(BuildContext context) {
@@ -112,10 +125,10 @@ class AriMarkdownDiffView extends StatelessWidget {
               Icon(Icons.auto_awesome, size: 14, color: primaryColor),
               const SizedBox(width: 8),
               Expanded(
-                child: Text('AI가 마크다운 수정을 제안했습니다.', style: TextStyle(fontSize: 13, color: primaryColor, fontWeight: FontWeight.bold)),
+                child: Text(titleText, style: TextStyle(fontSize: 13, color: primaryColor, fontWeight: FontWeight.bold)),
               ),
-              _TopActionButton(label: '전체 거절', color: accentRed, onPressed: onRejectAll),
-              _TopActionButton(label: '전체 승인', color: accentGreen, onPressed: onApproveAll),
+              _TopActionButton(label: rejectAllText, color: accentRed, onPressed: onRejectAll),
+              _TopActionButton(label: approveAllText, color: accentGreen, onPressed: onApproveAll),
             ],
           ),
         ),
@@ -134,6 +147,9 @@ class AriMarkdownDiffView extends StatelessWidget {
                 primaryColor: primaryColor,
                 textMain: textMain,
                 textSub: textSub,
+                labelAddedText: labelAddedText,
+                labelRemovedText: labelRemovedText,
+                labelModifiedText: labelModifiedText,
                 onApprove: () => _handlePartialAction(diffBlocks, idx, true),
                 onRevert: () => _handlePartialAction(diffBlocks, idx, false),
               );
@@ -181,9 +197,13 @@ class _DiffBlockWidget extends StatelessWidget {
     required this.primaryColor,
     required this.textMain,
     required this.textSub,
+    required this.labelAddedText,
+    required this.labelRemovedText,
+    required this.labelModifiedText,
   });
   final _DiffBlock block; final VoidCallback onApprove; final VoidCallback onRevert;
   final Color accentGreen; final Color accentRed; final Color primaryColor; final Color textMain; final Color textSub;
+  final String labelAddedText; final String labelRemovedText; final String labelModifiedText;
 
   @override
   Widget build(BuildContext context) {
@@ -191,7 +211,9 @@ class _DiffBlockWidget extends StatelessWidget {
       return Padding(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16), child: MarkdownBody(data: block.proposedText, styleSheet: _getStyle(context, textMain)));
     }
     final Color accent = block.type == _BlockType.added ? accentGreen : (block.type == _BlockType.removed ? accentRed : primaryColor);
-    final String label = block.type == _BlockType.added ? '추가됨' : (block.type == _BlockType.removed ? '삭제됨' : '수정됨');
+    final String label = block.type == _BlockType.added
+        ? labelAddedText
+        : (block.type == _BlockType.removed ? labelRemovedText : labelModifiedText);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(color: accent.withOpacity(0.04), borderRadius: BorderRadius.circular(16), border: Border.all(color: accent.withOpacity(0.1))),

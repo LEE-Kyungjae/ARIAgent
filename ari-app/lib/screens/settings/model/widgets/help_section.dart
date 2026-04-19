@@ -27,13 +27,13 @@ class HelpSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.info_outline, size: 16, color: Color(0xFF6C63FF)),
-              SizedBox(width: 8),
+              const Icon(Icons.info_outline, size: 16, color: Color(0xFF6C63FF)),
+              const SizedBox(width: 8),
               Text(
-                'AI 프로바이더 설정 가이드',
-                style: TextStyle(
+                S.of(context).helpGuideTitle,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
@@ -43,17 +43,17 @@ class HelpSection extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _buildHelpRow(
-            '☁️ OAuth 서비스 연동 (추천)',
+            S.of(context).helpOAuthTitle,
             S.of(context).helpOAuth,
           ),
           const SizedBox(height: 10),
           _buildHelpRow(
-            '🔑 API 키 직접 입력',
+            S.of(context).helpApiKeyTitle,
             S.of(context).helpApiKey,
           ),
           const SizedBox(height: 10),
           _buildHelpRow(
-            '🔝 우선순위 오버라이드',
+            S.of(context).helpPriorityTitle,
             S.of(context).helpPriority,
           ),
           const SizedBox(height: 16),

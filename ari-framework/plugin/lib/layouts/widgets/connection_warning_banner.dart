@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import '../../bridge/agent/AriAgent.dart';
 
 class ConnectionWarningBanner extends StatelessWidget {
-  const ConnectionWarningBanner({super.key});
+  const ConnectionWarningBanner({
+    super.key,
+    this.warningText = 'Connection to the AI agent server is unstable.',
+  });
+
+  final String warningText;
 
   @override
   Widget build(BuildContext context) {
@@ -19,14 +24,14 @@ class ConnectionWarningBanner extends StatelessWidget {
           decoration: const BoxDecoration(
             color: Color(0xFFE53935),
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.wifi_off, color: Colors.white, size: 16),
-              SizedBox(width: 8),
+              const Icon(Icons.wifi_off, color: Colors.white, size: 16),
+              const SizedBox(width: 8),
               Text(
-                'AI 에이전트 서버와의 연결이 원활하지 않습니다.',
-                style: TextStyle(
+                warningText,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,

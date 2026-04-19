@@ -14,12 +14,24 @@ class ChatSuggestions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = S.of(context);
     final List<String> chips = isSetupMode
-        ? _setupChips
+        ? <String>[
+            s.chatSuggestionSetupGreet,
+            s.chatSuggestionSetupHowto,
+            s.chatSuggestionSetupApiKey,
+            s.chatSuggestionSetupCheapest,
+            s.chatSuggestionSetupChatgpt,
+            s.chatSuggestionSetupOauth,
+          ]
         : <String>[
-            ..._normalChips,
-            S.of(context).chatSuggestion1,
-            S.of(context).chatSuggestion2,
+            s.chatSuggestionNormalGreet,
+            s.chatSuggestionNormalDisk,
+            s.chatSuggestionNormalFile,
+            s.chatSuggestionNormalRemind,
+            s.chatSuggestionNormalMusic,
+            s.chatSuggestion1,
+            s.chatSuggestion2,
           ];
 
     return Padding(
@@ -31,23 +43,6 @@ class ChatSuggestions extends StatelessWidget {
       ),
     );
   }
-
-  static const _setupChips = [
-    '👋 안녕',
-    '🛠️ 사용법을 알려줘',
-    '🔑 API 키가 뭐야?',
-    '💳 어떤 방식이 제일 저렴해?',
-    '⭐ ChatGPT로 연결하고 싶어',
-    '🔓 OAuth가 뭐야?',
-  ];
-
-  static const _normalChips = [
-    '👋 안녕 ARI!',
-    '💾 디스크 용량 확인',
-    '🔍 파일 찾아줘',
-    '1분뒤 알려줘!',
-    '🎵 감성적인 노래 들려줘!',
-  ];
 
   Widget _suggestionChip(String text) {
     return GestureDetector(

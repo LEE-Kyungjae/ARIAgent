@@ -286,7 +286,7 @@ export class AgentSession {
       responseText ||
       this.currentResponseText ||
       this.agent.state.error ||
-      "처리 중 오류가 발생했습니다.";
+      t("agent.error.processing");
 
     this.completeCurrentRequest(finalText, isError);
     this.currentResponseText = "";
@@ -467,8 +467,8 @@ export class AgentSession {
       this.resolvedApiKey = resolvedApiKey;
       onProgress?.(
         activeProviders.length > 1
-          ? `${provider.provider} 모델로 추론 중...`
-          : "생각하는 중...",
+          ? t("agent.progress.using_model", { provider: provider.provider })
+          : t("agent.progress.thinking"),
       );
       agent.setModel(model);
       agent.setSystemPrompt(systemPrompt);
@@ -533,7 +533,7 @@ export class AgentSession {
               ? event.result.details.name
               : "unknown";
           logger.info(`[Agent] Applying skill instructions: ${skillName}`);
-          onProgress?.(`스킬 지침을 반영하는 중... (${skillName})`);
+          onProgress?.(t("agent.progress.applying_skill", { skillName }));
         }
       });
 
@@ -551,7 +551,7 @@ export class AgentSession {
           );
           break;
         }
-        onProgress?.("다른 모델로 다시 시도하는 중...");
+        onProgress?.(t("agent.progress.retrying"));
         logger.warn(
           `❌ [Agent] Provider ${provider.provider} threw before completion: ${lastError.message}`,
         );
@@ -568,7 +568,7 @@ export class AgentSession {
           );
           break;
         }
-        onProgress?.("다른 모델로 다시 시도하는 중...");
+        onProgress?.(t("agent.progress.retrying"));
         logger.warn(
           `❌ [Agent] Provider ${provider.provider} failed: ${agent.state.error}. Trying next provider if available.`,
         );
@@ -608,8 +608,8 @@ export class AgentSession {
       const rawMsg = lastError?.message ?? "";
       const parsedMsg = parseProviderErrorMessage(rawMsg);
       const errorMsg = parsedMsg
-        ? `모든 프로바이더에서 오류가 발생했습니다: ${parsedMsg}`
-        : "사용 가능한 프로바이더가 없습니다.";
+        ? t("agent.error.all_providers_failed", { message: parsedMsg })
+        : t("agent.error.no_providers");
       this.finalizeCurrentRequest(errorMsg, true);
     }
 

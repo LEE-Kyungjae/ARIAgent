@@ -7,17 +7,20 @@ class ChatFollowUpBanner extends StatelessWidget {
   final AriChatTheme theme;
   final String message;
   final int count;
+  final String Function(int count)? summaryBuilder;
 
   const ChatFollowUpBanner({
     super.key,
     required this.theme,
     required this.message,
     required this.count,
+    this.summaryBuilder,
   });
 
   @override
   Widget build(BuildContext context) {
-    final summary = count > 1 ? '대기 $count건' : '대기 중';
+    final summary = summaryBuilder?.call(count) ??
+        (count > 1 ? '$count pending' : 'Pending');
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: BackdropFilter(

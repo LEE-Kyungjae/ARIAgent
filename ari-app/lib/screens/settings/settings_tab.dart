@@ -46,8 +46,8 @@ class _SettingsCategoryList extends StatelessWidget {
               context,
               Icons.psychology_rounded,
               isServerRunning
-                  ? 'AI 모델 및 API 키 설정'
-                  : 'AI 모델 및 API 키 설정 (에이전트 실행 필요)',
+                  ? l10n.settingsModelDesc
+                  : l10n.settingsModelDescDisabled,
               isEnabled: isServerRunning,
               page: const ModelSettings(),
               title: 'Model Settings',
@@ -89,7 +89,7 @@ class _SettingsCategoryList extends StatelessWidget {
             _buildCategoryItem(
               context,
               Icons.info_outline_rounded,
-              'ARI Agent 소개 및 버전 정보',
+              l10n.settingsAboutDesc,
               isEnabled: true,
               page: const AboutSettings(),
               title: 'App Intro',

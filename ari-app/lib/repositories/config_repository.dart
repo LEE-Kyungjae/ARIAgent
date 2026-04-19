@@ -18,7 +18,7 @@ class ConfigRepository {
   bool _showAdvancedDeveloperUI = false;
   String _avatarSize = 'medium';
   String _backgroundTheme = 'dark';
-  String _locale = 'ko';
+  String _locale = 'en';
   double? _windowWidth;
   double? _windowHeight;
   double? _windowPosX;
@@ -36,9 +36,20 @@ class ConfigRepository {
   double? get windowPosY => _windowPosY;
 
   Future<void> init() async {
-    // settings.json 로드
+    _locale = _detectOsLocale();
     await _loadSystemConfig();
+    if (_fullConfig['LANGUAGE'] != _locale) {
+      await _saveConfig();
+    }
     _isInitialized = true;
+  }
+
+  String _detectOsLocale() {
+    final code = Platform.localeName
+        .split(RegExp(r'[_\-\.]'))
+        .first
+        .toLowerCase();
+    return code == 'ko' ? 'ko' : 'en';
   }
 
   // --- 시스템 설정 (settings.json) ---
@@ -129,6 +140,7 @@ class ConfigRepository {
     _fullConfig['AVATAR_SIZE'] = _avatarSize;
     _fullConfig['BACKGROUND_THEME'] = _backgroundTheme;
     _fullConfig['LOCALE'] = _locale;
+    _fullConfig['LANGUAGE'] = _locale;
     _fullConfig['WINDOW_WIDTH'] = _windowWidth;
     _fullConfig['WINDOW_HEIGHT'] = _windowHeight;
     _fullConfig['WINDOW_POS_X'] = _windowPosX;

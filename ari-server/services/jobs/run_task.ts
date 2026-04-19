@@ -13,6 +13,7 @@ import { appendChatLog } from "../../repositories/chat_log_repository.js";
 import { findAppExecutable } from "../../infra/runtime_paths.js";
 import { DATA_DIR } from "../../infra/data.js";
 import { logger } from "../../infra/logger.js";
+import { t } from "../../infra/i18n.js";
 
 const DEFAULT_TIMEOUT_SEC = 120;
 const APP_CONNECT_WAIT_MS = 30_000;
@@ -142,7 +143,7 @@ export async function runScheduledTask(
 
   const agentId = task.agentId || "default";
   const noticeId = `notice-task-start-${task.id}-${Date.now()}`;
-  const noticeMessage = `스케줄 작업 시작: ${task.label}`;
+  const noticeMessage = t("task.notice.started", { label: task.label });
 
   appendChatLog(agentId, {
     type: "notice",
@@ -173,7 +174,7 @@ export async function runScheduledTask(
         launchedByTask = true;
         logger.info(`✅ '${managedAppId}' 연결 완료`);
       } catch (err: any) {
-        const errorMsg = `앱 런치 실패: ${err.message}`;
+        const errorMsg = t("task.error.app_launch_failed", { message: err.message });
         logger.error(`❌ ${errorMsg}`);
         persistTaskResult(task.id, { lastRunAt: new Date().toISOString(), lastError: errorMsg });
         if (options.exitProcess) process.exit(1);
@@ -187,7 +188,14 @@ export async function runScheduledTask(
     const runRequestId = `${task.id}-${Date.now()}`;
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(
-        () => reject(new Error(`작업 타임아웃 (${task.timeout ?? DEFAULT_TIMEOUT_SEC}초)`)),
+        () =>
+          reject(
+            new Error(
+              t("task.error.timeout", {
+                seconds: task.timeout ?? DEFAULT_TIMEOUT_SEC,
+              }),
+            ),
+          ),
         timeoutMs,
       ),
     );
@@ -205,10 +213,10 @@ export async function runScheduledTask(
     ]);
 
     if (result.status === "cancelled") {
-      throw new Error("작업이 취소되었습니다.");
+      throw new Error(t("task.error.cancelled"));
     }
 
-    const responseText = result.responseText || "응답 없음";
+    const responseText = result.responseText || t("task.response.empty");
     logger.info(`✅ 완료: ${responseText.substring(0, 80)}...`);
     const executedAt = new Date().toISOString();
 

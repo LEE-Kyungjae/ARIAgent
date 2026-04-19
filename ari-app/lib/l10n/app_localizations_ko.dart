@@ -560,6 +560,11 @@ class SKo extends S {
   String get placeConnected => '연결됨';
 
   @override
+  String placeAppTooltipConnected(String title) {
+    return '$title (연결됨)';
+  }
+
+  @override
   String get profileSystemPromptHint =>
       'LLM에게 부여할 역할이나 말투 등을 입력하세요. (예: 친절하고 다정한 어조로 답변해줘)';
 
@@ -581,6 +586,17 @@ class SKo extends S {
 
   @override
   String get serverPortChange => '변경';
+
+  @override
+  String get serverLogAlreadyRunning => '⚠️ 에이전트가 이미 실행 중';
+
+  @override
+  String serverLogProcessExited(String code) {
+    return '프로세스 종료 (코드: $code)';
+  }
+
+  @override
+  String get serverLogRestarting => '🔄 재시작...';
 
   @override
   String get agentStopped => '에이전트가 정지되었습니다';
@@ -641,6 +657,14 @@ class SKo extends S {
 
   @override
   String get scheduleTomorrow => '내일';
+
+  @override
+  String scheduleMonthDay(int month, int day) {
+    return '$month월 $day일';
+  }
+
+  @override
+  String get scheduleTapForToday => '(탭하면 오늘)';
 
   @override
   String get scheduleTask => '작업';
@@ -783,6 +807,15 @@ class SKo extends S {
   String get advMemoryRelTitle => '관계 (Relationships)';
 
   @override
+  String get advMemoryRelMentions => 'MENTIONS (기억 → 엔티티)';
+
+  @override
+  String get advMemoryRelAbout => 'ABOUT (기억 → 토픽)';
+
+  @override
+  String get advMemoryRelFollows => 'FOLLOWS (시간 순서 체인)';
+
+  @override
   String get advMemoryRelTotal => '총 관계 수';
 
   @override
@@ -910,6 +943,94 @@ class SKo extends S {
   String get chatSuggestion2 => '주식 자동매매 하고 싶어!';
 
   @override
+  String get chatEmptyPrompt => '💬 ARI에게 무엇이든 물어보세요!';
+
+  @override
+  String get chatFollowUpPending => '대기 중';
+
+  @override
+  String chatFollowUpPendingCount(Object count) => '대기 $count건';
+
+  @override
+  String get modelSetupDesc =>
+      'ARI가 답변하기 위해 사용할\nAI 프로바이더 및 API 키를 등록해주세요.';
+
+  @override
+  String get settingsModelDesc => 'AI 모델 및 API 키 설정';
+
+  @override
+  String get settingsModelDescDisabled => 'AI 모델 및 API 키 설정 (에이전트 실행 필요)';
+
+  @override
+  String get settingsAboutDesc => 'ARI Agent 소개 및 버전 정보';
+
+  @override
+  String get aboutPhilosophyHeading => 'ARI가 중요하게 생각하는 것';
+
+  @override
+  String get relativeSoon => '곧';
+
+  @override
+  String relativeInMinutes(int minutes) => '$minutes분 후';
+
+  @override
+  String relativeInHours(int hours) => '$hours시간 후';
+
+  @override
+  String relativeInDays(int days) => '$days일 후';
+
+  @override
+  String get notificationTitleBackground => 'ARI 백그라운드 응답';
+
+  @override
+  String get notificationTitleNewMessage => 'ARI 새 메시지';
+
+  @override
+  String get helpGuideTitle => 'AI 프로바이더 설정 가이드';
+
+  @override
+  String get helpOAuthTitle => '☁️ OAuth 서비스 연동 (추천)';
+
+  @override
+  String get helpApiKeyTitle => '🔑 API 키 직접 입력';
+
+  @override
+  String get helpPriorityTitle => '🔝 우선순위 오버라이드';
+
+  @override
+  String get chatSuggestionSetupGreet => '👋 안녕';
+
+  @override
+  String get chatSuggestionSetupHowto => '🛠️ 사용법을 알려줘';
+
+  @override
+  String get chatSuggestionSetupApiKey => '🔑 API 키가 뭐야?';
+
+  @override
+  String get chatSuggestionSetupCheapest => '💳 어떤 방식이 제일 저렴해?';
+
+  @override
+  String get chatSuggestionSetupChatgpt => '⭐ ChatGPT로 연결하고 싶어';
+
+  @override
+  String get chatSuggestionSetupOauth => '🔓 OAuth가 뭐야?';
+
+  @override
+  String get chatSuggestionNormalGreet => '👋 안녕 ARI!';
+
+  @override
+  String get chatSuggestionNormalDisk => '💾 디스크 용량 확인';
+
+  @override
+  String get chatSuggestionNormalFile => '🔍 파일 찾아줘';
+
+  @override
+  String get chatSuggestionNormalRemind => '1분뒤 알려줘!';
+
+  @override
+  String get chatSuggestionNormalMusic => '🎵 감성적인 노래 들려줘!';
+
+  @override
   String get appearanceGray => '그레이';
 
   @override
@@ -926,6 +1047,9 @@ class SKo extends S {
 
   @override
   String get appearanceLarge => '크게';
+
+  @override
+  String get appearanceLanguage => '언어';
 
   @override
   String get placeWorking => '작업중';

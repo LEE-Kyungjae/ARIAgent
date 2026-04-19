@@ -70,7 +70,7 @@ class FriendStatusRow extends StatelessWidget {
                 const SizedBox(width: 3),
                 Text(
                   nextRunAt != null
-                      ? '$scheduleCount · ${formatUntil(nextRunAt!)}'
+                      ? '$scheduleCount · ${formatUntil(nextRunAt!, l10n)}'
                       : '$scheduleCount',
                   style: const TextStyle(
                     color: Color(0xFF6C63FF),

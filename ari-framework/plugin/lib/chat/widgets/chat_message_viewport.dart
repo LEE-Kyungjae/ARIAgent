@@ -44,7 +44,7 @@ class ChatMessageViewport extends StatelessWidget {
                       ? (emptyStateWidget ??
                           ChatEmptyState(
                             theme: theme,
-                            message: emptyStateMessage ?? '무엇을 도와드릴까요?',
+                            message: emptyStateMessage ?? 'How can I help you?',
                           ))
                       : ListView.builder(
                           controller: scrollController,

@@ -334,7 +334,7 @@ class AriChatProvider extends ChangeNotifier {
         return;
       }
       addMessage(AriChatMessage(
-        text: '에이전트에 연결할 수 없습니다. ($e)',
+        text: 'Cannot connect to agent. ($e)',
         isUser: false,
         isError: true,
         createdAt: DateTime.now(),

@@ -49,6 +49,14 @@ router.on("/SETTINGS", async (ws, params) => {
     saveSettings({ PORT: Number(params.port) });
   }
 
+  if (typeof params.language === "string") {
+    const lang = params.language.trim();
+    if (lang) {
+      logger.info(`[Settings] Changing LANGUAGE to: ${lang}`);
+      saveSettings({ LANGUAGE: lang });
+    }
+  }
+
   if (params.showTaskMessages !== undefined) {
     logger.info(
       `[Settings] Changing SHOW_TASK_MESSAGES to: ${params.showTaskMessages}`,

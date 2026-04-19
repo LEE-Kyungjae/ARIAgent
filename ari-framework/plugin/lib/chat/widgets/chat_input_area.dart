@@ -25,7 +25,7 @@ class ChatInputArea extends StatefulWidget {
     required this.controller,
     required this.onSend,
     required this.theme,
-    this.hintText = '메시지를 입력하세요...',
+    this.hintText = 'Type a message...',
     this.isLoading = false,
     this.onCancel,
     this.layoutBuilder,

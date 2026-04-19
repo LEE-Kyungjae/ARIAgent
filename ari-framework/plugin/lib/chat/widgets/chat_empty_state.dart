@@ -9,7 +9,7 @@ class ChatEmptyState extends StatelessWidget {
   const ChatEmptyState({
     super.key,
     required this.theme,
-    this.message = '무엇을 도와드릴까요?',
+    this.message = 'How can I help you?',
     this.icon = Icons.forum_outlined,
   });
 

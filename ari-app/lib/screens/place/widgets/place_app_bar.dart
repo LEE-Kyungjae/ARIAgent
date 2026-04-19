@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ari_plugin/ari_plugin.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 class PlaceAgentAppsBar extends StatelessWidget {
   final List<AgentModel> allProfiles;
   final Map<String, List<Map<String, dynamic>>> agentApps;
@@ -109,12 +111,13 @@ class _AgentAppsRow extends StatelessWidget {
     final appId = app['name'] as String;
     final iconName = app['icon'] as String?;
     final isConnected = connectedAppIds.contains(appId);
+    final title = (app['title'] ?? appId) as String;
 
     return Padding(
       key: ValueKey(appId),
       padding: const EdgeInsets.only(right: 8),
       child: Tooltip(
-        message: '${app['title'] ?? appId}${isConnected ? ' (연결됨)' : ''}',
+        message: isConnected ? S.of(context).placeAppTooltipConnected(title) : title,
         child: GestureDetector(
           onTap: () => context.read<AgentProvider>().launchApp(appId),
           child: Stack(

@@ -95,6 +95,9 @@ class _ChatTabState extends State<ChatTab> {
       followUpMessage: chatProvider.latestFollowUpMessage,
       followUpCount: chatProvider.queuedFollowUpCount,
       hintText: S.of(context).chatHint,
+      followUpSummaryBuilder: (count) => count > 1
+          ? S.of(context).chatFollowUpPendingCount(count)
+          : S.of(context).chatFollowUpPending,
       reverseMessages: true,
       headerBuilder: (_) => ChatHeader(isLoading: chatProvider.isLoading),
       overlayWidget: overlay,
@@ -104,7 +107,7 @@ class _ChatTabState extends State<ChatTab> {
           Expanded(
             child: Center(
               child: Text(
-                '💬 ARI에게 무엇이든 물어보세요!',
+                S.of(context).chatEmptyPrompt,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.3),
                   fontSize: 13,

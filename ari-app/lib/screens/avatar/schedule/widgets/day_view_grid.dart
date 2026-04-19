@@ -37,7 +37,7 @@ class _DayViewHeader extends StatelessWidget {
     } else if (isTomorrow) {
       label = S.of(context).scheduleTomorrow;
     } else {
-      label = '${viewDate.month}월 ${viewDate.day}일';
+      label = S.of(context).scheduleMonthDay(viewDate.month, viewDate.day);
     }
 
     return SizedBox(
@@ -83,7 +83,7 @@ class _DayViewHeader extends StatelessWidget {
                 if (!isToday) ...[
                   const SizedBox(width: 4),
                   Text(
-                    '(탭하면 오늘)',
+                    S.of(context).scheduleTapForToday,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.2),
                       fontSize: 9,

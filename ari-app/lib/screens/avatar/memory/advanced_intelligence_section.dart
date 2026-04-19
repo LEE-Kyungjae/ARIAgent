@@ -146,14 +146,14 @@ class _AdvancedIntelligenceSectionState extends State<AdvancedIntelligenceSectio
           icon: Icons.account_tree_rounded,
           color: const Color(0xFFFF6B6B),
           children: [
-            _buildStatRow('MENTIONS (기억 → 엔티티)', mentionsCount,
+            _buildStatRow(S.of(context).advMemoryRelMentions, mentionsCount,
                 const Color(0xFFFF9F43)),
             const SizedBox(height: 8),
             _buildStatRow(
-                'ABOUT (기억 → 토픽)', aboutCount, const Color(0xFF48CAE4)),
+                S.of(context).advMemoryRelAbout, aboutCount, const Color(0xFF48CAE4)),
             const SizedBox(height: 8),
             _buildStatRow(
-                'FOLLOWS (시간 순서 체인)', followsCount, Colors.white38),
+                S.of(context).advMemoryRelFollows, followsCount, Colors.white38),
             const Divider(color: Colors.white12, height: 20),
             _buildStatRow(S.of(context).advMemoryRelTotal, totalRels, Colors.white54, isBold: true),
           ],

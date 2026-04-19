@@ -1134,6 +1134,12 @@ abstract class S {
   /// **'연결됨'**
   String get placeConnected;
 
+  /// No description provided for @placeAppTooltipConnected.
+  ///
+  /// In ko, this message translates to:
+  /// **'{title} (연결됨)'**
+  String placeAppTooltipConnected(String title);
+
   /// No description provided for @profileSystemPromptHint.
   ///
   /// In ko, this message translates to:
@@ -1175,6 +1181,24 @@ abstract class S {
   /// In ko, this message translates to:
   /// **'변경'**
   String get serverPortChange;
+
+  /// No description provided for @serverLogAlreadyRunning.
+  ///
+  /// In ko, this message translates to:
+  /// **'⚠️ 에이전트가 이미 실행 중'**
+  String get serverLogAlreadyRunning;
+
+  /// No description provided for @serverLogProcessExited.
+  ///
+  /// In ko, this message translates to:
+  /// **'프로세스 종료 (코드: {code})'**
+  String serverLogProcessExited(String code);
+
+  /// No description provided for @serverLogRestarting.
+  ///
+  /// In ko, this message translates to:
+  /// **'🔄 재시작...'**
+  String get serverLogRestarting;
 
   /// No description provided for @agentStopped.
   ///
@@ -1295,6 +1319,18 @@ abstract class S {
   /// In ko, this message translates to:
   /// **'내일'**
   String get scheduleTomorrow;
+
+  /// No description provided for @scheduleMonthDay.
+  ///
+  /// In ko, this message translates to:
+  /// **'{month}월 {day}일'**
+  String scheduleMonthDay(int month, int day);
+
+  /// No description provided for @scheduleTapForToday.
+  ///
+  /// In ko, this message translates to:
+  /// **'(탭하면 오늘)'**
+  String get scheduleTapForToday;
 
   /// No description provided for @scheduleTask.
   ///
@@ -1548,6 +1584,24 @@ abstract class S {
   /// **'관계 (Relationships)'**
   String get advMemoryRelTitle;
 
+  /// No description provided for @advMemoryRelMentions.
+  ///
+  /// In ko, this message translates to:
+  /// **'MENTIONS (기억 → 엔티티)'**
+  String get advMemoryRelMentions;
+
+  /// No description provided for @advMemoryRelAbout.
+  ///
+  /// In ko, this message translates to:
+  /// **'ABOUT (기억 → 토픽)'**
+  String get advMemoryRelAbout;
+
+  /// No description provided for @advMemoryRelFollows.
+  ///
+  /// In ko, this message translates to:
+  /// **'FOLLOWS (시간 순서 체인)'**
+  String get advMemoryRelFollows;
+
   /// No description provided for @advMemoryRelTotal.
   ///
   /// In ko, this message translates to:
@@ -1788,6 +1842,93 @@ abstract class S {
   /// **'주식 자동매매 하고 싶어!'**
   String get chatSuggestion2;
 
+  /// No description provided for @chatEmptyPrompt.
+  String get chatEmptyPrompt;
+
+  /// No description provided for @chatFollowUpPending.
+  String get chatFollowUpPending;
+
+  /// No description provided for @chatFollowUpPendingCount.
+  String chatFollowUpPendingCount(Object count);
+
+  /// No description provided for @modelSetupDesc.
+  String get modelSetupDesc;
+
+  /// No description provided for @settingsModelDesc.
+  String get settingsModelDesc;
+
+  /// No description provided for @settingsModelDescDisabled.
+  String get settingsModelDescDisabled;
+
+  /// No description provided for @settingsAboutDesc.
+  String get settingsAboutDesc;
+
+  /// No description provided for @aboutPhilosophyHeading.
+  String get aboutPhilosophyHeading;
+
+  /// No description provided for @relativeSoon.
+  String get relativeSoon;
+
+  /// No description provided for @relativeInMinutes.
+  String relativeInMinutes(int minutes);
+
+  /// No description provided for @relativeInHours.
+  String relativeInHours(int hours);
+
+  /// No description provided for @relativeInDays.
+  String relativeInDays(int days);
+
+  /// No description provided for @notificationTitleBackground.
+  String get notificationTitleBackground;
+
+  /// No description provided for @notificationTitleNewMessage.
+  String get notificationTitleNewMessage;
+
+  /// No description provided for @helpGuideTitle.
+  String get helpGuideTitle;
+
+  /// No description provided for @helpOAuthTitle.
+  String get helpOAuthTitle;
+
+  /// No description provided for @helpApiKeyTitle.
+  String get helpApiKeyTitle;
+
+  /// No description provided for @helpPriorityTitle.
+  String get helpPriorityTitle;
+
+  /// No description provided for @chatSuggestionSetupGreet.
+  String get chatSuggestionSetupGreet;
+
+  /// No description provided for @chatSuggestionSetupHowto.
+  String get chatSuggestionSetupHowto;
+
+  /// No description provided for @chatSuggestionSetupApiKey.
+  String get chatSuggestionSetupApiKey;
+
+  /// No description provided for @chatSuggestionSetupCheapest.
+  String get chatSuggestionSetupCheapest;
+
+  /// No description provided for @chatSuggestionSetupChatgpt.
+  String get chatSuggestionSetupChatgpt;
+
+  /// No description provided for @chatSuggestionSetupOauth.
+  String get chatSuggestionSetupOauth;
+
+  /// No description provided for @chatSuggestionNormalGreet.
+  String get chatSuggestionNormalGreet;
+
+  /// No description provided for @chatSuggestionNormalDisk.
+  String get chatSuggestionNormalDisk;
+
+  /// No description provided for @chatSuggestionNormalFile.
+  String get chatSuggestionNormalFile;
+
+  /// No description provided for @chatSuggestionNormalRemind.
+  String get chatSuggestionNormalRemind;
+
+  /// No description provided for @chatSuggestionNormalMusic.
+  String get chatSuggestionNormalMusic;
+
   /// No description provided for @appearanceGray.
   ///
   /// In ko, this message translates to:
@@ -1823,6 +1964,12 @@ abstract class S {
   /// In ko, this message translates to:
   /// **'크게'**
   String get appearanceLarge;
+
+  /// No description provided for @appearanceLanguage.
+  ///
+  /// In ko, this message translates to:
+  /// **'언어'**
+  String get appearanceLanguage;
 
   /// No description provided for @placeWorking.
   ///

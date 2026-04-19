@@ -34,6 +34,26 @@ const translations: Record<ServerLocale, Record<string, TranslationValue>> = {
       `✅ 스케줄 삭제 완료: ${params?.taskId ?? ""}`,
     "tool.schedule.delete.failed": (params) =>
       `삭제할 스케줄을 찾지 못했습니다: ${params?.taskId ?? ""}`,
+
+    "task.notice.started": (params) =>
+      `스케줄 작업 시작: ${params?.label ?? ""}`,
+    "task.response.empty": "응답 없음",
+    "task.error.cancelled": "작업이 취소되었습니다.",
+    "task.error.timeout": (params) =>
+      `작업 타임아웃 (${params?.seconds ?? ""}초)`,
+    "task.error.app_launch_failed": (params) =>
+      `앱 런치 실패: ${params?.message ?? ""}`,
+
+    "agent.progress.thinking": "생각하는 중...",
+    "agent.progress.using_model": (params) =>
+      `${params?.provider ?? ""} 모델로 추론 중...`,
+    "agent.progress.applying_skill": (params) =>
+      `스킬 지침을 반영하는 중... (${params?.skillName ?? ""})`,
+    "agent.progress.retrying": "다른 모델로 다시 시도하는 중...",
+    "agent.error.processing": "처리 중 오류가 발생했습니다.",
+    "agent.error.all_providers_failed": (params) =>
+      `모든 프로바이더에서 오류가 발생했습니다: ${params?.message ?? ""}`,
+    "agent.error.no_providers": "사용 가능한 프로바이더가 없습니다.",
   },
   en: {
     "tool.progress.read_skill": "Reading the skill document...",
@@ -63,6 +83,26 @@ const translations: Record<ServerLocale, Record<string, TranslationValue>> = {
       `✅ Schedule deleted: ${params?.taskId ?? ""}`,
     "tool.schedule.delete.failed": (params) =>
       `Could not find the schedule to delete: ${params?.taskId ?? ""}`,
+
+    "task.notice.started": (params) =>
+      `Scheduled task started: ${params?.label ?? ""}`,
+    "task.response.empty": "(no response)",
+    "task.error.cancelled": "Task was cancelled.",
+    "task.error.timeout": (params) =>
+      `Task timed out (${params?.seconds ?? ""}s)`,
+    "task.error.app_launch_failed": (params) =>
+      `App launch failed: ${params?.message ?? ""}`,
+
+    "agent.progress.thinking": "Thinking...",
+    "agent.progress.using_model": (params) =>
+      `Inferring with ${params?.provider ?? ""} model...`,
+    "agent.progress.applying_skill": (params) =>
+      `Applying skill instructions... (${params?.skillName ?? ""})`,
+    "agent.progress.retrying": "Retrying with another model...",
+    "agent.error.processing": "An error occurred while processing.",
+    "agent.error.all_providers_failed": (params) =>
+      `All providers returned errors: ${params?.message ?? ""}`,
+    "agent.error.no_providers": "No providers available.",
   },
 };
 

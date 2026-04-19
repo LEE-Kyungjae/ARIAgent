@@ -572,6 +572,11 @@ class SEn extends S {
   String get placeConnected => 'Connected';
 
   @override
+  String placeAppTooltipConnected(String title) {
+    return '$title (connected)';
+  }
+
+  @override
   String get profileSystemPromptHint =>
       'Enter a role or speaking style for the LLM. (e.g., Reply in a friendly and warm tone)';
 
@@ -594,6 +599,17 @@ class SEn extends S {
 
   @override
   String get serverPortChange => 'Change';
+
+  @override
+  String get serverLogAlreadyRunning => '⚠️ Agent is already running';
+
+  @override
+  String serverLogProcessExited(String code) {
+    return 'Process exited (code: $code)';
+  }
+
+  @override
+  String get serverLogRestarting => '🔄 Restarting...';
 
   @override
   String get agentStopped => 'Agent is stopped';
@@ -656,6 +672,14 @@ class SEn extends S {
 
   @override
   String get scheduleTomorrow => 'Tomorrow';
+
+  @override
+  String scheduleMonthDay(int month, int day) {
+    return '$month/$day';
+  }
+
+  @override
+  String get scheduleTapForToday => '(tap for today)';
 
   @override
   String get scheduleTask => 'Task';
@@ -807,6 +831,15 @@ class SEn extends S {
   String get advMemoryRelTitle => 'Relationships';
 
   @override
+  String get advMemoryRelMentions => 'MENTIONS (memory → entity)';
+
+  @override
+  String get advMemoryRelAbout => 'ABOUT (memory → topic)';
+
+  @override
+  String get advMemoryRelFollows => 'FOLLOWS (time-order chain)';
+
+  @override
   String get advMemoryRelTotal => 'Total relationships';
 
   @override
@@ -941,6 +974,95 @@ class SEn extends S {
   String get chatSuggestion2 => 'I want to do automated stock trading!';
 
   @override
+  String get chatEmptyPrompt => '💬 Ask ARI anything!';
+
+  @override
+  String get chatFollowUpPending => 'Pending';
+
+  @override
+  String chatFollowUpPendingCount(Object count) => '$count pending';
+
+  @override
+  String get modelSetupDesc =>
+      'Register the AI provider and API key\nthat ARI will use to respond.';
+
+  @override
+  String get settingsModelDesc => 'AI model and API key settings';
+
+  @override
+  String get settingsModelDescDisabled =>
+      'AI model and API key settings (agent must be running)';
+
+  @override
+  String get settingsAboutDesc => 'ARI Agent overview and version info';
+
+  @override
+  String get aboutPhilosophyHeading => 'What ARI cares about';
+
+  @override
+  String get relativeSoon => 'Soon';
+
+  @override
+  String relativeInMinutes(int minutes) => 'in $minutes min';
+
+  @override
+  String relativeInHours(int hours) => 'in ${hours}h';
+
+  @override
+  String relativeInDays(int days) => 'in ${days}d';
+
+  @override
+  String get notificationTitleBackground => 'ARI background response';
+
+  @override
+  String get notificationTitleNewMessage => 'ARI new message';
+
+  @override
+  String get helpGuideTitle => 'AI Provider setup guide';
+
+  @override
+  String get helpOAuthTitle => '☁️ OAuth service integration (recommended)';
+
+  @override
+  String get helpApiKeyTitle => '🔑 Enter API key directly';
+
+  @override
+  String get helpPriorityTitle => '🔝 Priority override';
+
+  @override
+  String get chatSuggestionSetupGreet => '👋 Hi';
+
+  @override
+  String get chatSuggestionSetupHowto => '🛠️ Show me how to use this';
+
+  @override
+  String get chatSuggestionSetupApiKey => '🔑 What is an API key?';
+
+  @override
+  String get chatSuggestionSetupCheapest => '💳 Which option is cheapest?';
+
+  @override
+  String get chatSuggestionSetupChatgpt => '⭐ I want to connect with ChatGPT';
+
+  @override
+  String get chatSuggestionSetupOauth => '🔓 What is OAuth?';
+
+  @override
+  String get chatSuggestionNormalGreet => '👋 Hi ARI!';
+
+  @override
+  String get chatSuggestionNormalDisk => '💾 Check disk usage';
+
+  @override
+  String get chatSuggestionNormalFile => '🔍 Find a file';
+
+  @override
+  String get chatSuggestionNormalRemind => 'Remind me in 1 minute!';
+
+  @override
+  String get chatSuggestionNormalMusic => '🎵 Play me a mellow song!';
+
+  @override
   String get appearanceGray => 'Gray';
 
   @override
@@ -957,6 +1079,9 @@ class SEn extends S {
 
   @override
   String get appearanceLarge => 'Large';
+
+  @override
+  String get appearanceLanguage => 'Language';
 
   @override
   String get placeWorking => 'Working';

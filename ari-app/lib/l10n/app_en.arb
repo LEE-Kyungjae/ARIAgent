@@ -193,6 +193,10 @@
   "channelsNewTokenHint": "New token (to change)",
   "channelsErrorOccurred": "An error occurred.",
   "placeConnected": "Connected",
+  "placeAppTooltipConnected": "{title} (connected)",
+  "@placeAppTooltipConnected": {
+    "placeholders": { "title": { "type": "String" } }
+  },
 
   "profileSystemPromptHint": "Enter a role or speaking style for the LLM. (e.g., Reply in a friendly and warm tone)",
   "profileDescription": "Changes to profile picture and name here are instantly reflected in the chat widget.\nPersona is used to define this agent's AI personality and role.",
@@ -202,6 +206,12 @@
   "serverPortSaveFailed": "❌ Save failed",
   "serverLogEmpty": "No logs yet.",
   "serverPortChange": "Change",
+  "serverLogAlreadyRunning": "⚠️ Agent is already running",
+  "serverLogProcessExited": "Process exited (code: {code})",
+  "@serverLogProcessExited": {
+    "placeholders": { "code": { "type": "String" } }
+  },
+  "serverLogRestarting": "🔄 Restarting...",
 
   "agentStopped": "Agent is stopped",
   "agentStoppedDesc": "Press the power button above\nto start the agent and begin chatting.",
@@ -225,6 +235,11 @@
   "dayNameSat": "Sat",
   "scheduleToday": "Today",
   "scheduleTomorrow": "Tomorrow",
+  "scheduleMonthDay": "{month}/{day}",
+  "@scheduleMonthDay": {
+    "placeholders": { "month": { "type": "int" }, "day": { "type": "int" } }
+  },
+  "scheduleTapForToday": "(tap for today)",
   "scheduleTask": "Task",
   "schedulePrompt": "Prompt:",
   "scheduleLastResult": "Last result ({time}):",
@@ -271,6 +286,9 @@
   "advMemoryTopicTitle": "Topics",
   "advMemoryTopicSubtitle": "Subject categories",
   "advMemoryRelTitle": "Relationships",
+  "advMemoryRelMentions": "MENTIONS (memory → entity)",
+  "advMemoryRelAbout": "ABOUT (memory → topic)",
+  "advMemoryRelFollows": "FOLLOWS (time-order chain)",
   "advMemoryRelTotal": "Total relationships",
 
   "aboutSlogan": "AI that works and rests with you",
@@ -315,8 +333,47 @@
   "homeServerRequired": "Agent connection required",
   "homeServerRequiredDesc": "Agent must be running to use this feature.\nPlease turn on the agent in the Settings tab.",
 
+  "chatEmptyPrompt": "💬 Ask ARI anything!",
+  "chatFollowUpPending": "Pending",
+  "chatFollowUpPendingCount": "{count} pending",
+  "modelSetupDesc": "Register the AI provider and API key\nthat ARI will use to respond.",
+  "settingsModelDesc": "AI model and API key settings",
+  "settingsModelDescDisabled": "AI model and API key settings (agent must be running)",
+  "settingsAboutDesc": "ARI Agent overview and version info",
+  "aboutPhilosophyHeading": "What ARI cares about",
+  "relativeSoon": "Soon",
+  "relativeInMinutes": "in {minutes} min",
+  "@relativeInMinutes": {
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "relativeInHours": "in {hours}h",
+  "@relativeInHours": {
+    "placeholders": { "hours": { "type": "int" } }
+  },
+  "relativeInDays": "in {days}d",
+  "@relativeInDays": {
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "notificationTitleBackground": "ARI background response",
+  "notificationTitleNewMessage": "ARI new message",
+  "helpGuideTitle": "AI Provider setup guide",
+  "helpOAuthTitle": "☁️ OAuth service integration (recommended)",
+  "helpApiKeyTitle": "🔑 Enter API key directly",
+  "helpPriorityTitle": "🔝 Priority override",
   "chatSuggestion1": "Install a Bitcoin trading app!",
   "chatSuggestion2": "I want to do automated stock trading!",
+
+  "chatSuggestionSetupGreet": "👋 Hi",
+  "chatSuggestionSetupHowto": "🛠️ Show me how to use this",
+  "chatSuggestionSetupApiKey": "🔑 What is an API key?",
+  "chatSuggestionSetupCheapest": "💳 Which option is cheapest?",
+  "chatSuggestionSetupChatgpt": "⭐ I want to connect with ChatGPT",
+  "chatSuggestionSetupOauth": "🔓 What is OAuth?",
+  "chatSuggestionNormalGreet": "👋 Hi ARI!",
+  "chatSuggestionNormalDisk": "💾 Check disk usage",
+  "chatSuggestionNormalFile": "🔍 Find a file",
+  "chatSuggestionNormalRemind": "Remind me in 1 minute!",
+  "chatSuggestionNormalMusic": "🎵 Play me a mellow song!",
 
   "appearanceGray": "Gray",
   "appearanceDark": "Dark",
@@ -324,6 +381,7 @@
   "appearancePurple": "Purple",
   "appearanceBgTheme": "Background Theme",
   "appearanceLarge": "Large",
+  "appearanceLanguage": "Language",
   "placeWorking": "Working",
   "placeIdle": "Idle",
   "placeResting": "Resting",

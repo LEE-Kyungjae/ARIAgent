@@ -269,6 +269,10 @@
   "channelsNewTokenHint": "새 토큰 입력 (변경 시)",
   "channelsErrorOccurred": "오류가 발생했습니다.",
   "placeConnected": "연결됨",
+  "placeAppTooltipConnected": "{title} (연결됨)",
+  "@placeAppTooltipConnected": {
+    "placeholders": { "title": { "type": "String" } }
+  },
 
   "profileSystemPromptHint": "LLM에게 부여할 역할이나 말투 등을 입력하세요. (예: 친절하고 다정한 어조로 답변해줘)",
   "profileDescription": "이곳에서 프로필 사진과 이름을 변경하면 채팅창 위젯에도 즉시 반영됩니다.\nPersona는 이 에이전트의 AI 성격 및 역할 정의에 사용됩니다.",
@@ -278,6 +282,12 @@
   "serverPortSaveFailed": "❌ 저장 실패",
   "serverLogEmpty": "아직 로그가 없습니다.",
   "serverPortChange": "변경",
+  "serverLogAlreadyRunning": "⚠️ 에이전트가 이미 실행 중",
+  "serverLogProcessExited": "프로세스 종료 (코드: {code})",
+  "@serverLogProcessExited": {
+    "placeholders": { "code": { "type": "String" } }
+  },
+  "serverLogRestarting": "🔄 재시작...",
 
   "agentStopped": "에이전트가 정지되었습니다",
   "agentStoppedDesc": "채팅을 시작하려면 위쪽의 전원 버튼을\n눌러 에이전트를 실행해주세요.",
@@ -301,6 +311,11 @@
   "dayNameSat": "토",
   "scheduleToday": "오늘",
   "scheduleTomorrow": "내일",
+  "scheduleMonthDay": "{month}월 {day}일",
+  "@scheduleMonthDay": {
+    "placeholders": { "month": { "type": "int" }, "day": { "type": "int" } }
+  },
+  "scheduleTapForToday": "(탭하면 오늘)",
   "scheduleTask": "작업",
   "schedulePrompt": "프롬프트:",
   "scheduleLastResult": "마지막 결과 ({time}):",
@@ -357,6 +372,9 @@
   "advMemoryTopicTitle": "토픽",
   "advMemoryTopicSubtitle": "주제 카테고리",
   "advMemoryRelTitle": "관계 (Relationships)",
+  "advMemoryRelMentions": "MENTIONS (기억 → 엔티티)",
+  "advMemoryRelAbout": "ABOUT (기억 → 토픽)",
+  "advMemoryRelFollows": "FOLLOWS (시간 순서 체인)",
   "advMemoryRelTotal": "총 관계 수",
 
   "aboutSlogan": "함께 일하고, 함께 쉬는 AI",
@@ -407,8 +425,47 @@
   "homeServerRequired": "에이전트 연결 필요",
   "homeServerRequiredDesc": "이 기능을 사용하려면 에이전트 실행이 필요합니다.\n설정 탭에서 에이전트를 켜 주세요.",
 
+  "chatEmptyPrompt": "💬 ARI에게 무엇이든 물어보세요!",
+  "chatFollowUpPending": "대기 중",
+  "chatFollowUpPendingCount": "대기 {count}건",
+  "modelSetupDesc": "ARI가 답변하기 위해 사용할\nAI 프로바이더 및 API 키를 등록해주세요.",
+  "settingsModelDesc": "AI 모델 및 API 키 설정",
+  "settingsModelDescDisabled": "AI 모델 및 API 키 설정 (에이전트 실행 필요)",
+  "settingsAboutDesc": "ARI Agent 소개 및 버전 정보",
+  "aboutPhilosophyHeading": "ARI가 중요하게 생각하는 것",
+  "relativeSoon": "곧",
+  "relativeInMinutes": "{minutes}분 후",
+  "@relativeInMinutes": {
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "relativeInHours": "{hours}시간 후",
+  "@relativeInHours": {
+    "placeholders": { "hours": { "type": "int" } }
+  },
+  "relativeInDays": "{days}일 후",
+  "@relativeInDays": {
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "notificationTitleBackground": "ARI 백그라운드 응답",
+  "notificationTitleNewMessage": "ARI 새 메시지",
+  "helpGuideTitle": "AI 프로바이더 설정 가이드",
+  "helpOAuthTitle": "☁️ OAuth 서비스 연동 (추천)",
+  "helpApiKeyTitle": "🔑 API 키 직접 입력",
+  "helpPriorityTitle": "🔝 우선순위 오버라이드",
   "chatSuggestion1": "비트코인 거래앱 설치해줘!",
   "chatSuggestion2": "주식 자동매매 하고 싶어!",
+
+  "chatSuggestionSetupGreet": "👋 안녕",
+  "chatSuggestionSetupHowto": "🛠️ 사용법을 알려줘",
+  "chatSuggestionSetupApiKey": "🔑 API 키가 뭐야?",
+  "chatSuggestionSetupCheapest": "💳 어떤 방식이 제일 저렴해?",
+  "chatSuggestionSetupChatgpt": "⭐ ChatGPT로 연결하고 싶어",
+  "chatSuggestionSetupOauth": "🔓 OAuth가 뭐야?",
+  "chatSuggestionNormalGreet": "👋 안녕 ARI!",
+  "chatSuggestionNormalDisk": "💾 디스크 용량 확인",
+  "chatSuggestionNormalFile": "🔍 파일 찾아줘",
+  "chatSuggestionNormalRemind": "1분뒤 알려줘!",
+  "chatSuggestionNormalMusic": "🎵 감성적인 노래 들려줘!",
 
   "appearanceGray": "그레이",
   "appearanceDark": "다크",
@@ -416,6 +473,7 @@
   "appearancePurple": "퍼플",
   "appearanceBgTheme": "배경 테마",
   "appearanceLarge": "크게",
+  "appearanceLanguage": "언어",
   "placeWorking": "작업중",
   "placeIdle": "대기중",
   "placeResting": "쉬는중",

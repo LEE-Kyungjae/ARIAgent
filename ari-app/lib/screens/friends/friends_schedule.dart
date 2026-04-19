@@ -1,10 +1,12 @@
-String formatUntil(DateTime t) {
+import '../../l10n/app_localizations.dart';
+
+String formatUntil(DateTime t, S s) {
   final diff = t.difference(DateTime.now());
-  if (diff.isNegative) return '곧';
-  if (diff.inMinutes < 1) return '곧';
-  if (diff.inMinutes < 60) return '${diff.inMinutes}분 후';
-  if (diff.inHours < 24) return '${diff.inHours}시간 후';
-  if (diff.inDays < 7) return '${diff.inDays}일 후';
+  if (diff.isNegative) return s.relativeSoon;
+  if (diff.inMinutes < 1) return s.relativeSoon;
+  if (diff.inMinutes < 60) return s.relativeInMinutes(diff.inMinutes);
+  if (diff.inHours < 24) return s.relativeInHours(diff.inHours);
+  if (diff.inDays < 7) return s.relativeInDays(diff.inDays);
   final m = t.minute.toString().padLeft(2, '0');
   return '${t.month}/${t.day} ${t.hour}:$m';
 }

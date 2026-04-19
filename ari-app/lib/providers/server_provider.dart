@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import '../services/server_service.dart';
 import 'package:ari_plugin/ari_plugin.dart';
+import '../l10n/app_localizations.dart';
+import 'config_provider.dart';
 
 enum ServerStatus { stopped, starting, running, stopping, error }
 
@@ -26,7 +28,7 @@ class ServerProvider extends ChangeNotifier {
     if (mode != null) _mode = mode;
 
     if (_status == ServerStatus.running) {
-      _addLog('⚠️ 에이전트가 이미 실행 중');
+      _addLog(lookupS(ConfigProvider().locale).serverLogAlreadyRunning);
       return true;
     }
 
@@ -44,8 +46,8 @@ class ServerProvider extends ChangeNotifier {
         _addLog(msg);
       },
       onExit: (code) {
-        debugPrint('[SP] 프로세스 종료 (코드: $code)');
-        _addLog('프로세스 종료 (코드: $code)');
+        debugPrint('[SP] process exited (code: $code)');
+        _addLog(lookupS(ConfigProvider().locale).serverLogProcessExited('$code'));
         if (_status != ServerStatus.stopping) {
           _setStatus(ServerStatus.stopped);
         }
@@ -74,7 +76,7 @@ class ServerProvider extends ChangeNotifier {
   }
 
   Future<bool> restart() async {
-    _addLog('🔄 재시작...');
+    _addLog(lookupS(ConfigProvider().locale).serverLogRestarting);
     await stop();
     await Future.delayed(const Duration(milliseconds: 500));
     return start(version: _version, mode: _mode);

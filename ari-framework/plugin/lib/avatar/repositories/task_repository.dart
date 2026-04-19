@@ -73,9 +73,9 @@ class TaskRepository {
   Future<String> runTaskNow(String id) async {
     try {
       final res = await AriAgent.call('/TASKS.RUN', {'taskId': id});
-      return res['started'] == true ? '실행 완료' : '실행되지 않음';
+      return res['started'] == true ? 'Execution complete' : 'Not executed';
     } catch (e) {
-      return '❌ 실행 실패: $e';
+      return 'Execution failed: $e';
     }
   }
 }

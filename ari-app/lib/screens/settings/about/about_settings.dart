@@ -176,9 +176,9 @@ class AboutSettings extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'ARI가 중요하게 생각하는 것',
-          style: TextStyle(
+        Text(
+          S.of(context).aboutPhilosophyHeading,
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 18,
             fontWeight: FontWeight.bold,

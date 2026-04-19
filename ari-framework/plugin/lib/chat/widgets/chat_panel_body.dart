@@ -34,6 +34,7 @@ class AriChatPanelBody extends StatefulWidget {
   )? inputAreaBuilder;
   final double followUpBannerTopOffset;
   final bool isExternalMode;
+  final String Function(int count)? followUpSummaryBuilder;
 
   const AriChatPanelBody({
     super.key,
@@ -57,6 +58,7 @@ class AriChatPanelBody extends StatefulWidget {
     required this.inputAreaBuilder,
     required this.followUpBannerTopOffset,
     required this.isExternalMode,
+    this.followUpSummaryBuilder,
   });
 
   @override
@@ -139,7 +141,7 @@ class _AriChatPanelBodyState extends State<AriChatPanelBody> {
     } else {
       if (!AriAgent.isConnected) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('AI 에이전트가 연결되어 있지 않습니다.')),
+          const SnackBar(content: Text('The AI agent is not connected.')),
         );
         return;
       }
@@ -289,6 +291,7 @@ class _AriChatPanelBodyState extends State<AriChatPanelBody> {
                           theme: theme,
                           message: followUpMessage,
                           count: followUpCount,
+                          summaryBuilder: widget.followUpSummaryBuilder,
                         ),
                       ),
                     ),

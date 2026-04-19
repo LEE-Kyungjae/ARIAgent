@@ -46,8 +46,8 @@ class AriChatPanel extends StatelessWidget {
   /// 헤더 서브타이틀에 표시될 현재 컨텍스트 레이블 (기본 모드에서 사용).
   final String? contextLabel;
 
-  /// 헤더 타이틀 (기본 모드에서 사용). 기본값: 'AI 에이전트'
-  final String headerTitle;
+  /// 헤더 타이틀 (기본 모드에서 사용). null이면 로케일 기본값.
+  final String? headerTitle;
 
   // ── 외부 모드 ───────────────────────────────────────────────────────────────
   /// 외부에서 제공하는 메시지 목록. 제공 시 내부 Provider를 생성하지 않습니다.
@@ -69,8 +69,8 @@ class AriChatPanel extends StatelessWidget {
   final int followUpCount;
 
   // ── UI 공통 옵션 ────────────────────────────────────────────────────────────
-  /// 입력창 힌트 텍스트.
-  final String hintText;
+  /// 입력창 힌트 텍스트. null이면 로케일 기본값.
+  final String? hintText;
 
   /// 테마 커스터마이징.
   final AriChatTheme theme;
@@ -104,18 +104,22 @@ class AriChatPanel extends StatelessWidget {
   )? inputAreaBuilder;
   final double followUpBannerTopOffset;
 
+  /// Optional builder for the follow-up banner summary label.
+  /// Receives the queued count; returns a localized summary (e.g. "N pending").
+  final String Function(int count)? followUpSummaryBuilder;
+
   const AriChatPanel({
     super.key,
     required this.appId,
     this.contextLabel,
-    this.headerTitle = 'AI 에이전트',
+    this.headerTitle,
     this.messages,
     this.onSend,
     this.onCancel,
     this.isLoading = false,
     this.followUpMessage,
     this.followUpCount = 0,
-    this.hintText = '메시지를 입력하세요...',
+    this.hintText,
     this.theme = const AriChatTheme(),
     this.reverseMessages = false,
     this.headerBuilder,
@@ -125,6 +129,7 @@ class AriChatPanel extends StatelessWidget {
     this.emptyStateMessage,
     this.inputAreaBuilder,
     this.followUpBannerTopOffset = -52,
+    this.followUpSummaryBuilder,
   }) : assert(
           messages == null || onSend != null,
           'onSend must be provided when messages is provided (external mode)',
@@ -137,14 +142,14 @@ class AriChatPanel extends StatelessWidget {
     final body = AriChatPanelBody(
       appId: appId,
       contextLabel: contextLabel,
-      headerTitle: headerTitle,
+      headerTitle: headerTitle ?? 'ARI Assistant',
       externalMessages: messages,
       onSendExternal: onSend,
       onCancel: onCancel,
       externalIsLoading: isLoading,
       externalFollowUpMessage: followUpMessage,
       externalFollowUpCount: followUpCount,
-      hintText: hintText,
+      hintText: hintText ?? 'Type a message...',
       theme: theme,
       reverseMessages: reverseMessages,
       headerBuilder: headerBuilder,
@@ -155,6 +160,7 @@ class AriChatPanel extends StatelessWidget {
       inputAreaBuilder: inputAreaBuilder,
       followUpBannerTopOffset: followUpBannerTopOffset,
       isExternalMode: _isExternalMode,
+      followUpSummaryBuilder: followUpSummaryBuilder,
     );
 
     if (_isExternalMode) return body;

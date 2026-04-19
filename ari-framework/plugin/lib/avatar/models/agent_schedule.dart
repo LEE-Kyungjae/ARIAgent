@@ -97,17 +97,17 @@ class AgentSchedule {
         lastError: lastError,
       );
 
-  static const _dayNamesKo = ['일', '월', '화', '수', '목', '금', '토'];
+  static const _dayNamesEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   String get scheduleDescription {
     if (isOneOff) {
       final local = startAt.toLocal();
       final mm = local.minute.toString().padLeft(2, '0');
-      return '${local.month}월 ${local.day}일 ${local.hour}:$mm (1회성)';
+      return '${local.month}/${local.day} ${local.hour}:$mm (one-off)';
     }
 
     final spec = scheduleSpec;
-    if (spec == null) return '알 수 없음';
+    if (spec == null) return 'Unknown';
     return _describeSpec(spec);
   }
 
@@ -118,14 +118,14 @@ class AgentSchedule {
     switch (type) {
       case 'every_n_minutes':
         final every = (spec['every'] as num?)?.toInt() ?? 1;
-        return every == 1 ? '매분' : '$every분마다';
+        return every == 1 ? 'Every minute' : 'Every $every minutes';
       case 'every_n_hours':
         final every = (spec['every'] as num?)?.toInt() ?? 1;
-        return every == 1 ? '매시간' : '$every시간마다';
+        return every == 1 ? 'Every hour' : 'Every $every hours';
       case 'daily':
         final h = (spec['hour'] as num?)?.toInt() ?? 0;
         final m = (spec['minute'] as num?)?.toInt() ?? 0;
-        return '매일 $h:${_pad(m)}';
+        return 'Daily at $h:${_pad(m)}';
       case 'weekly':
         final h = (spec['hour'] as num?)?.toInt() ?? 0;
         final m = (spec['minute'] as num?)?.toInt() ?? 0;
@@ -133,23 +133,23 @@ class AgentSchedule {
         final days = rawDays is List
             ? rawDays
                 .map((d) => (d as num).toInt())
-                .map((d) => d < _dayNamesKo.length ? _dayNamesKo[d] : '$d')
+                .map((d) => d < _dayNamesEn.length ? _dayNamesEn[d] : '$d')
                 .join('·')
             : '';
-        return '매주 $days $h:${_pad(m)}';
+        return 'Weekly $days $h:${_pad(m)}';
       case 'monthly':
         final h = (spec['hour'] as num?)?.toInt() ?? 0;
         final m = (spec['minute'] as num?)?.toInt() ?? 0;
         final day = (spec['day'] as num?)?.toInt() ?? 1;
-        return '매월 ${day}일 $h:${_pad(m)}';
+        return 'Monthly day $day $h:${_pad(m)}';
       case 'yearly':
         final yh = (spec['hour'] as num?)?.toInt() ?? 0;
         final ym = (spec['minute'] as num?)?.toInt() ?? 0;
         final yday = (spec['day'] as num?)?.toInt() ?? 1;
         final ymonth = (spec['month'] as num?)?.toInt() ?? 1;
-        return '매년 ${ymonth}월 ${yday}일 $yh:${_pad(ym)}';
+        return 'Yearly $ymonth/$yday $yh:${_pad(ym)}';
       default:
-        return type ?? '알 수 없음';
+        return type ?? 'Unknown';
     }
   }
 }

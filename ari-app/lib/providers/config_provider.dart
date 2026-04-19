@@ -124,6 +124,11 @@ class ConfigProvider extends ChangeNotifier {
   /// 언어 설정
   Future<void> updateLocale(String localeCode) async {
     await _repository.updateLocale(localeCode);
+    try {
+      await AriAgent.call('/SETTINGS', {'language': localeCode});
+    } catch (e) {
+      debugPrint('[ConfigProvider] updateLocale sync to server failed: $e');
+    }
     notifyListeners();
   }
 

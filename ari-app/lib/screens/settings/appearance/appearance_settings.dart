@@ -88,6 +88,44 @@ class AppearanceSettings extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
+                  _sectionTitle(S.of(context).appearanceLanguage),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          S.of(context).appearanceLanguage,
+                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                        ),
+                        const Spacer(),
+                        _configButton(
+                          context,
+                          '한국어',
+                          configProvider.localeCode == 'ko',
+                          () => configProvider.updateLocale('ko'),
+                        ),
+                        const SizedBox(width: 6),
+                        _configButton(
+                          context,
+                          'English',
+                          configProvider.localeCode == 'en',
+                          () => configProvider.updateLocale('en'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   _sectionTitle('Background Theme'),
                   const SizedBox(height: 8),
                   Container(

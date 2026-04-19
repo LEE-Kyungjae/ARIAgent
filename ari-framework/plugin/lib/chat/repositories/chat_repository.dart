@@ -41,10 +41,10 @@ class ChatRepository {
           requestId: log['noticeId']?.toString(),
         ));
       } else if (log['type'] == 'task') {
-        final label = log['label'] ?? '스케줄 작업';
+        final label = log['label'] ?? 'Scheduled task';
         final result = log['result'] ?? '';
         history.add(AriChatMessage(
-          text: '🕒 [$label] 실행 결과:\n$result',
+          text: '🕒 [$label] Execution result:\n$result',
           isUser: false,
           createdAt: DateTime.now(),
         ));

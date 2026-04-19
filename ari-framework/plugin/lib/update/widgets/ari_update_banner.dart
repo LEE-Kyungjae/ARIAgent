@@ -36,6 +36,13 @@ class AriUpdateBanner extends StatefulWidget {
   final Color? backgroundColor;
   final Color? accentColor;
 
+  /// Localized UI strings. All have English defaults; pass translated values if needed.
+  final String defaultAppNameText;
+  final String Function(String appName) installStartingTextBuilder;
+  final String Function(String version) newVersionTextBuilder;
+  final String mandatoryNoteText;
+  final String updateButtonText;
+
   const AriUpdateBanner({
     super.key,
     this.feedUrl,
@@ -46,7 +53,18 @@ class AriUpdateBanner extends StatefulWidget {
     this.onUpdate,
     this.backgroundColor,
     this.accentColor,
+    this.defaultAppNameText = 'this application',
+    this.installStartingTextBuilder = _defaultInstallStartingText,
+    this.newVersionTextBuilder = _defaultNewVersionText,
+    this.mandatoryNoteText = 'This is a mandatory update',
+    this.updateButtonText = 'Update',
   });
+
+  static String _defaultInstallStartingText(String appName) =>
+      'Starting update for $appName. The app will restart automatically when finished. '
+      '(If it does not restart on its own, please relaunch the app manually.)';
+  static String _defaultNewVersionText(String version) =>
+      'New version ($version) is available!';
 
   @override
   State<AriUpdateBanner> createState() => _AriUpdateBannerState();
@@ -117,13 +135,15 @@ class _AriUpdateBannerState extends State<AriUpdateBanner> {
     // 2. 즉시 UI 반응 (배너 숨김 및 스낵바 표시)
     if (mounted) {
       setState(() => _isDismissed = true);
-      
+
       final messenger = ScaffoldMessenger.maybeOf(context);
       if (messenger != null) {
         messenger.showSnackBar(
           SnackBar(
             content: Text(
-              '${widget.appName ?? "애플리케이션"} 업데이트 설치를 시작합니다. 완료 후 앱이 자동으로 재시작됩니다. (자동으로 시작되지 않으면 직접 앱을 다시 켜주세요.)',
+              widget.installStartingTextBuilder(
+                widget.appName ?? widget.defaultAppNameText,
+              ),
               style: const TextStyle(
                 fontSize: 13, 
                 color: Colors.white,
@@ -213,7 +233,7 @@ class _AriUpdateBannerState extends State<AriUpdateBanner> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '새로운 버전(${info.latestVersion})이 출시되었습니다!',
+                    widget.newVersionTextBuilder(info.latestVersion),
                     style: defaultTextStyle.copyWith(
                       color: Colors.white.withOpacity(0.92),
                       fontSize: 13,
@@ -225,7 +245,7 @@ class _AriUpdateBannerState extends State<AriUpdateBanner> {
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(
-                        '원활한 이용을 위해 필수 업데이트가 필요합니다.',
+                        widget.mandatoryNoteText,
                         style: defaultTextStyle.copyWith(
                           color: effectiveAccentColor.withOpacity(0.8),
                           fontSize: 11,
@@ -253,7 +273,7 @@ class _AriUpdateBannerState extends State<AriUpdateBanner> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              child: const Text('업데이트'),
+              child: Text(widget.updateButtonText),
             ),
           ],
         ),

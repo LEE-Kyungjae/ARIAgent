@@ -31,8 +31,8 @@ class AriBaseLayout extends StatefulWidget {
     this.chatMessages,
     this.isChatLoading = false,
     this.chatContextLabel,
-    this.chatHeaderTitle = 'AI 에이전트',
-    this.chatHintText = '메시지를 입력하세요...',
+    this.chatHeaderTitle,
+    this.chatHintText,
     this.chatTheme = const AriChatTheme(),
     this.chatFollowUpMessage,
     this.chatFollowUpCount = 0,
@@ -57,8 +57,8 @@ class AriBaseLayout extends StatefulWidget {
   final List<AriChatMessage>? chatMessages;
   final bool isChatLoading;
   final String? chatContextLabel;
-  final String chatHeaderTitle;
-  final String chatHintText;
+  final String? chatHeaderTitle;
+  final String? chatHintText;
   final AriChatTheme chatTheme;
   final String? chatFollowUpMessage;
   final int chatFollowUpCount;
@@ -171,6 +171,9 @@ class _AriBaseLayoutState extends State<AriBaseLayout> {
   Widget _buildChatPanel() {
     if (widget.chatPanel != null) return widget.chatPanel!;
 
+    final headerTitle = widget.chatHeaderTitle ?? 'ARI Assistant';
+    final hintText = widget.chatHintText ?? 'Type a message...';
+
     final p = widget.chatProvider;
     if (p != null) {
       return ListenableBuilder(
@@ -183,8 +186,8 @@ class _AriBaseLayoutState extends State<AriBaseLayout> {
           messages: p.messages,
           isLoading: p.isLoading,
           contextLabel: widget.chatContextLabel,
-          headerTitle: widget.chatHeaderTitle,
-          hintText: widget.chatHintText,
+          headerTitle: headerTitle,
+          hintText: hintText,
           theme: widget.chatTheme,
           followUpMessage: p.latestFollowUpMessage,
           followUpCount: p.queuedFollowUpCount,
@@ -200,8 +203,8 @@ class _AriBaseLayoutState extends State<AriBaseLayout> {
       messages: widget.chatMessages,
       isLoading: widget.isChatLoading,
       contextLabel: widget.chatContextLabel,
-      headerTitle: widget.chatHeaderTitle,
-      hintText: widget.chatHintText,
+      headerTitle: headerTitle,
+      hintText: hintText,
       theme: widget.chatTheme,
       followUpMessage: widget.chatFollowUpMessage,
       followUpCount: widget.chatFollowUpCount,
