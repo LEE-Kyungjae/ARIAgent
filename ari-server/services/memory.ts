@@ -16,7 +16,7 @@ import {
   searchMemoryNodes,
   EntityInput,
   Importance,
-} from "../repositories/kuzu_memory_repository.js";
+} from "../repositories/sqlite_memory_repository.js";
 import { embedPassage, embedQuery, getEmbeddingStatus } from "./embedding.js";
 import { getSettings } from "../repositories/setting_repository.js";
 import { Settings } from "../models/settings.js";
@@ -66,7 +66,7 @@ export function updateCoreMemory(
           });
         }
       } catch (e) {
-        logger.error(`[Memory] Kuzu core memory sync failed:`, e);
+        logger.error(`[Memory] core memory sync failed:`, e);
       }
     })();
   }
@@ -149,7 +149,7 @@ export function clearAgentMemory(agentId?: string): void {
   removeDailyMemoryDir(activeId);
 
   deleteAllMemoryNodes(activeId).catch((e) =>
-    logger.error(`[Memory] Kuzu clear failed:`, e),
+    logger.error(`[Memory] clear failed:`, e),
   );
 
   logger.info(`[Memory] Cleared memory for agent: ${activeId}`);

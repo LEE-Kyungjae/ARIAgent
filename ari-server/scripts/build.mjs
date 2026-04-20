@@ -20,8 +20,17 @@ const standaloneExternalModules = [
   "sharp",
   "onnxruntime-node",
   "@xenova/transformers",
-  "kuzu",
 ];
+// Transitive deps we do NOT want in the standalone bundle — they are pulled in
+// by @xenova/transformers's package.json but never loaded at runtime on Node:
+//   - onnxruntime-web: browser-only runtime (Node uses onnxruntime-node)
+//   - onnx-proto / protobufjs: only needed by onnxruntime-web
+//   - @types/*: TypeScript-only, zero runtime value
+const excludedTransitiveModules = new Set([
+  "onnxruntime-web",
+  "onnx-proto",
+  "protobufjs",
+]);
 const existingPath = process.env.PATH ?? process.env.Path ?? "";
 const pathWithNode = process.platform === "win32"
   ? `${nodeBinDir};${existingPath}`
@@ -103,53 +112,15 @@ function copyNodeModuleIfExists(moduleName, targetRoot) {
   fs.cpSync(source, target, { recursive: true });
 }
 
-function inspectDepsAtPath(modulePath, targetRoot, visited) {
-  const packageJsonPath = path.join(modulePath, "package.json");
-  if (fs.existsSync(packageJsonPath)) {
-    try {
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-      const deps = {
-        ...(packageJson.dependencies ?? {}),
-        ...(packageJson.optionalDependencies ?? {}),
-      };
-      for (const dependency of Object.keys(deps)) {
-        copyNodeModuleTree(dependency, targetRoot, visited);
-      }
-    } catch (error) {
-      console.warn(
-        `[build] Warning: failed to inspect dependencies at ${modulePath}: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-  }
-
-  const nestedDir = path.join(modulePath, "node_modules");
-  if (!fs.existsSync(nestedDir)) {
-    return;
-  }
-
-  for (const entry of fs.readdirSync(nestedDir)) {
-    if (entry.startsWith(".")) continue;
-    const entryPath = path.join(nestedDir, entry);
-    if (!fs.statSync(entryPath).isDirectory()) continue;
-
-    if (entry.startsWith("@")) {
-      for (const scoped of fs.readdirSync(entryPath)) {
-        const scopedPath = path.join(entryPath, scoped);
-        if (fs.statSync(scopedPath).isDirectory()) {
-          inspectDepsAtPath(scopedPath, targetRoot, visited);
-        }
-      }
-    } else {
-      inspectDepsAtPath(entryPath, targetRoot, visited);
-    }
-  }
-}
-
 function copyNodeModuleTree(moduleName, targetRoot, visited = new Set()) {
   if (visited.has(moduleName)) {
     return;
   }
   visited.add(moduleName);
+
+  if (excludedTransitiveModules.has(moduleName)) {
+    return;
+  }
 
   const source = path.join(rootDir, "node_modules", ...moduleName.split("/"));
   if (!fs.existsSync(source)) {
@@ -158,7 +129,53 @@ function copyNodeModuleTree(moduleName, targetRoot, visited = new Set()) {
   }
 
   copyNodeModuleIfExists(moduleName, targetRoot);
-  inspectDepsAtPath(source, targetRoot, visited);
+
+  const packageJsonPath = path.join(source, "package.json");
+  if (!fs.existsSync(packageJsonPath)) {
+    return;
+  }
+
+  try {
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+    for (const dependency of Object.keys(packageJson.dependencies ?? {})) {
+      copyNodeModuleTree(dependency, targetRoot, visited);
+    }
+  } catch (error) {
+    console.warn(
+      `[build] Warning: failed to inspect dependencies for ${moduleName}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+function trimPlatformBloat(targetRoot) {
+  // @xenova/transformers/dist is the browser UMD bundle + ORT WASM files.
+  // Node resolves `main: ./src/transformers.js`, so dist/ is dead weight (~43MB).
+  const xenovaDist = path.join(targetRoot, "node_modules", "@xenova", "transformers", "dist");
+  if (fs.existsSync(xenovaDist)) {
+    fs.rmSync(xenovaDist, { recursive: true, force: true });
+    console.log("[build] Trimmed @xenova/transformers/dist (browser UMD + WASM, unused on Node)");
+  }
+
+  // onnxruntime-node ships prebuilds for 6 platforms (darwin/linux/win32 × arm64/x64).
+  // Keep only the one matching this build's target platform/arch.
+  const ortBin = path.join(targetRoot, "node_modules", "onnxruntime-node", "bin", "napi-v3");
+  if (fs.existsSync(ortBin)) {
+    const keepPlatform = process.platform;
+    const keepArch = process.arch;
+    for (const plat of fs.readdirSync(ortBin)) {
+      const platDir = path.join(ortBin, plat);
+      if (plat !== keepPlatform) {
+        fs.rmSync(platDir, { recursive: true, force: true });
+        continue;
+      }
+      for (const arch of fs.readdirSync(platDir)) {
+        if (arch !== keepArch) {
+          fs.rmSync(path.join(platDir, arch), { recursive: true, force: true });
+        }
+      }
+    }
+    console.log(`[build] Trimmed onnxruntime-node prebuilds (kept ${keepPlatform}/${keepArch} only)`);
+  }
 }
 
 function cleanDir(targetDir) {
@@ -227,7 +244,13 @@ async function buildStandalone() {
       [
         'const { createRequire } = require("node:module");',
         'const path = require("node:path");',
-        'const entryRequire = createRequire(path.join(path.dirname(process.execPath), "sea-launcher.cjs"));',
+        'const fs = require("node:fs");',
+        'const binDir = path.dirname(process.execPath);',
+        'const bundledBrowsers = path.join(binDir, "ms-playwright");',
+        'if (fs.existsSync(bundledBrowsers)) {',
+        '  process.env.PLAYWRIGHT_BROWSERS_PATH = bundledBrowsers;',
+        '}',
+        'const entryRequire = createRequire(path.join(binDir, "sea-launcher.cjs"));',
         'entryRequire("./server.bundle.cjs");',
         "",
       ].join("\n"),
@@ -280,6 +303,7 @@ async function buildStandalone() {
       copyNodeModuleTree(moduleName, standaloneDir);
     }
     copyNodeModuleTree("node-schedule", standaloneDir);
+    trimPlatformBloat(standaloneDir);
 
     fs.rmSync(launcherFile, { force: true });
     fs.rmSync(seaConfigPath, { force: true });

@@ -2,6 +2,7 @@ import { AgentTool } from "@mariozechner/pi-agent-core";
 import { Type } from "@mariozechner/pi-ai";
 import { chromium } from "playwright";
 import { logger } from "../infra/logger.js";
+import { ensureChromiumReady } from "./_chromium_ready.js";
 
 export const webFetchTool: AgentTool = {
   name: "web_fetch",
@@ -19,6 +20,14 @@ export const webFetchTool: AgentTool = {
   execute: async (_toolCallId, params) => {
     const { url, render_js = true } = params as any;
     let browser = null;
+
+    const readiness = ensureChromiumReady();
+    if (!readiness.ready) {
+      return {
+        content: [{ type: "text", text: readiness.message }],
+        details: { ok: false, reason: "chromium_not_ready" },
+      };
+    }
 
     try {
       logger.info(`[WebFetch] Fetching ${url} (JS=${render_js})`);

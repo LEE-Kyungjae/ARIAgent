@@ -30,8 +30,8 @@ export const searchMemoryTool: AgentTool<typeof searchParameters> = {
       if (fileResult) parts.push(`[로그 검색]\n${fileResult}`);
 
       if (isAdvancedMemoryReady()) {
-        const kuzuResult = await searchRelevantMemories(args.query, undefined, 8);
-        if (kuzuResult) parts.push(`[메모리 검색]\n${kuzuResult}`);
+        const memoryResult = await searchRelevantMemories(args.query, undefined, 8);
+        if (memoryResult) parts.push(`[메모리 검색]\n${memoryResult}`);
       }
 
       const result = parts.join("\n\n");

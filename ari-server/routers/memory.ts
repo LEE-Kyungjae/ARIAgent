@@ -2,7 +2,7 @@ import { router } from "../system/router.js";
 import { clearAgentMemory, readCoreMemory, readRecentDailyLogs, updateCoreMemory } from "../services/memory.js";
 import { clearAgentInstance } from "../services/agent/index.js";
 import { getEmbeddingStatus, initEmbeddingModel } from "../services/embedding.js";
-import { getMemoryStats } from "../repositories/kuzu_memory_repository.js";
+import { getMemoryStats } from "../repositories/sqlite_memory_repository.js";
 import { getSettings } from "../repositories/setting_repository.js";
 import { Settings } from "../models/settings.js";
 

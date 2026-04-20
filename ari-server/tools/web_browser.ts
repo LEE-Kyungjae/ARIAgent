@@ -2,6 +2,7 @@ import { AgentTool } from "@mariozechner/pi-agent-core";
 import { Type } from "@mariozechner/pi-ai";
 import { chromium, Browser, Page, BrowserContext } from "playwright";
 import { logger } from "../infra/logger.js";
+import { ensureChromiumReady } from "./_chromium_ready.js";
 
 let activeBrowser: Browser | null = null;
 let activeContext: BrowserContext | null = null;
@@ -45,6 +46,14 @@ export const webBrowseTool: AgentTool = {
   }),
   execute: async (_toolCallId, params) => {
     const { action, url, selector, value, wait_for } = params as any;
+
+    const readiness = ensureChromiumReady();
+    if (!readiness.ready) {
+      return {
+        content: [{ type: "text", text: readiness.message }],
+        details: { ok: false, action, reason: "chromium_not_ready" },
+      };
+    }
 
     try {
       const { page } = await getOrLaunchBrowser(true); // 항상 창이 뜨도록 설정 (headed: true)
