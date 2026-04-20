@@ -1830,6 +1830,114 @@ abstract class S {
   /// **'이 기능을 사용하려면 에이전트 실행이 필요합니다.\n설정 탭에서 에이전트를 켜 주세요.'**
   String get homeServerRequiredDesc;
 
+  /// No description provided for @chatEmptyPrompt.
+  ///
+  /// In ko, this message translates to:
+  /// **'💬 ARI에게 무엇이든 물어보세요!'**
+  String get chatEmptyPrompt;
+
+  /// No description provided for @chatFollowUpPending.
+  ///
+  /// In ko, this message translates to:
+  /// **'대기 중'**
+  String get chatFollowUpPending;
+
+  /// No description provided for @chatFollowUpPendingCount.
+  ///
+  /// In ko, this message translates to:
+  /// **'대기 {count}건'**
+  String chatFollowUpPendingCount(Object count);
+
+  /// No description provided for @modelSetupDesc.
+  ///
+  /// In ko, this message translates to:
+  /// **'ARI가 답변하기 위해 사용할\nAI 프로바이더 및 API 키를 등록해주세요.'**
+  String get modelSetupDesc;
+
+  /// No description provided for @settingsModelDesc.
+  ///
+  /// In ko, this message translates to:
+  /// **'AI 모델 및 API 키 설정'**
+  String get settingsModelDesc;
+
+  /// No description provided for @settingsModelDescDisabled.
+  ///
+  /// In ko, this message translates to:
+  /// **'AI 모델 및 API 키 설정 (에이전트 실행 필요)'**
+  String get settingsModelDescDisabled;
+
+  /// No description provided for @settingsAboutDesc.
+  ///
+  /// In ko, this message translates to:
+  /// **'ARI Agent 소개 및 버전 정보'**
+  String get settingsAboutDesc;
+
+  /// No description provided for @aboutPhilosophyHeading.
+  ///
+  /// In ko, this message translates to:
+  /// **'ARI가 중요하게 생각하는 것'**
+  String get aboutPhilosophyHeading;
+
+  /// No description provided for @relativeSoon.
+  ///
+  /// In ko, this message translates to:
+  /// **'곧'**
+  String get relativeSoon;
+
+  /// No description provided for @relativeInMinutes.
+  ///
+  /// In ko, this message translates to:
+  /// **'{minutes}분 후'**
+  String relativeInMinutes(int minutes);
+
+  /// No description provided for @relativeInHours.
+  ///
+  /// In ko, this message translates to:
+  /// **'{hours}시간 후'**
+  String relativeInHours(int hours);
+
+  /// No description provided for @relativeInDays.
+  ///
+  /// In ko, this message translates to:
+  /// **'{days}일 후'**
+  String relativeInDays(int days);
+
+  /// No description provided for @notificationTitleBackground.
+  ///
+  /// In ko, this message translates to:
+  /// **'ARI 백그라운드 응답'**
+  String get notificationTitleBackground;
+
+  /// No description provided for @notificationTitleNewMessage.
+  ///
+  /// In ko, this message translates to:
+  /// **'ARI 새 메시지'**
+  String get notificationTitleNewMessage;
+
+  /// No description provided for @helpGuideTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'AI 프로바이더 설정 가이드'**
+  String get helpGuideTitle;
+
+  /// No description provided for @helpOAuthTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'☁️ OAuth 서비스 연동 (추천)'**
+  String get helpOAuthTitle;
+
+  /// No description provided for @helpApiKeyTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'🔑 API 키 직접 입력'**
+  String get helpApiKeyTitle;
+
+  /// No description provided for @helpPriorityTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'🔝 우선순위 오버라이드'**
+  String get helpPriorityTitle;
+
   /// No description provided for @chatSuggestion1.
   ///
   /// In ko, this message translates to:
@@ -1842,91 +1950,70 @@ abstract class S {
   /// **'주식 자동매매 하고 싶어!'**
   String get chatSuggestion2;
 
-  /// No description provided for @chatEmptyPrompt.
-  String get chatEmptyPrompt;
-
-  /// No description provided for @chatFollowUpPending.
-  String get chatFollowUpPending;
-
-  /// No description provided for @chatFollowUpPendingCount.
-  String chatFollowUpPendingCount(Object count);
-
-  /// No description provided for @modelSetupDesc.
-  String get modelSetupDesc;
-
-  /// No description provided for @settingsModelDesc.
-  String get settingsModelDesc;
-
-  /// No description provided for @settingsModelDescDisabled.
-  String get settingsModelDescDisabled;
-
-  /// No description provided for @settingsAboutDesc.
-  String get settingsAboutDesc;
-
-  /// No description provided for @aboutPhilosophyHeading.
-  String get aboutPhilosophyHeading;
-
-  /// No description provided for @relativeSoon.
-  String get relativeSoon;
-
-  /// No description provided for @relativeInMinutes.
-  String relativeInMinutes(int minutes);
-
-  /// No description provided for @relativeInHours.
-  String relativeInHours(int hours);
-
-  /// No description provided for @relativeInDays.
-  String relativeInDays(int days);
-
-  /// No description provided for @notificationTitleBackground.
-  String get notificationTitleBackground;
-
-  /// No description provided for @notificationTitleNewMessage.
-  String get notificationTitleNewMessage;
-
-  /// No description provided for @helpGuideTitle.
-  String get helpGuideTitle;
-
-  /// No description provided for @helpOAuthTitle.
-  String get helpOAuthTitle;
-
-  /// No description provided for @helpApiKeyTitle.
-  String get helpApiKeyTitle;
-
-  /// No description provided for @helpPriorityTitle.
-  String get helpPriorityTitle;
-
   /// No description provided for @chatSuggestionSetupGreet.
+  ///
+  /// In ko, this message translates to:
+  /// **'👋 안녕'**
   String get chatSuggestionSetupGreet;
 
   /// No description provided for @chatSuggestionSetupHowto.
+  ///
+  /// In ko, this message translates to:
+  /// **'🛠️ 사용법을 알려줘'**
   String get chatSuggestionSetupHowto;
 
   /// No description provided for @chatSuggestionSetupApiKey.
+  ///
+  /// In ko, this message translates to:
+  /// **'🔑 API 키가 뭐야?'**
   String get chatSuggestionSetupApiKey;
 
   /// No description provided for @chatSuggestionSetupCheapest.
+  ///
+  /// In ko, this message translates to:
+  /// **'💳 어떤 방식이 제일 저렴해?'**
   String get chatSuggestionSetupCheapest;
 
   /// No description provided for @chatSuggestionSetupChatgpt.
+  ///
+  /// In ko, this message translates to:
+  /// **'⭐ ChatGPT로 연결하고 싶어'**
   String get chatSuggestionSetupChatgpt;
 
   /// No description provided for @chatSuggestionSetupOauth.
+  ///
+  /// In ko, this message translates to:
+  /// **'🔓 OAuth가 뭐야?'**
   String get chatSuggestionSetupOauth;
 
   /// No description provided for @chatSuggestionNormalGreet.
+  ///
+  /// In ko, this message translates to:
+  /// **'👋 안녕 ARI!'**
   String get chatSuggestionNormalGreet;
 
   /// No description provided for @chatSuggestionNormalDisk.
+  ///
+  /// In ko, this message translates to:
+  /// **'💾 디스크 용량 확인'**
   String get chatSuggestionNormalDisk;
 
   /// No description provided for @chatSuggestionNormalFile.
+  ///
+  /// In ko, this message translates to:
+  /// **'🔍 파일 찾아줘'**
   String get chatSuggestionNormalFile;
 
   /// No description provided for @chatSuggestionNormalRemind.
+  ///
+  /// In ko, this message translates to:
+  /// **'1분뒤 알려줘!'**
   String get chatSuggestionNormalRemind;
 
   /// No description provided for @chatSuggestionNormalMusic.
+  ///
+  /// In ko, this message translates to:
+  /// **'🎵 감성적인 노래 들려줘!'**
   String get chatSuggestionNormalMusic;
 
   /// No description provided for @appearanceGray.

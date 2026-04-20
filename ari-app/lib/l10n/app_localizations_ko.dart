@@ -937,23 +937,18 @@ class SKo extends S {
       '이 기능을 사용하려면 에이전트 실행이 필요합니다.\n설정 탭에서 에이전트를 켜 주세요.';
 
   @override
-  String get chatSuggestion1 => '비트코인 거래앱 설치해줘!';
-
-  @override
-  String get chatSuggestion2 => '주식 자동매매 하고 싶어!';
-
-  @override
   String get chatEmptyPrompt => '💬 ARI에게 무엇이든 물어보세요!';
 
   @override
   String get chatFollowUpPending => '대기 중';
 
   @override
-  String chatFollowUpPendingCount(Object count) => '대기 $count건';
+  String chatFollowUpPendingCount(Object count) {
+    return '대기 $count건';
+  }
 
   @override
-  String get modelSetupDesc =>
-      'ARI가 답변하기 위해 사용할\nAI 프로바이더 및 API 키를 등록해주세요.';
+  String get modelSetupDesc => 'ARI가 답변하기 위해 사용할\nAI 프로바이더 및 API 키를 등록해주세요.';
 
   @override
   String get settingsModelDesc => 'AI 모델 및 API 키 설정';
@@ -971,13 +966,19 @@ class SKo extends S {
   String get relativeSoon => '곧';
 
   @override
-  String relativeInMinutes(int minutes) => '$minutes분 후';
+  String relativeInMinutes(int minutes) {
+    return '$minutes분 후';
+  }
 
   @override
-  String relativeInHours(int hours) => '$hours시간 후';
+  String relativeInHours(int hours) {
+    return '$hours시간 후';
+  }
 
   @override
-  String relativeInDays(int days) => '$days일 후';
+  String relativeInDays(int days) {
+    return '$days일 후';
+  }
 
   @override
   String get notificationTitleBackground => 'ARI 백그라운드 응답';
@@ -996,6 +997,12 @@ class SKo extends S {
 
   @override
   String get helpPriorityTitle => '🔝 우선순위 오버라이드';
+
+  @override
+  String get chatSuggestion1 => '비트코인 거래앱 설치해줘!';
+
+  @override
+  String get chatSuggestion2 => '주식 자동매매 하고 싶어!';
 
   @override
   String get chatSuggestionSetupGreet => '👋 안녕';

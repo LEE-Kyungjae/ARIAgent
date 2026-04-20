@@ -968,19 +968,15 @@ class SEn extends S {
       'Agent must be running to use this feature.\nPlease turn on the agent in the Settings tab.';
 
   @override
-  String get chatSuggestion1 => 'Install a Bitcoin trading app!';
-
-  @override
-  String get chatSuggestion2 => 'I want to do automated stock trading!';
-
-  @override
   String get chatEmptyPrompt => '💬 Ask ARI anything!';
 
   @override
   String get chatFollowUpPending => 'Pending';
 
   @override
-  String chatFollowUpPendingCount(Object count) => '$count pending';
+  String chatFollowUpPendingCount(Object count) {
+    return '$count pending';
+  }
 
   @override
   String get modelSetupDesc =>
@@ -1003,13 +999,19 @@ class SEn extends S {
   String get relativeSoon => 'Soon';
 
   @override
-  String relativeInMinutes(int minutes) => 'in $minutes min';
+  String relativeInMinutes(int minutes) {
+    return 'in $minutes min';
+  }
 
   @override
-  String relativeInHours(int hours) => 'in ${hours}h';
+  String relativeInHours(int hours) {
+    return 'in ${hours}h';
+  }
 
   @override
-  String relativeInDays(int days) => 'in ${days}d';
+  String relativeInDays(int days) {
+    return 'in ${days}d';
+  }
 
   @override
   String get notificationTitleBackground => 'ARI background response';
@@ -1028,6 +1030,12 @@ class SEn extends S {
 
   @override
   String get helpPriorityTitle => '🔝 Priority override';
+
+  @override
+  String get chatSuggestion1 => 'Install a Bitcoin trading app!';
+
+  @override
+  String get chatSuggestion2 => 'I want to do automated stock trading!';
 
   @override
   String get chatSuggestionSetupGreet => '👋 Hi';
