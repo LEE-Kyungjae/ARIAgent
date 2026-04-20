@@ -10,6 +10,7 @@ import { logger } from "../infra/logger.js";
 import { initAgent } from "../services/agent/index.js";
 import { execPromise } from "../tools/bash.js";
 import { removeAppIdFromAgent, isAppUsedByOtherAgents } from "../repositories/agent_repository.js";
+import { loadAllApps } from "../skills/index.js";
 
 /**
  * /LAUNCH_APP
@@ -181,6 +182,32 @@ router.on("/APP.UPDATE", async (ws, params) => {
       currentAppBundle = path.dirname(appExecutablePath);
     }
     logger.info(`[AppUpdate] Current bundle: ${currentAppBundle}`);
+
+    // 5-1. 플러그인 앱(~/.ari-agent/apps/<id>/app.app) 인 경우 zip 안의
+    //      메타파일(SKILL.md, app_info.json, icon.png …) 도 같이 설치해야
+    //      바이너리와 메타가 분리되지 않음. 호스트 앱 업데이트( /Applications )
+    //      에서는 건드리지 않음.
+    const installParent = path.dirname(currentAppBundle);
+    const appsRoot = path.join(DATA_DIR, "apps");
+    const isPluginApp =
+      installParent === appsRoot ||
+      installParent.startsWith(appsRoot + path.sep);
+
+    if (isPluginApp) {
+      const bundleDir = path.dirname(newAppBundle);
+      for (const entry of fs.readdirSync(bundleDir)) {
+        if (entry === "__MACOSX" || entry.startsWith(".")) continue;
+        const srcPath = path.join(bundleDir, entry);
+        if (srcPath === newAppBundle) continue;
+        const dstPath = path.join(installParent, entry);
+        if (fs.existsSync(dstPath)) fs.rmSync(dstPath, { recursive: true, force: true });
+        fs.cpSync(srcPath, dstPath, { recursive: true });
+      }
+      logger.info(`[AppUpdate] Plugin metadata synced to ${installParent}`);
+      await loadAllApps();
+      const pluginId = path.basename(installParent);
+      UserSocketHandler.broadcast("/INSTALLED_APPS_CHANGED", { appId: pluginId });
+    }
 
     // 6. 교체 스크립트 생성 후 detached 실행 (서버·앱이 종료돼도 안전)
     ws.send("/APP.UPDATE.PROGRESS", { stage: "installing", message: "업데이트 설치 중..." });
