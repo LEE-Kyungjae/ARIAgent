@@ -1,8 +1,8 @@
 import { AgentTool } from "@mariozechner/pi-agent-core";
 import { Type } from "@mariozechner/pi-ai";
-import { chromium } from "playwright";
 import { logger } from "../infra/logger.js";
 import { ensureChromiumReady } from "./_chromium_ready.js";
+import { ensurePlaywrightRuntime, loadPlaywright } from "./_playwright_runtime.js";
 
 export const webFetchTool: AgentTool = {
   name: "web_fetch",
@@ -19,7 +19,15 @@ export const webFetchTool: AgentTool = {
   }),
   execute: async (_toolCallId, params) => {
     const { url, render_js = true } = params as any;
-    let browser = null;
+    let browser: import("playwright").Browser | null = null;
+
+    const runtimeReady = ensurePlaywrightRuntime();
+    if (!runtimeReady.ready) {
+      return {
+        content: [{ type: "text", text: runtimeReady.message }],
+        details: { ok: false, reason: "playwright_runtime_not_ready" },
+      };
+    }
 
     const readiness = ensureChromiumReady();
     if (!readiness.ready) {
@@ -32,6 +40,7 @@ export const webFetchTool: AgentTool = {
     try {
       logger.info(`[WebFetch] Fetching ${url} (JS=${render_js})`);
 
+      const { chromium } = loadPlaywright();
       browser = await chromium.launch({ headless: true });
       const context = await browser.newContext({
         userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -39,7 +48,7 @@ export const webFetchTool: AgentTool = {
       const page = await context.newPage();
 
       // 속도 향상을 위해 이미지/미디어 로딩 차단
-      await page.route("**/*.{png,jpg,jpeg,gif,webp,svg,ico,mp4,webm,ogg}", (route) => route.abort());
+      await page.route("**/*.{png,jpg,jpeg,gif,webp,svg,ico,mp4,webm,ogg}", (route: import("playwright").Route) => route.abort());
 
       // networkidle은 너무 오래 걸릴 수 있으므로 'load' 사용
       await page.goto(url, { waitUntil: render_js ? "load" : "domcontentloaded", timeout: 20000 });

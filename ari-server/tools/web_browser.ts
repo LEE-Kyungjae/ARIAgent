@@ -1,8 +1,9 @@
 import { AgentTool } from "@mariozechner/pi-agent-core";
 import { Type } from "@mariozechner/pi-ai";
-import { chromium, Browser, Page, BrowserContext } from "playwright";
+import type { Browser, Page, BrowserContext } from "playwright";
 import { logger } from "../infra/logger.js";
 import { ensureChromiumReady } from "./_chromium_ready.js";
+import { ensurePlaywrightRuntime, loadPlaywright } from "./_playwright_runtime.js";
 
 let activeBrowser: Browser | null = null;
 let activeContext: BrowserContext | null = null;
@@ -11,6 +12,7 @@ let activePage: Page | null = null;
 async function getOrLaunchBrowser(headed: boolean = true) {
   // 브라우저가 없거나 연결이 끊겼는지 확인
   if (!activeBrowser || !activeBrowser.isConnected()) {
+    const { chromium } = loadPlaywright();
     activeBrowser = await chromium.launch({ headless: !headed });
     activeContext = await activeBrowser.newContext();
     activePage = await activeContext.newPage();
@@ -46,6 +48,14 @@ export const webBrowseTool: AgentTool = {
   }),
   execute: async (_toolCallId, params) => {
     const { action, url, selector, value, wait_for } = params as any;
+
+    const runtimeReady = ensurePlaywrightRuntime();
+    if (!runtimeReady.ready) {
+      return {
+        content: [{ type: "text", text: runtimeReady.message }],
+        details: { ok: false, action, reason: "playwright_runtime_not_ready" },
+      };
+    }
 
     const readiness = ensureChromiumReady();
     if (!readiness.ready) {

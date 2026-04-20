@@ -10,7 +10,14 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 const distDir = path.join(rootDir, "dist");
 const standaloneDir = path.join(rootDir, "build", "standalone");
+const runtimeDir = path.join(rootDir, "build", "runtime");
 const standaloneBinaryName = process.platform === "win32" ? "ari-server.exe" : "ari-server";
+// Modules packaged into the on-demand playwright runtime tarball instead of
+// shipped inside the standalone bundle. See ONDEMAND_RUNTIME_PLAN.md.
+const playwrightRuntimeModules = ["playwright", "playwright-core"];
+const playwrightVersion = JSON.parse(
+  fs.readFileSync(path.join(rootDir, "node_modules", "playwright", "package.json"), "utf8"),
+).version;
 const nodeBinDir = path.dirname(process.execPath);
 const standaloneExternalModules = [
   "playwright",
@@ -184,6 +191,83 @@ function cleanDir(targetDir) {
   fs.mkdirSync(targetDir, { recursive: true });
 }
 
+function collectReachableModules(standaloneRoot, roots) {
+  const standaloneModules = path.join(standaloneRoot, "node_modules");
+  const collected = new Set();
+  const queue = [...roots];
+
+  while (queue.length > 0) {
+    const moduleName = queue.shift();
+    if (collected.has(moduleName)) continue;
+    const modDir = path.join(standaloneModules, ...moduleName.split("/"));
+    if (!fs.existsSync(modDir)) continue;
+    collected.add(moduleName);
+
+    const pkgJsonPath = path.join(modDir, "package.json");
+    if (!fs.existsSync(pkgJsonPath)) continue;
+    try {
+      const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
+      for (const dep of Object.keys(pkg.dependencies ?? {})) {
+        if (!collected.has(dep)) queue.push(dep);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return collected;
+}
+
+function collectPlaywrightRuntimeModules(standaloneRoot) {
+  // All modules reachable from playwright roots.
+  const playwrightReachable = collectReachableModules(standaloneRoot, playwrightRuntimeModules);
+  // Deps reachable from the remaining standalone roots — must NOT be moved.
+  const nonPlaywrightRoots = standaloneExternalModules
+    .filter((m) => !playwrightRuntimeModules.includes(m))
+    .concat(["node-schedule"]);
+  const keepInStandalone = collectReachableModules(standaloneRoot, nonPlaywrightRoots);
+
+  return [...playwrightReachable].filter((m) => !keepInStandalone.has(m));
+}
+
+function packagePlaywrightRuntime(standaloneRoot, runtimeOutDir) {
+  const standaloneModules = path.join(standaloneRoot, "node_modules");
+  const stagingDir = path.join(
+    runtimeOutDir,
+    `playwright-${process.platform}-${process.arch}-v${playwrightVersion}`,
+  );
+  const stagingModules = path.join(stagingDir, "node_modules");
+
+  const modulesToMove = collectPlaywrightRuntimeModules(standaloneRoot);
+  let moved = 0;
+  fs.mkdirSync(stagingModules, { recursive: true });
+  for (const moduleName of modulesToMove) {
+    const src = path.join(standaloneModules, ...moduleName.split("/"));
+    if (!fs.existsSync(src)) continue;
+    const dest = path.join(stagingModules, ...moduleName.split("/"));
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.renameSync(src, dest);
+    moved++;
+  }
+
+  if (moved === 0) {
+    console.warn("[build] No playwright runtime modules found to package");
+    fs.rmSync(stagingDir, { recursive: true, force: true });
+    return;
+  }
+
+  const tarballName = `playwright-${process.platform}-${process.arch}-v${playwrightVersion}.tar.gz`;
+  const tarballPath = path.join(runtimeOutDir, tarballName);
+  fs.rmSync(tarballPath, { force: true });
+
+  const tarCmd = process.platform === "win32" ? "tar.exe" : "tar";
+  runCommand(tarCmd, ["-czf", tarballPath, "-C", stagingDir, "."]);
+  fs.rmSync(stagingDir, { recursive: true, force: true });
+
+  const sizeMb = (fs.statSync(tarballPath).size / (1024 * 1024)).toFixed(1);
+  console.log(`[build] Packaged playwright runtime: ${tarballName} (${sizeMb} MB)`);
+}
+
 function buildTypeScript() {
   const tscCommand = process.platform === "win32"
     ? "cmd.exe"
@@ -236,6 +320,7 @@ async function buildStandalone() {
       },
       define: {
         "import.meta.url": "__bundle_import_meta_url",
+        "__PLAYWRIGHT_RUNTIME_VERSION__": JSON.stringify(playwrightVersion),
       },
     });
 
@@ -304,6 +389,9 @@ async function buildStandalone() {
     }
     copyNodeModuleTree("node-schedule", standaloneDir);
     trimPlatformBloat(standaloneDir);
+
+    cleanDir(runtimeDir);
+    packagePlaywrightRuntime(standaloneDir, runtimeDir);
 
     fs.rmSync(launcherFile, { force: true });
     fs.rmSync(seaConfigPath, { force: true });

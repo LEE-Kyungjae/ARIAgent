@@ -1,6 +1,9 @@
 import fs from "fs";
-import { chromium } from "playwright";
+import path from "path";
+import os from "os";
+import { createRequire } from "module";
 import { logger } from "../infra/logger.js";
+import { loadPlaywright } from "./_playwright_runtime.js";
 
 export type ChromiumReadyResult =
   | { ready: true }
@@ -12,6 +15,7 @@ const FAILURE_COOLDOWN_MS = 30_000;
 
 function chromiumIsInstalled(): boolean {
   try {
+    const { chromium } = loadPlaywright();
     const execPath = chromium.executablePath();
     return !!execPath && fs.existsSync(execPath);
   } catch {
@@ -22,10 +26,13 @@ function chromiumIsInstalled(): boolean {
 async function runInstall(): Promise<void> {
   logger.info("[ChromiumSetup] Starting Chromium download (~170MB, first time only)...");
   // Playwright-core's internal registry — same machinery `npx playwright install` uses.
-  // If the internal path shifts on a future Playwright upgrade, the catch in
-  // ensureChromiumReady() surfaces the error cleanly to the caller.
-  // @ts-ignore — internal path, no type declarations
-  const mod: any = await import("playwright-core/lib/server/registry/index.js");
+  // Anchor createRequire to the runtime playwright install so it resolves
+  // playwright-core from ~/.ari-agent/runtime/playwright/node_modules/.
+  const anchor = path.join(os.homedir(), ".ari-agent", "runtime", "playwright", ".loader.cjs");
+  const req = fs.existsSync(anchor)
+    ? createRequire(anchor)
+    : createRequire(import.meta.url);
+  const mod: any = req("playwright-core/lib/server/registry/index.js");
   const registry = mod.registry ?? mod.default?.registry;
   if (!registry || typeof registry.install !== "function") {
     throw new Error("Playwright registry API unavailable — internal API may have changed");
