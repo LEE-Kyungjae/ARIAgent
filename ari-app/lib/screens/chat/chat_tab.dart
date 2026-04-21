@@ -5,6 +5,7 @@ import 'package:ari_plugin/ari_plugin.dart';
 import '../../providers/server_provider.dart';
 import '../../providers/config_provider.dart';
 import '../../l10n/app_localizations.dart';
+import '../settings/model/providers_notifier.dart';
 
 import 'views/chat_header.dart';
 import 'views/chat_suggestions.dart';
@@ -50,7 +51,7 @@ class _ChatTabState extends State<ChatTab> {
   Widget build(BuildContext context) {
     final chatProvider = context.watch<AriChatProvider>();
     final server = context.watch<ServerProvider>();
-    final config = context.watch<ConfigProvider>();
+    final providers = context.watch<ProvidersNotifier>();
     final avatar = context.watch<AgentProvider>();
 
     final isServerRunning = server.isRunning;
@@ -105,7 +106,7 @@ class _ChatTabState extends State<ChatTab> {
             ),
           ),
           ChatSuggestions(
-            isSetupMode: config.isSetupMode,
+            isSetupMode: providers.isSetupMode,
             onSuggestionTap: (text) => chatProvider.sendAgentMessage(
               text,
               agentId: avatar.currentAvatarId,

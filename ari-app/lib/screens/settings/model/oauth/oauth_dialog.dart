@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../../providers/config_provider.dart';
+import '../providers_notifier.dart';
 import '../../../../l10n/app_localizations.dart';
 
 /// 통합 OAuth 다이얼로그 컨트롤러.
@@ -79,8 +79,8 @@ class _OAuthDialogState extends State<_OAuthDialog> {
     final value = _codeCtrl.text.trim();
     if (value.isEmpty) return;
     setState(() => _submitting = true);
-    final cfg = Provider.of<ConfigProvider>(context, listen: false);
-    await cfg.sendOAuthPrompt(widget.accountId, value);
+    final notifier = Provider.of<ProvidersNotifier>(context, listen: false);
+    await notifier.sendOAuthPrompt(widget.accountId, value);
     if (mounted) Navigator.of(context).pop(true);
   }
 

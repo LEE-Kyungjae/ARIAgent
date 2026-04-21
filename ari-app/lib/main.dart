@@ -14,6 +14,7 @@ import 'repositories/config_repository.dart';
 import 'providers/config_provider.dart';
 import 'providers/home_assistant_provider.dart';
 import 'providers/server_provider.dart';
+import 'screens/settings/model/providers_notifier.dart';
 import 'services/desktop_notification_service.dart';
 import 'screens/place/providers/place_agent_status_provider.dart';
 
@@ -49,6 +50,7 @@ void main() async {
   await ConfigProvider().init();
   await AgentProvider().init();
   await PlaceAgentStatusProvider().init();
+  ProvidersNotifier().init();
 
   // 에이전트 시작 (비동기)
   unawaited(ServerProvider().start(version: version));
@@ -195,6 +197,9 @@ class _ARIAppState extends State<ARIApp> with WindowListener {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<ConfigProvider>.value(value: ConfigProvider()),
+        ChangeNotifierProvider<ProvidersNotifier>.value(
+          value: ProvidersNotifier(),
+        ),
         ChangeNotifierProvider<AgentProvider>.value(value: AgentProvider()),
         ChangeNotifierProvider<ServerProvider>.value(value: ServerProvider()),
         ChangeNotifierProvider<HomeAssistantProvider>.value(

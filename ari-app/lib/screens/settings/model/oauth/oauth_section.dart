@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../../providers/config_provider.dart';
 import 'package:ari_plugin/ari_plugin.dart';
 import '../models/provider_item.dart';
 import '../providers_notifier.dart';
@@ -32,8 +31,6 @@ class _OAuthSectionState extends State<OAuthSection> {
 
   ProvidersNotifier get _notifier =>
       Provider.of<ProvidersNotifier>(context, listen: false);
-  ConfigProvider get _cfg =>
-      Provider.of<ConfigProvider>(context, listen: false);
 
   @override
   void initState() {
@@ -48,7 +45,7 @@ class _OAuthSectionState extends State<OAuthSection> {
     _stopPolling();
     if (_isLoggingIn) {
       try {
-        unawaited(_cfg.cancelOAuthLogin(_accountId));
+        unawaited(_notifier.cancelOAuthLogin(_accountId));
       } catch (_) {}
     }
     super.dispose();
@@ -63,7 +60,7 @@ class _OAuthSectionState extends State<OAuthSection> {
     _stopPolling();
     _pollTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
       if (!mounted) return;
-      final result = await _cfg.getOAuthStatus(_accountId);
+      final result = await _notifier.getOAuthStatus(_accountId);
       if (mounted && result != null && result['loggedIn'] == true) {
         // _statusMsg만 로컬 상태. oauthLoggedIn은 recordOAuthLogin이 item setter로 통보.
         setState(() => _statusMsg = S.of(context).oauthLoginComplete);
@@ -103,7 +100,7 @@ class _OAuthSectionState extends State<OAuthSection> {
   // ─── 초기 상태 로드 ───────────────────────────────────────
 
   Future<void> _loadInitialStatus() async {
-    final result = await _cfg.getOAuthStatus(_accountId);
+    final result = await _notifier.getOAuthStatus(_accountId);
     if (mounted && result != null) {
       // item setter가 watchers(=ProviderCard)에게 직접 알림 → 카드 자동 rebuild.
       widget.item.oauthLoggedIn = result['loggedIn'] == true;
@@ -197,7 +194,7 @@ class _OAuthSectionState extends State<OAuthSection> {
     });
     _ensureDialogOpen();
     try {
-      await _cfg.startOAuthLogin(_accountId, _provider);
+      await _notifier.startOAuthLogin(_accountId, _provider);
     } catch (_) {
       if (mounted) {
         setState(() => _isLoggingIn = false);
@@ -215,11 +212,11 @@ class _OAuthSectionState extends State<OAuthSection> {
         _statusMsg = '';
       });
     }
-    unawaited(_cfg.cancelOAuthLogin(_accountId));
+    unawaited(_notifier.cancelOAuthLogin(_accountId));
   }
 
   Future<void> _logout() async {
-    await _cfg.logoutOAuth(_accountId);
+    await _notifier.logoutOAuth(_accountId);
     if (mounted) {
       // _isLoggingIn/_statusMsg는 로컬, oauthLoggedIn은 recordOAuthLogout이 통보.
       setState(() {

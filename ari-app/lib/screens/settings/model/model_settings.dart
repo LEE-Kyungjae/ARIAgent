@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../providers/config_provider.dart';
 import 'models/provider_item.dart';
 import 'provider_card.dart';
 import 'providers_notifier.dart';
@@ -9,28 +8,14 @@ import 'widgets/help_section.dart';
 import 'widgets/server_connection_notice.dart';
 import '../../../l10n/app_localizations.dart';
 
-class ModelSettings extends StatelessWidget {
+class ModelSettings extends StatefulWidget {
   const ModelSettings({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return ChangeNotifierProvider<ProvidersNotifier>(
-      create: (ctx) => ProvidersNotifier(
-        Provider.of<ConfigProvider>(ctx, listen: false),
-      )..attach(),
-      child: const _ModelSettingsView(),
-    );
-  }
+  State<ModelSettings> createState() => _ModelSettingsState();
 }
 
-class _ModelSettingsView extends StatefulWidget {
-  const _ModelSettingsView();
-
-  @override
-  State<_ModelSettingsView> createState() => _ModelSettingsViewState();
-}
-
-class _ModelSettingsViewState extends State<_ModelSettingsView> {
+class _ModelSettingsState extends State<ModelSettings> {
   bool _showHelp = false;
 
   @override

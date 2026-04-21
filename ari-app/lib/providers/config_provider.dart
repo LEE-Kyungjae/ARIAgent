@@ -29,12 +29,6 @@ class ConfigProvider extends ChangeNotifier {
   double? get windowPosX => _repository.windowPosX;
   double? get windowPosY => _repository.windowPosY;
 
-  bool _hasApiKey = true;
-  bool get hasApiKey => _hasApiKey;
-
-  bool _isSetupMode = false;
-  bool get isSetupMode => _isSetupMode;
-
   bool _useAdvancedMemory = false;
   bool get useAdvancedMemory => _useAdvancedMemory;
 
@@ -148,25 +142,11 @@ class ConfigProvider extends ChangeNotifier {
 
   // --- 서버 통신 (AriAgent 호출) ---
 
-  /// 서버 상태 확인
+  /// 서버 상태 확인 (메모리/임베딩 관련 필드만 자체 갱신).
   Future<Map<String, dynamic>?> getServerHealth() async {
     try {
       final health = await AriAgent.call('/HEALTH');
       bool changed = false;
-      if (health.containsKey('hasApiKey')) {
-        final newHasApiKey = health['hasApiKey'] == true;
-        if (_hasApiKey != newHasApiKey) {
-          _hasApiKey = newHasApiKey;
-          changed = true;
-        }
-      }
-      if (health.containsKey('isSetupMode')) {
-        final newSetupMode = health['isSetupMode'] == true;
-        if (_isSetupMode != newSetupMode) {
-          _isSetupMode = newSetupMode;
-          changed = true;
-        }
-      }
       if (health.containsKey('useAdvancedMemory')) {
         final val = health['useAdvancedMemory'] == true;
         if (_useAdvancedMemory != val) {
@@ -186,54 +166,6 @@ class ConfigProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('[ConfigProvider] getServerHealth failed: $e');
       return null;
-    }
-  }
-
-  Future<bool> saveApiKey(String? apiKey) async {
-    if (apiKey == null) return false;
-    try {
-      await AriAgent.call('/SETTINGS', {'apiKey': apiKey});
-      _hasApiKey = true;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      debugPrint('[ConfigProvider] saveApiKey failed: $e');
-      return false;
-    }
-  }
-
-  Future<bool> saveProviders(List<Map<String, dynamic>> providers) async {
-    try {
-      await AriAgent.call('/SETTINGS', {'providers': providers});
-      bool anyKey = providers.any(
-        (p) => p['apiKey'] != null && p['apiKey'].toString().trim().isNotEmpty,
-      );
-      _hasApiKey = anyKey || providers.isNotEmpty;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      debugPrint('[ConfigProvider] saveProviders failed: $e');
-      return false;
-    }
-  }
-
-  Future<bool> saveModel(String model) async {
-    try {
-      await AriAgent.call('/SETTINGS', {'model': model});
-      return true;
-    } catch (e) {
-      debugPrint('[ConfigProvider] saveModel failed: $e');
-      return false;
-    }
-  }
-
-  Future<bool> saveProvider(String provider) async {
-    try {
-      await AriAgent.call('/SETTINGS', {'provider': provider});
-      return true;
-    } catch (e) {
-      debugPrint('[ConfigProvider] saveProvider failed: $e');
-      return false;
     }
   }
 
@@ -280,80 +212,4 @@ class ConfigProvider extends ChangeNotifier {
     }
   }
 
-  // ─── OAuth 관련 (accountId 단위로 다중 계정 지원) ─────────
-
-  /// 저장된 OAuth 계정 목록 조회
-  Future<List<Map<String, dynamic>>?> getOAuthAccounts() async {
-    try {
-      final result = await AriAgent.call('/OAUTH_PROVIDERS');
-      final accounts = result['accounts'];
-      if (accounts is List) {
-        return accounts.cast<Map<String, dynamic>>();
-      }
-      return null;
-    } catch (e) {
-      debugPrint('[ConfigProvider] getOAuthAccounts failed: $e');
-      return null;
-    }
-  }
-
-  /// OAuth 로그인 시작 (진행 상황은 /OAUTH_EVENT push로 수신)
-  Future<bool> startOAuthLogin(String accountId, String provider) async {
-    try {
-      await AriAgent.call('/OAUTH_LOGIN', {
-        'accountId': accountId,
-        'provider': provider,
-      });
-      return true;
-    } catch (e) {
-      debugPrint('[ConfigProvider] startOAuthLogin failed: $e');
-      return false;
-    }
-  }
-
-  /// OAuth prompt에 사용자 입력값 전달 (코드 입력 등)
-  Future<bool> sendOAuthPrompt(String accountId, String value) async {
-    try {
-      await AriAgent.call('/OAUTH_PROMPT', {
-        'accountId': accountId,
-        'value': value,
-      });
-      return true;
-    } catch (e) {
-      debugPrint('[ConfigProvider] sendOAuthPrompt failed: $e');
-      return false;
-    }
-  }
-
-  /// 진행 중인 OAuth 로그인 취소
-  Future<bool> cancelOAuthLogin(String accountId) async {
-    try {
-      await AriAgent.call('/OAUTH_CANCEL', {'accountId': accountId});
-      return true;
-    } catch (e) {
-      debugPrint('[ConfigProvider] cancelOAuthLogin failed: $e');
-      return false;
-    }
-  }
-
-  /// OAuth 로그인 상태 조회
-  Future<Map<String, dynamic>?> getOAuthStatus(String accountId) async {
-    try {
-      return await AriAgent.call('/OAUTH_STATUS', {'accountId': accountId});
-    } catch (e) {
-      debugPrint('[ConfigProvider] getOAuthStatus failed: $e');
-      return null;
-    }
-  }
-
-  /// OAuth 로그아웃
-  Future<bool> logoutOAuth(String accountId) async {
-    try {
-      await AriAgent.call('/OAUTH_LOGOUT', {'accountId': accountId});
-      return true;
-    } catch (e) {
-      debugPrint('[ConfigProvider] logoutOAuth failed: $e');
-      return false;
-    }
-  }
 }
