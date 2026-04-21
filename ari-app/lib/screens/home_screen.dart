@@ -213,7 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
       index: _currentTab,
       children: [
         FriendsTab(onOpenChat: () => setState(() => _currentTab = 1)),
-        ChatTab(onSettingsTap: () => setState(() => _currentTab = 4)),
+        const ChatTab(),
         _withServerGuard(const PlaceTab()),
         _withServerGuard(const AvatarTab()),
         const SettingsTab(),

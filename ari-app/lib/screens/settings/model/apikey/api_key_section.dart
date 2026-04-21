@@ -1,27 +1,17 @@
 import 'package:flutter/material.dart';
-import '../provider_meta.dart';
+import 'package:provider/provider.dart';
+import '../models/provider_item.dart';
+import '../providers_notifier.dart';
 import '../../../../l10n/app_localizations.dart';
 
-class ApiKeySection extends StatefulWidget {
+class ApiKeySection extends StatelessWidget {
   final ProviderItem item;
-  final VoidCallback onSave;
-  final VoidCallback onMarkDirty;
 
-  const ApiKeySection({
-    super.key,
-    required this.item,
-    required this.onSave,
-    required this.onMarkDirty,
-  });
+  const ApiKeySection({super.key, required this.item});
 
-  @override
-  State<ApiKeySection> createState() => _ApiKeySectionState();
-}
-
-class _ApiKeySectionState extends State<ApiKeySection> {
   @override
   Widget build(BuildContext context) {
-    final item = widget.item;
+    final notifier = context.read<ProvidersNotifier>();
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF111122),
@@ -52,8 +42,8 @@ class _ApiKeySectionState extends State<ApiKeySection> {
                   item.apiKeyController.clear();
                 }
               },
-              onChanged: (_) => widget.onMarkDirty(),
-              onSubmitted: (_) => widget.onSave(),
+              onChanged: (_) => notifier.markDirty(),
+              onSubmitted: (_) => notifier.persist(),
             ),
           ),
           IconButton(
@@ -62,14 +52,12 @@ class _ApiKeySectionState extends State<ApiKeySection> {
               color: Colors.white.withValues(alpha: 0.3),
               size: 16,
             ),
-            onPressed: () {
-              setState(() => item.apiKeyObscured = !item.apiKeyObscured);
-            },
+            onPressed: () => item.apiKeyObscured = !item.apiKeyObscured,
           ),
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: GestureDetector(
-              onTap: widget.onSave,
+              onTap: () => notifier.persist(),
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   vertical: 7,

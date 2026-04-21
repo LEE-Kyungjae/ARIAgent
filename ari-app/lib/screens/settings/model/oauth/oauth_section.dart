@@ -4,30 +4,22 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../providers/config_provider.dart';
 import 'package:ari_plugin/ari_plugin.dart';
-import '../provider_meta.dart';
+import '../models/provider_item.dart';
+import '../providers_notifier.dart';
 import 'oauth_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class OAuthSection extends StatefulWidget {
   final ProviderItem item;
-  final VoidCallback? onSave;
-  final VoidCallback? onLogoutSave;
-  final VoidCallback? onLockStateChanged;
 
-  const OAuthSection({
-    super.key,
-    required this.item,
-    this.onSave,
-    this.onLogoutSave,
-    this.onLockStateChanged,
-  });
+  const OAuthSection({super.key, required this.item});
 
   @override
   State<OAuthSection> createState() => _OAuthSectionState();
 }
 
 class _OAuthSectionState extends State<OAuthSection> {
-  bool _isLoggedIn = false;
+  // 로그인 여부는 widget.item.oauthLoggedIn이 단일 진실. 별도 변수 두지 않는다.
   bool _isLoggingIn = false;
   String _statusMsg = '';
   StreamSubscription<Map<String, dynamic>>? _eventSub;
@@ -37,6 +29,11 @@ class _OAuthSectionState extends State<OAuthSection> {
 
   String get _provider => widget.item.provider;
   String get _accountId => widget.item.accountId;
+
+  ProvidersNotifier get _notifier =>
+      Provider.of<ProvidersNotifier>(context, listen: false);
+  ConfigProvider get _cfg =>
+      Provider.of<ConfigProvider>(context, listen: false);
 
   @override
   void initState() {
@@ -49,6 +46,11 @@ class _OAuthSectionState extends State<OAuthSection> {
   void dispose() {
     _eventSub?.cancel();
     _stopPolling();
+    if (_isLoggingIn) {
+      try {
+        unawaited(_cfg.cancelOAuthLogin(_accountId));
+      } catch (_) {}
+    }
     super.dispose();
   }
 
@@ -61,17 +63,13 @@ class _OAuthSectionState extends State<OAuthSection> {
     _stopPolling();
     _pollTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
       if (!mounted) return;
-      final cfg = Provider.of<ConfigProvider>(context, listen: false);
-      final result = await cfg.getOAuthStatus(_accountId);
+      final result = await _cfg.getOAuthStatus(_accountId);
       if (mounted && result != null && result['loggedIn'] == true) {
-        setState(() {
-          _isLoggedIn = true;
-          _statusMsg = S.of(context).oauthLoginComplete;
-          widget.item.oauthLoggedIn = true;
-        });
+        // _statusMsg만 로컬 상태. oauthLoggedIn은 recordOAuthLogin이 item setter로 통보.
+        setState(() => _statusMsg = S.of(context).oauthLoginComplete);
         _closeDialog();
         _stopPolling();
-        widget.onSave?.call();
+        await _notifier.recordOAuthLogin(widget.item);
       }
     });
   }
@@ -82,8 +80,6 @@ class _OAuthSectionState extends State<OAuthSection> {
         Navigator.of(context, rootNavigator: true).pop();
       }
       _isDialogOpen = false;
-      // 컨트롤러 dispose는 다이얼로그 State.dispose에서 removeListener가 끝난 뒤
-      // 안전하게 정리되도록 showOAuthDialog().then() 콜백에 위임한다.
     }
   }
 
@@ -100,24 +96,17 @@ class _OAuthSectionState extends State<OAuthSection> {
       _isDialogOpen = false;
       _dialogController?.dispose();
       _dialogController = null;
-      // 사용자가 직접 닫음(취소/빈 입력) 또는 done/error로 외부에서 pop됨.
-      // 아직 로그인 완료가 아니라면 취소로 간주 (cancel은 _isLoggingIn 가드로 중복 안전).
-      if (!submitted && !_isLoggedIn) _cancelLogin();
+      if (!submitted && !widget.item.oauthLoggedIn) _cancelLogin();
     });
   }
 
   // ─── 초기 상태 로드 ───────────────────────────────────────
 
   Future<void> _loadInitialStatus() async {
-    final cfg = Provider.of<ConfigProvider>(context, listen: false);
-    final result = await cfg.getOAuthStatus(_accountId);
+    final result = await _cfg.getOAuthStatus(_accountId);
     if (mounted && result != null) {
-      final loggedIn = result['loggedIn'] == true;
-      setState(() => _isLoggedIn = loggedIn);
-      if (widget.item.oauthLoggedIn != loggedIn) {
-        widget.item.oauthLoggedIn = loggedIn;
-        widget.onLockStateChanged?.call();
-      }
+      // item setter가 watchers(=ProviderCard)에게 직접 알림 → 카드 자동 rebuild.
+      widget.item.oauthLoggedIn = result['loggedIn'] == true;
     }
   }
 
@@ -125,7 +114,6 @@ class _OAuthSectionState extends State<OAuthSection> {
 
   void _subscribeEvents() {
     _eventSub = AriAgent.on('/OAUTH_EVENT', (data) {
-      // accountId가 있는 이벤트는 accountId로 필터, 레거시는 provider로
       final eventAccountId = data['accountId'] as String?;
       final matches = eventAccountId != null
           ? eventAccountId == _accountId
@@ -134,30 +122,27 @@ class _OAuthSectionState extends State<OAuthSection> {
       final type = data['type'] as String?;
       if (type == null) return;
 
-      // 진행 중인 로그인이 아닐 때 들어오는 이벤트는 stale로 간주하고 drop.
-      // (서버에서도 loginId로 필터하지만 이중 안전장치)
-      if (!_isLoggingIn && (type == 'auth_url' || type == 'prompt' || type == 'progress')) {
+      if (!_isLoggingIn &&
+          (type == 'auth_url' || type == 'prompt' || type == 'progress')) {
         return;
       }
 
-      bool shouldSave = false;
+      bool justDone = false;
       setState(() {
         switch (type) {
           case 'auth_url':
             _statusMsg = S.of(context).oauthBrowserAuth;
             final url = data['authUrl'] as String?;
             if (url != null) {
-              // 브라우저 자동 실행 (비동기로 안전하게 실행)
               unawaited(
                 launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)
                     .then((success) {
-                      if (!success) {
-                        debugPrint('❌ Failed to launch OAuth URL: $url');
-                      }
-                    })
-                    .catchError((e) {
-                      debugPrint('❌ Error launching OAuth URL: $e');
-                    }),
+                  if (!success) {
+                    debugPrint('❌ Failed to launch OAuth URL: $url');
+                  }
+                }).catchError((e) {
+                  debugPrint('❌ Error launching OAuth URL: $e');
+                }),
               );
 
               _ensureDialogOpen();
@@ -177,28 +162,29 @@ class _OAuthSectionState extends State<OAuthSection> {
             }
             break;
           case 'progress':
-            _statusMsg = data['message'] as String? ?? S.of(context).oauthInProgress;
+            _statusMsg = data['message'] as String? ??
+                S.of(context).oauthInProgress;
             break;
           case 'done':
             _statusMsg = S.of(context).oauthLoginComplete;
-            _isLoggedIn = true;
             _isLoggingIn = false;
-            widget.item.oauthLoggedIn = true;
             _closeDialog();
             _stopPolling();
-            shouldSave = true;
+            justDone = true;
             break;
           case 'error':
             _isLoggingIn = false;
             _stopPolling();
             _closeDialog();
-            _statusMsg = S.of(context).oauthError(data['message'] as String? ?? S.of(context).oauthErrorDefault);
+            _statusMsg = S.of(context).oauthError(
+                data['message'] as String? ?? S.of(context).oauthErrorDefault);
             break;
         }
       });
-      // 부모(ModelSettings)의 setState를 자식 setState 내부에서 호출하면
-      // nested setState로 인해 indicator 갱신이 누락될 수 있어서 외부로 분리.
-      if (shouldSave) widget.onSave?.call();
+      if (justDone) {
+        // 저장은 notifier에 일임 — item 상태 갱신과 서버 저장 모두 통제됨.
+        _notifier.recordOAuthLogin(widget.item);
+      }
     });
   }
 
@@ -209,18 +195,17 @@ class _OAuthSectionState extends State<OAuthSection> {
       _isLoggingIn = true;
       _statusMsg = S.of(context).oauthStarting;
     });
-    final cfg = Provider.of<ConfigProvider>(context, listen: false);
+    _ensureDialogOpen();
     try {
-      await cfg.startOAuthLogin(_accountId, _provider);
+      await _cfg.startOAuthLogin(_accountId, _provider);
     } catch (_) {
       if (mounted) {
         setState(() => _isLoggingIn = false);
+        _closeDialog();
       }
     }
   }
 
-  /// 진행 중인 로그인을 취소한다.
-  /// 클라이언트 상태를 즉시 초기화하고 서버에 취소 신호를 보낸다.
   Future<void> _cancelLogin() async {
     if (!_isLoggingIn) return;
     _stopPolling();
@@ -230,22 +215,18 @@ class _OAuthSectionState extends State<OAuthSection> {
         _statusMsg = '';
       });
     }
-    final cfg = Provider.of<ConfigProvider>(context, listen: false);
-    unawaited(cfg.cancelOAuthLogin(_accountId));
+    unawaited(_cfg.cancelOAuthLogin(_accountId));
   }
 
   Future<void> _logout() async {
-    final cfg = Provider.of<ConfigProvider>(context, listen: false);
-    await cfg.logoutOAuth(_accountId);
+    await _cfg.logoutOAuth(_accountId);
     if (mounted) {
+      // _isLoggingIn/_statusMsg는 로컬, oauthLoggedIn은 recordOAuthLogout이 통보.
       setState(() {
-        _isLoggedIn = false;
         _isLoggingIn = false;
         _statusMsg = '';
-        widget.item.oauthLoggedIn = false;
       });
-      // 로그아웃 시 서버 저장 목록에서도 제외 (UI 카드는 그대로 유지).
-      widget.onLogoutSave?.call();
+      await _notifier.recordOAuthLogout(widget.item);
     }
   }
 
@@ -256,16 +237,15 @@ class _OAuthSectionState extends State<OAuthSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 상태 배지
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-            color: _isLoggedIn
+            color: widget.item.oauthLoggedIn
                 ? const Color(0xFF0D2B1A)
                 : const Color(0xFF1E1A2E),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: _isLoggedIn
+              color: widget.item.oauthLoggedIn
                   ? const Color(0xFF4ADE80).withValues(alpha: 0.4)
                   : const Color(0xFF6C63FF).withValues(alpha: 0.3),
             ),
@@ -273,20 +253,22 @@ class _OAuthSectionState extends State<OAuthSection> {
           child: Row(
             children: [
               Icon(
-                _isLoggedIn ? Icons.check_circle_outline : Icons.lock_outline,
+                widget.item.oauthLoggedIn ? Icons.check_circle_outline : Icons.lock_outline,
                 size: 15,
-                color: _isLoggedIn
+                color: widget.item.oauthLoggedIn
                     ? const Color(0xFF4ADE80)
                     : const Color(0xFF6C63FF),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  _isLoggedIn
+                  widget.item.oauthLoggedIn
                       ? S.of(context).oauthLoggedIn
-                      : (_statusMsg.isEmpty ? S.of(context).oauthLoginRequired : _statusMsg),
+                      : (_statusMsg.isEmpty
+                          ? S.of(context).oauthLoginRequired
+                          : _statusMsg),
                   style: TextStyle(
-                    color: _isLoggedIn
+                    color: widget.item.oauthLoggedIn
                         ? const Color(0xFF4ADE80)
                         : Colors.white.withValues(alpha: 0.6),
                     fontSize: 12,
@@ -297,24 +279,22 @@ class _OAuthSectionState extends State<OAuthSection> {
           ),
         ),
         const SizedBox(height: 8),
-
-        // 버튼 행
         Row(
           children: [
             Expanded(
               child: GestureDetector(
-                onTap: (_isLoggedIn || _isLoggingIn) ? null : _login,
+                onTap: (widget.item.oauthLoggedIn || _isLoggingIn) ? null : _login,
                 child: Opacity(
                   opacity: _isLoggingIn ? 0.6 : 1.0,
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 9),
                     decoration: BoxDecoration(
-                      gradient: _isLoggedIn
+                      gradient: widget.item.oauthLoggedIn
                           ? null
                           : const LinearGradient(
                               colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)],
                             ),
-                      color: _isLoggedIn
+                      color: widget.item.oauthLoggedIn
                           ? Colors.white.withValues(alpha: 0.06)
                           : null,
                       borderRadius: BorderRadius.circular(8),
@@ -333,7 +313,7 @@ class _OAuthSectionState extends State<OAuthSection> {
                           )
                         else
                           Icon(
-                            _isLoggedIn
+                            widget.item.oauthLoggedIn
                                 ? Icons.check_rounded
                                 : Icons.login_rounded,
                             color: Colors.white,
@@ -341,7 +321,7 @@ class _OAuthSectionState extends State<OAuthSection> {
                           ),
                         const SizedBox(width: 6),
                         Text(
-                          _isLoggedIn
+                          widget.item.oauthLoggedIn
                               ? S.of(context).oauthLoggedInButton
                               : S.of(context).oauthLoginButton,
                           style: const TextStyle(
@@ -356,7 +336,7 @@ class _OAuthSectionState extends State<OAuthSection> {
                 ),
               ),
             ),
-            if (_isLoggedIn) ...[
+            if (widget.item.oauthLoggedIn) ...[
               const SizedBox(width: 8),
               GestureDetector(
                 onTap: _logout,

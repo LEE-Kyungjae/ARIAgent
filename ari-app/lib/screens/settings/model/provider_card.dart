@@ -1,46 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
-import 'provider_meta.dart';
+import 'models/provider_item.dart';
+import 'models/provider_meta.dart';
+import 'providers_notifier.dart';
 import 'oauth/oauth_section.dart';
 import 'apikey/api_key_section.dart';
 import 'widgets/settings_dropdown.dart';
 
 const _uuid = Uuid();
 
-class ProviderCard extends StatefulWidget {
-  final ProviderItem item;
+/// 카드 단위 위젯. 자기 [ProviderItem]을 ChangeNotifierProvider.value로 받아
+/// `context.watch<ProviderItem>()`로 자체 구독한다.
+/// 화살표/액션 가시성은 자기 item.isSaved + 전역 saveStatus로 자체 계산.
+class ProviderCard extends StatelessWidget {
   final int index;
   final int totalCount;
-  final VoidCallback onMoveUp;
-  final VoidCallback onMoveDown;
-  final VoidCallback onRemove;
-  final VoidCallback onSave;
-  final VoidCallback onLogoutSave;
-  final VoidCallback onMarkDirty;
 
   const ProviderCard({
     super.key,
-    required this.item,
     required this.index,
     required this.totalCount,
-    required this.onMoveUp,
-    required this.onMoveDown,
-    required this.onRemove,
-    required this.onSave,
-    required this.onLogoutSave,
-    required this.onMarkDirty,
   });
 
   @override
-  State<ProviderCard> createState() => _ProviderCardState();
-}
-
-class _ProviderCardState extends State<ProviderCard> {
-  ProviderItem get item => widget.item;
-
-  @override
   Widget build(BuildContext context) {
+    final item = context.watch<ProviderItem>();
+    final saveStatus = context.select<ProvidersNotifier, String>(
+      (n) => n.saveStatus,
+    );
+    final notifier = context.read<ProvidersNotifier>();
     final meta = metaFor(item.provider);
+
+    final canReorder = saveStatus != 'dirty' && item.isSaved;
+    final canMoveUp = canReorder && index > 0;
+    final canMoveDown = canReorder && index < totalCount - 1;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -53,36 +47,37 @@ class _ProviderCardState extends State<ProviderCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(),
+          _buildHeader(
+            canMoveUp: canMoveUp,
+            canMoveDown: canMoveDown,
+            onMoveUp: () => notifier.moveUp(index),
+            onMoveDown: () => notifier.moveDown(index),
+            onRemove: () => notifier.removeProvider(index),
+          ),
           const SizedBox(height: 12),
-          _buildDropdownRow(meta),
+          _buildDropdownRow(meta, item, notifier),
           const SizedBox(height: 8),
           if (meta.isOAuth)
-            OAuthSection(
-              item: item,
-              onSave: widget.onSave,
-              onLogoutSave: widget.onLogoutSave,
-              onLockStateChanged: () {
-                if (mounted) setState(() {});
-              },
-            )
+            OAuthSection(item: item)
           else
-            ApiKeySection(
-              item: item,
-              onSave: widget.onSave,
-              onMarkDirty: widget.onMarkDirty,
-            ),
+            ApiKeySection(item: item),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader({
+    required bool canMoveUp,
+    required bool canMoveDown,
+    required VoidCallback onMoveUp,
+    required VoidCallback onMoveDown,
+    required VoidCallback onRemove,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          'Priority ${widget.index + 1}',
+          'Priority ${index + 1}',
           style: const TextStyle(
             color: Color(0xFF6C63FF),
             fontSize: 12,
@@ -91,9 +86,9 @@ class _ProviderCardState extends State<ProviderCard> {
         ),
         Row(
           children: [
-            if (widget.index > 0)
+            if (canMoveUp)
               GestureDetector(
-                onTap: widget.onMoveUp,
+                onTap: onMoveUp,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 2.0),
                   child: Icon(
@@ -103,9 +98,9 @@ class _ProviderCardState extends State<ProviderCard> {
                   ),
                 ),
               ),
-            if (widget.index < widget.totalCount - 1)
+            if (canMoveDown)
               GestureDetector(
-                onTap: widget.onMoveDown,
+                onTap: onMoveDown,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 2.0),
                   child: Icon(
@@ -115,9 +110,9 @@ class _ProviderCardState extends State<ProviderCard> {
                   ),
                 ),
               ),
-            if (widget.totalCount > 1)
+            if (totalCount > 1)
               GestureDetector(
-                onTap: widget.onRemove,
+                onTap: onRemove,
                 child: Padding(
                   padding: const EdgeInsets.only(left: 8.0, right: 2.0),
                   child: Icon(
@@ -133,7 +128,11 @@ class _ProviderCardState extends State<ProviderCard> {
     );
   }
 
-  Widget _buildDropdownRow(ProviderMeta meta) {
+  Widget _buildDropdownRow(
+    ProviderMeta meta,
+    ProviderItem item,
+    ProvidersNotifier notifier,
+  ) {
     final locked = meta.isOAuth && item.oauthLoggedIn;
     return Row(
       children: [
@@ -148,30 +147,35 @@ class _ProviderCardState extends State<ProviderCard> {
                 : (v) {
                     if (v != null && v != item.provider) {
                       final newMeta = metaFor(v);
-                      setState(() {
+                      // 프로바이더 교체 = 7개 필드 일괄 변경. 알림은 1회로 묶음.
+                      item.update(() {
                         item.provider = v;
                         item.authType = newMeta.isOAuth ? 'oauth' : 'apikey';
                         item.model = newMeta.models.firstOrNull?.id ?? '';
-                        // 프로바이더가 바뀌면 이전 상태를 전부 비워준다.
                         // accountId도 새로 발급 — 이전 OAuth 계정과 완전 분리.
                         item.accountId = _uuid.v4();
                         item.oauthLoggedIn = false;
                         item.hasApiKey = false;
-                        item.apiKeyController.clear();
                         item.apiKeyObscured = true;
                       });
-                      widget.onMarkDirty();
+                      item.apiKeyController.clear();
+                      notifier.markDirty();
                     }
                   },
           ),
         ),
         const SizedBox(width: 8),
-        Expanded(child: _buildModelDropdown(meta, locked: locked)),
+        Expanded(child: _buildModelDropdown(meta, item, notifier, locked: locked)),
       ],
     );
   }
 
-  Widget _buildModelDropdown(ProviderMeta meta, {bool locked = false}) {
+  Widget _buildModelDropdown(
+    ProviderMeta meta,
+    ProviderItem item,
+    ProvidersNotifier notifier, {
+    bool locked = false,
+  }) {
     final models = meta.models.isNotEmpty
         ? meta.models
         : [ModelItem(id: item.model, label: item.model)];
@@ -187,8 +191,8 @@ class _ProviderCardState extends State<ProviderCard> {
           ? null
           : (v) {
               if (v != null) {
-                setState(() => item.model = v);
-                widget.onMarkDirty();
+                item.model = v;
+                notifier.markDirty();
               }
             },
     );

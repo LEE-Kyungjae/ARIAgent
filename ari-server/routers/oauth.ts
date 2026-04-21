@@ -35,8 +35,10 @@ router.on("/OAUTH_LOGIN", async (ws, params) => {
     return ws.send("/OAUTH_LOGIN", { ok: false, message: "accountId and provider are required" });
   }
 
-  // 이전 attempt가 아직 살아있을 수 있으므로 cancel + loginId 새로 발급.
-  cancelOAuthLogin(accountId);
+  // 이전 attempt(같은 accountId)를 먼저 취소하고 정리 완료까지 대기.
+  // startOAuthLogin 내부에서도 같은 provider의 다른 accountId 플로우를 정리하므로
+  // 두 단계를 거치면 콜백 포트가 안전하게 풀린 상태에서 새 플로우가 시작된다.
+  await cancelOAuthLogin(accountId);
   const loginId = randomUUID();
   activeLoginIds.set(accountId, loginId);
 
@@ -82,8 +84,8 @@ router.on("/OAUTH_CANCEL", async (ws, params) => {
 
   // loginId를 먼저 비워서 이후 들어올 콜백을 모두 stale로 처리.
   activeLoginIds.delete(accountId);
-  const cancelled = cancelOAuthLogin(accountId);
-  logger.info(`[OAuthRouter] Cancel requested for ${accountId}: ${cancelled ? "resolved" : "no pending prompt"}`);
+  const cancelled = await cancelOAuthLogin(accountId);
+  logger.info(`[OAuthRouter] Cancel requested for ${accountId}: ${cancelled ? "aborted" : "no active flow"}`);
   ws.send("/OAUTH_CANCEL", { ok: true, data: { accountId, cancelled } });
 });
 

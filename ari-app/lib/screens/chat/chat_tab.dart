@@ -9,16 +9,13 @@ import '../../l10n/app_localizations.dart';
 import 'views/chat_header.dart';
 import 'views/chat_suggestions.dart';
 import 'views/server_stopped_view.dart';
-import 'views/model_setup_view.dart';
 import 'widgets/chat_bubble.dart';
 import 'widgets/chat_input.dart';
 
 const _chatPanelBackgroundColor = Color(0xFF12122A);
 
 class ChatTab extends StatefulWidget {
-  final VoidCallback? onSettingsTap;
-
-  const ChatTab({super.key, this.onSettingsTap});
+  const ChatTab({super.key});
 
   @override
   State<ChatTab> createState() => _ChatTabState();
@@ -57,7 +54,6 @@ class _ChatTabState extends State<ChatTab> {
     final avatar = context.watch<AgentProvider>();
 
     final isServerRunning = server.isRunning;
-    final hasApiKey = config.hasApiKey;
     final isConnected = AriAgent.isConnected;
     final avatarId = avatar.currentAvatarId;
 
@@ -71,14 +67,7 @@ class _ChatTabState extends State<ChatTab> {
       }
     }
 
-    // 조건부 오버레이 결정
-    // isSetupMode: ari-cloud 프록시로 setup agent가 활성화된 상태 → 오버레이 없이 채팅 허용
-    Widget? overlay;
-    if (!isServerRunning) {
-      overlay = const ServerStoppedView();
-    } else if (!hasApiKey && !config.isSetupMode) {
-      overlay = ModelSetupView(onSettingsTap: widget.onSettingsTap);
-    }
+    final Widget? overlay = isServerRunning ? null : const ServerStoppedView();
 
     return AriChatPanel(
       appId: 'ari_agent',

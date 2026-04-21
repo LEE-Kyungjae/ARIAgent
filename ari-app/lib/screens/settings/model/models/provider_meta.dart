@@ -1,8 +1,3 @@
-import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart';
-
-const _uuid = Uuid();
-
 // ─── 프로바이더 메타데이터 ───────────────────────────────────
 
 class ModelItem {
@@ -184,46 +179,3 @@ ProviderMeta metaFor(String id) => allProviders.firstWhere(
   (m) => m.id == id,
   orElse: () => ProviderMeta(id: id, label: id, models: []),
 );
-
-// ─── 프로바이더 아이템 (설정화면 내부 상태) ─────────────────
-
-class ProviderItem {
-  String provider;
-  String model;
-  bool hasApiKey;
-  bool apiKeyObscured;
-  String authType; // 'apikey' | 'oauth'
-  bool oauthLoggedIn;
-  String accountId; // OAuth 다중 계정 구분자. 서버/로컬 어디서든 고유.
-  final TextEditingController apiKeyController;
-
-  ProviderItem({
-    required this.provider,
-    required this.model,
-    required this.hasApiKey,
-    this.authType = 'apikey',
-    this.oauthLoggedIn = false,
-    String? accountId,
-  }) : accountId = accountId ?? _uuid.v4(),
-       apiKeyObscured = true,
-       apiKeyController = TextEditingController(
-         text: hasApiKey ? '••••••••••••••••' : '',
-       );
-
-  void dispose() {
-    apiKeyController.dispose();
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'provider': provider,
-      'model': model,
-      'authType': authType,
-      'accountId': accountId,
-      if (authType != 'oauth')
-        'apiKey': apiKeyController.text.contains('••')
-            ? null
-            : apiKeyController.text.trim(),
-    };
-  }
-}

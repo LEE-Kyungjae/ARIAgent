@@ -101,6 +101,29 @@ class _OAuthDialogState extends State<_OAuthDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (!c.hasUrl && !c.hasPrompt) ...[
+              // URL/prompt가 아직 도착하지 않은 초기 상태 — 로딩 표시.
+              Row(
+                children: [
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFF6C63FF),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    S.of(context).oauthStarting,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             if (c.hasUrl) ...[
               if (c.instructions != null) ...[
                 Text(
