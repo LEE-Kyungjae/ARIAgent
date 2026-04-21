@@ -559,6 +559,12 @@ abstract class S {
   /// **'저장 실패'**
   String get modelSaveFailed;
 
+  /// No description provided for @modelUnsaved.
+  ///
+  /// In ko, this message translates to:
+  /// **'저장되지 않음'**
+  String get modelUnsaved;
+
   /// No description provided for @modelApiKeyHint.
   ///
   /// In ko, this message translates to:

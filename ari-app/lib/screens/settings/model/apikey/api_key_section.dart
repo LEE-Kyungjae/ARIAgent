@@ -2,17 +2,23 @@ import 'package:flutter/material.dart';
 import '../provider_meta.dart';
 import '../../../../l10n/app_localizations.dart';
 
-class ApiKeyInput extends StatefulWidget {
+class ApiKeySection extends StatefulWidget {
   final ProviderItem item;
-  final VoidCallback onChanged;
+  final VoidCallback onSave;
+  final VoidCallback onMarkDirty;
 
-  const ApiKeyInput({super.key, required this.item, required this.onChanged});
+  const ApiKeySection({
+    super.key,
+    required this.item,
+    required this.onSave,
+    required this.onMarkDirty,
+  });
 
   @override
-  State<ApiKeyInput> createState() => _ApiKeyInputState();
+  State<ApiKeySection> createState() => _ApiKeySectionState();
 }
 
-class _ApiKeyInputState extends State<ApiKeyInput> {
+class _ApiKeySectionState extends State<ApiKeySection> {
   @override
   Widget build(BuildContext context) {
     final item = widget.item;
@@ -46,7 +52,8 @@ class _ApiKeyInputState extends State<ApiKeyInput> {
                   item.apiKeyController.clear();
                 }
               },
-              onChanged: (_) => widget.onChanged(),
+              onChanged: (_) => widget.onMarkDirty(),
+              onSubmitted: (_) => widget.onSave(),
             ),
           ),
           IconButton(
@@ -58,6 +65,33 @@ class _ApiKeyInputState extends State<ApiKeyInput> {
             onPressed: () {
               setState(() => item.apiKeyObscured = !item.apiKeyObscured);
             },
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: GestureDetector(
+              onTap: widget.onSave,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 7,
+                  horizontal: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6C63FF).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Text(
+                  S.of(context).save,
+                  style: const TextStyle(
+                    color: Color(0xFF6C63FF),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),

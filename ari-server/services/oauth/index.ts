@@ -139,6 +139,21 @@ export function resolveOAuthPrompt(accountId: string, value: string): boolean {
   return false;
 }
 
+// 진행 중인 OAuth 로그인을 취소한다.
+// pendingPrompts에 매달려있는 promise를 빈 문자열로 resolve해서 pi-ai 라이브러리의
+// onPrompt가 실패 분기로 흘러가게 만든다 → startOAuthLogin이 catch에서 error 이벤트를 emit.
+// pendingPrompts에 등록되기 전이라면(브라우저 콜백 대기 등) 서버 측 abort는 불가능하지만
+// 클라이언트 상태는 즉시 초기화된다.
+export function cancelOAuthLogin(accountId: string): boolean {
+  const resolve = pendingPrompts.get(accountId);
+  if (!resolve) {
+    return false;
+  }
+  pendingPrompts.delete(accountId);
+  resolve(""); // 빈 입력 → pi-ai가 인증 실패로 처리
+  return true;
+}
+
 // ─── 저장된 credentials로 API Key 획득 (자동 토큰 갱신) ────
 export async function getOAuthApiKeyForAccount(accountId: string): Promise<string | null> {
   const entry = getEntry(accountId);

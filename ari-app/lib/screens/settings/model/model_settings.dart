@@ -20,9 +20,8 @@ class ModelSettings extends StatefulWidget {
 class _ModelSettingsState extends State<ModelSettings> {
   List<ProviderItem> _providers = [];
   bool _showHelp = false;
-  Timer? _saveDebounce;
   Timer? _statusClearTimer;
-  String _saveStatus = ''; // '', 'saving', 'saved', 'error'
+  String _saveStatus = ''; // '', 'saving', 'saved', 'error', 'dirty'
 
   @override
   void initState() {
@@ -35,7 +34,6 @@ class _ModelSettingsState extends State<ModelSettings> {
   @override
   void dispose() {
     AriAgent.connectionNotifier.removeListener(_onConnectionChanged);
-    _saveDebounce?.cancel();
     _statusClearTimer?.cancel();
     for (var p in _providers) {
       p.dispose();
@@ -54,8 +52,7 @@ class _ModelSettingsState extends State<ModelSettings> {
     final data = await cfg.getServerHealth();
 
     if (data != null && mounted) {
-      // 자동저장 대기 중이면 서버 상태로 덮어쓰지 않음 (race 방지)
-      if (_saveDebounce?.isActive ?? false) return;
+      // 저장 진행 중이면 서버 상태로 덮어쓰지 않음 (race 방지)
       if (_saveStatus == 'saving') return;
 
       final old = _providers;
@@ -78,7 +75,7 @@ class _ModelSettingsState extends State<ModelSettings> {
             }
             return ProviderItem(
               provider: id,
-              model: p['model'] ?? metaFor(id).models.firstOrNull ?? '',
+              model: p['model'] ?? metaFor(id).models.firstOrNull?.id ?? '',
               hasApiKey: p['hasApiKey'] == true,
               authType: authType,
               accountId: accountId,
@@ -105,30 +102,47 @@ class _ModelSettingsState extends State<ModelSettings> {
     }
   }
 
-  // ─── 자동 저장 ────────────────────────────────────────────
+  // ─── 저장 ──────────────────────────────────────────────
+  // 저장 트리거: OAuth 로그인 완료, OAuth 로그아웃, API 키 저장 버튼,
+  //              프로바이더 순서 변경(이동), 프로바이더 삭제.
+  // 그 외(추가/드롭다운 변경/텍스트 입력)는 메모리 상태만 변경한다.
 
-  void _scheduleSave({
-    Duration delay = const Duration(milliseconds: 500),
-  }) {
-    _saveDebounce?.cancel();
-    _saveDebounce = Timer(delay, _persistChanges);
+  Future<void> _persistChanges() => _saveProvidersList(_providers);
+
+  /// 특정 accountId의 카드를 서버 저장에서 제외하고 나머지만 저장.
+  /// UI 상의 카드(_providers)는 그대로 유지된다 — 로그아웃에서 사용.
+  Future<void> _persistChangesExcluding(String accountId) {
+    return _saveProvidersList(
+      _providers.where((p) => p.accountId != accountId).toList(),
+    );
   }
 
-  Future<void> _persistChanges() async {
+  Future<void> _saveProvidersList(List<ProviderItem> list) async {
     if (!mounted) return;
+    debugPrint('[ModelSettings] _saveProvidersList start, count=${list.length}');
     setState(() => _saveStatus = 'saving');
     final cfg = Provider.of<ConfigProvider>(context, listen: false);
     final success = await cfg.saveProviders(
-      _providers.map((p) => p.toJson()).toList(),
+      list.map((p) => p.toJson()).toList(),
     );
+    debugPrint('[ModelSettings] saveProviders returned $success, mounted=$mounted');
     if (!mounted) return;
     setState(() => _saveStatus = success ? 'saved' : 'error');
+    debugPrint('[ModelSettings] _saveStatus set to $_saveStatus');
     _statusClearTimer?.cancel();
-    _statusClearTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted && _saveStatus != 'saving') {
+    _statusClearTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted && (_saveStatus == 'saved' || _saveStatus == 'error')) {
         setState(() => _saveStatus = '');
       }
     });
+  }
+
+  /// 변경사항이 있지만 아직 저장되지 않았음을 표시.
+  /// 추가/드롭다운 변경/API 키 텍스트 입력 등에서 호출.
+  void _markDirty() {
+    if (_saveStatus == 'saving') return;
+    if (_saveStatus == 'dirty') return;
+    setState(() => _saveStatus = 'dirty');
   }
 
   // ─── 목록 조작 ────────────────────────────────────────────
@@ -144,7 +158,7 @@ class _ModelSettingsState extends State<ModelSettings> {
         ),
       );
     });
-    _scheduleSave(delay: const Duration(milliseconds: 100));
+    _markDirty();
   }
 
   void _removeProvider(int index) {
@@ -152,20 +166,20 @@ class _ModelSettingsState extends State<ModelSettings> {
       _providers[index].dispose();
       _providers.removeAt(index);
     });
-    _scheduleSave(delay: const Duration(milliseconds: 100));
+    _persistChanges();
   }
 
   void _moveUp(int index) {
     if (index > 0) {
       setState(() => _providers.insert(index - 1, _providers.removeAt(index)));
-      _scheduleSave(delay: const Duration(milliseconds: 100));
+      _persistChanges();
     }
   }
 
   void _moveDown(int index) {
     if (index < _providers.length - 1) {
       setState(() => _providers.insert(index + 1, _providers.removeAt(index)));
-      _scheduleSave(delay: const Duration(milliseconds: 100));
+      _persistChanges();
     }
   }
 
@@ -223,19 +237,21 @@ class _ModelSettingsState extends State<ModelSettings> {
           const SizedBox(height: 16),
           ...List.generate(
             _providers.length,
-            (i) => ProviderCard(
-              key: ValueKey('provider_${_providers[i].accountId}'),
-              item: _providers[i],
-              index: i,
-              totalCount: _providers.length,
-              onMoveUp: () => _moveUp(i),
-              onMoveDown: () => _moveDown(i),
-              onRemove: () => _removeProvider(i),
-              onChanged: () {
-                setState(() {});
-                _scheduleSave();
-              },
-            ),
+            (i) {
+              final item = _providers[i];
+              return ProviderCard(
+                key: ValueKey('provider_${item.accountId}'),
+                item: item,
+                index: i,
+                totalCount: _providers.length,
+                onMoveUp: () => _moveUp(i),
+                onMoveDown: () => _moveDown(i),
+                onRemove: () => _removeProvider(i),
+                onSave: _persistChanges,
+                onLogoutSave: () => _persistChangesExcluding(item.accountId),
+                onMarkDirty: _markDirty,
+              );
+            },
           ),
           const SizedBox(height: 12),
           AddProviderButton(onTap: _addProvider),
@@ -272,6 +288,11 @@ class _ModelSettingsState extends State<ModelSettings> {
         color = const Color(0xFFFF6B6B);
         text = S.of(context).modelSaveFailed;
         leading = Icon(Icons.error_outline, size: 12, color: color);
+        break;
+      case 'dirty':
+        color = const Color(0xFFFFB155);
+        text = S.of(context).modelUnsaved;
+        leading = Icon(Icons.edit_outlined, size: 12, color: color);
         break;
       default:
         return const SizedBox.shrink();

@@ -118,10 +118,10 @@ export async function initAgent(providersConfig?: AIProviders): Promise<void> {
     (state.providers || []).filter((provider: AIProviderConfig) => {
       if (provider.apiKey) return true;
       if (provider.authType === "oauth" || isOAuthProvider(provider.provider)) {
-        const oauthStatus = getOAuthStatus(provider.provider as any);
+        const oauthStatus = getOAuthStatus(provider.accountId);
         if (!oauthStatus.loggedIn) {
           logger.warn(
-            `[Agent] OAuth provider ${provider.provider} is not logged in. Skipping.`,
+            `[Agent] OAuth provider ${provider.provider} (${provider.accountId}) is not logged in. Skipping.`,
           );
           return false;
         }

@@ -5,15 +5,22 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../providers/config_provider.dart';
 import 'package:ari_plugin/ari_plugin.dart';
 import '../provider_meta.dart';
-import 'oauth_url_dialog.dart';
-import 'oauth_prompt_dialog.dart';
+import 'oauth_dialog.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class OAuthSection extends StatefulWidget {
   final ProviderItem item;
-  final VoidCallback? onChanged;
+  final VoidCallback? onSave;
+  final VoidCallback? onLogoutSave;
+  final VoidCallback? onLockStateChanged;
 
-  const OAuthSection({super.key, required this.item, this.onChanged});
+  const OAuthSection({
+    super.key,
+    required this.item,
+    this.onSave,
+    this.onLogoutSave,
+    this.onLockStateChanged,
+  });
 
   @override
   State<OAuthSection> createState() => _OAuthSectionState();
@@ -21,9 +28,11 @@ class OAuthSection extends StatefulWidget {
 
 class _OAuthSectionState extends State<OAuthSection> {
   bool _isLoggedIn = false;
+  bool _isLoggingIn = false;
   String _statusMsg = '';
   StreamSubscription<Map<String, dynamic>>? _eventSub;
   bool _isDialogOpen = false;
+  OAuthDialogController? _dialogController;
   Timer? _pollTimer;
 
   String get _provider => widget.item.provider;
@@ -34,21 +43,6 @@ class _OAuthSectionState extends State<OAuthSection> {
     super.initState();
     _loadInitialStatus();
     _subscribeEvents();
-  }
-
-  @override
-  void didUpdateWidget(OAuthSection old) {
-    super.didUpdateWidget(old);
-    if (old.item.accountId != widget.item.accountId ||
-        old.item.provider != widget.item.provider) {
-      _eventSub?.cancel();
-      setState(() {
-        _isLoggedIn = false;
-        _statusMsg = '';
-      });
-      _loadInitialStatus();
-      _subscribeEvents();
-    }
   }
 
   @override
@@ -77,7 +71,7 @@ class _OAuthSectionState extends State<OAuthSection> {
         });
         _closeDialog();
         _stopPolling();
-        widget.onChanged?.call();
+        widget.onSave?.call();
       }
     });
   }
@@ -88,7 +82,28 @@ class _OAuthSectionState extends State<OAuthSection> {
         Navigator.of(context, rootNavigator: true).pop();
       }
       _isDialogOpen = false;
+      // 컨트롤러 dispose는 다이얼로그 State.dispose에서 removeListener가 끝난 뒤
+      // 안전하게 정리되도록 showOAuthDialog().then() 콜백에 위임한다.
     }
+  }
+
+  void _ensureDialogOpen() {
+    if (_isDialogOpen) return;
+    _isDialogOpen = true;
+    _dialogController = OAuthDialogController();
+    showOAuthDialog(
+      context,
+      controller: _dialogController!,
+      accountId: _accountId,
+    ).then((submitted) {
+      if (!mounted) return;
+      _isDialogOpen = false;
+      _dialogController?.dispose();
+      _dialogController = null;
+      // 사용자가 직접 닫음(취소/빈 입력) 또는 done/error로 외부에서 pop됨.
+      // 아직 로그인 완료가 아니라면 취소로 간주 (cancel은 _isLoggingIn 가드로 중복 안전).
+      if (!submitted && !_isLoggedIn) _cancelLogin();
+    });
   }
 
   // ─── 초기 상태 로드 ───────────────────────────────────────
@@ -97,8 +112,12 @@ class _OAuthSectionState extends State<OAuthSection> {
     final cfg = Provider.of<ConfigProvider>(context, listen: false);
     final result = await cfg.getOAuthStatus(_accountId);
     if (mounted && result != null) {
-      setState(() => _isLoggedIn = result['loggedIn'] == true);
-      widget.item.oauthLoggedIn = _isLoggedIn;
+      final loggedIn = result['loggedIn'] == true;
+      setState(() => _isLoggedIn = loggedIn);
+      if (widget.item.oauthLoggedIn != loggedIn) {
+        widget.item.oauthLoggedIn = loggedIn;
+        widget.onLockStateChanged?.call();
+      }
     }
   }
 
@@ -115,6 +134,13 @@ class _OAuthSectionState extends State<OAuthSection> {
       final type = data['type'] as String?;
       if (type == null) return;
 
+      // 진행 중인 로그인이 아닐 때 들어오는 이벤트는 stale로 간주하고 drop.
+      // (서버에서도 loginId로 필터하지만 이중 안전장치)
+      if (!_isLoggingIn && (type == 'auth_url' || type == 'prompt' || type == 'progress')) {
+        return;
+      }
+
+      bool shouldSave = false;
       setState(() {
         switch (type) {
           case 'auth_url':
@@ -125,22 +151,20 @@ class _OAuthSectionState extends State<OAuthSection> {
               unawaited(
                 launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)
                     .then((success) {
-                      if (!success)
+                      if (!success) {
                         debugPrint('❌ Failed to launch OAuth URL: $url');
+                      }
                     })
                     .catchError((e) {
                       debugPrint('❌ Error launching OAuth URL: $e');
                     }),
               );
 
-              _isDialogOpen = true;
-              showOAuthUrlDialog(
-                context,
+              _ensureDialogOpen();
+              _dialogController?.setAuth(
                 url: url,
                 instructions: data['instructions'] as String?,
-              ).then((_) {
-                if (mounted) _isDialogOpen = false;
-              });
+              );
               _startPolling();
             }
             break;
@@ -148,14 +172,8 @@ class _OAuthSectionState extends State<OAuthSection> {
             _statusMsg = S.of(context).oauthCodeRequired;
             final msg = data['promptMessage'] as String?;
             if (msg != null) {
-              _isDialogOpen = true;
-              showOAuthPromptDialog(
-                context,
-                accountId: _accountId,
-                promptMessage: msg,
-              ).then((_) {
-                if (mounted) _isDialogOpen = false;
-              });
+              _ensureDialogOpen();
+              _dialogController?.setPrompt(msg);
             }
             break;
           case 'progress':
@@ -164,25 +182,56 @@ class _OAuthSectionState extends State<OAuthSection> {
           case 'done':
             _statusMsg = S.of(context).oauthLoginComplete;
             _isLoggedIn = true;
+            _isLoggingIn = false;
             widget.item.oauthLoggedIn = true;
             _closeDialog();
             _stopPolling();
-            widget.onChanged?.call();
+            shouldSave = true;
             break;
           case 'error':
+            _isLoggingIn = false;
+            _stopPolling();
+            _closeDialog();
             _statusMsg = S.of(context).oauthError(data['message'] as String? ?? S.of(context).oauthErrorDefault);
             break;
         }
       });
+      // 부모(ModelSettings)의 setState를 자식 setState 내부에서 호출하면
+      // nested setState로 인해 indicator 갱신이 누락될 수 있어서 외부로 분리.
+      if (shouldSave) widget.onSave?.call();
     });
   }
 
   // ─── 액션 ─────────────────────────────────────────────────
 
   Future<void> _login() async {
-    setState(() => _statusMsg = S.of(context).oauthStarting);
+    setState(() {
+      _isLoggingIn = true;
+      _statusMsg = S.of(context).oauthStarting;
+    });
     final cfg = Provider.of<ConfigProvider>(context, listen: false);
-    await cfg.startOAuthLogin(_accountId, _provider);
+    try {
+      await cfg.startOAuthLogin(_accountId, _provider);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoggingIn = false);
+      }
+    }
+  }
+
+  /// 진행 중인 로그인을 취소한다.
+  /// 클라이언트 상태를 즉시 초기화하고 서버에 취소 신호를 보낸다.
+  Future<void> _cancelLogin() async {
+    if (!_isLoggingIn) return;
+    _stopPolling();
+    if (mounted) {
+      setState(() {
+        _isLoggingIn = false;
+        _statusMsg = '';
+      });
+    }
+    final cfg = Provider.of<ConfigProvider>(context, listen: false);
+    unawaited(cfg.cancelOAuthLogin(_accountId));
   }
 
   Future<void> _logout() async {
@@ -191,10 +240,12 @@ class _OAuthSectionState extends State<OAuthSection> {
     if (mounted) {
       setState(() {
         _isLoggedIn = false;
+        _isLoggingIn = false;
         _statusMsg = '';
         widget.item.oauthLoggedIn = false;
       });
-      widget.onChanged?.call();
+      // 로그아웃 시 서버 저장 목록에서도 제외 (UI 카드는 그대로 유지).
+      widget.onLogoutSave?.call();
     }
   }
 
@@ -252,38 +303,55 @@ class _OAuthSectionState extends State<OAuthSection> {
           children: [
             Expanded(
               child: GestureDetector(
-                onTap: _isLoggedIn ? null : _login,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 9),
-                  decoration: BoxDecoration(
-                    gradient: _isLoggedIn
-                        ? null
-                        : const LinearGradient(
-                            colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)],
+                onTap: (_isLoggedIn || _isLoggingIn) ? null : _login,
+                child: Opacity(
+                  opacity: _isLoggingIn ? 0.6 : 1.0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    decoration: BoxDecoration(
+                      gradient: _isLoggedIn
+                          ? null
+                          : const LinearGradient(
+                              colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)],
+                            ),
+                      color: _isLoggedIn
+                          ? Colors.white.withValues(alpha: 0.06)
+                          : null,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (_isLoggingIn)
+                          const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        else
+                          Icon(
+                            _isLoggedIn
+                                ? Icons.check_rounded
+                                : Icons.login_rounded,
+                            color: Colors.white,
+                            size: 15,
                           ),
-                    color: _isLoggedIn
-                        ? Colors.white.withValues(alpha: 0.06)
-                        : null,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        _isLoggedIn ? Icons.check_rounded : Icons.login_rounded,
-                        color: Colors.white,
-                        size: 15,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        _isLoggedIn ? S.of(context).oauthLoggedInButton : S.of(context).oauthLoginButton,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                        const SizedBox(width: 6),
+                        Text(
+                          _isLoggedIn
+                              ? S.of(context).oauthLoggedInButton
+                              : S.of(context).oauthLoginButton,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

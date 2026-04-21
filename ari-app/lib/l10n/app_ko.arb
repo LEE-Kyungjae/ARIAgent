@@ -110,6 +110,7 @@
   "modelSaving": "저장 중...",
   "modelSaved": "저장됨",
   "modelSaveFailed": "저장 실패",
+  "modelUnsaved": "저장되지 않음",
   "modelApiKeyHint": "API Key 입력 (sk-...)",
 
   "oauthLoginComplete": "✅ 로그인 완료",

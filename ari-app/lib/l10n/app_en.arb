@@ -90,6 +90,7 @@
   "modelSaving": "Saving...",
   "modelSaved": "Saved",
   "modelSaveFailed": "Save failed",
+  "modelUnsaved": "Not saved",
   "modelApiKeyHint": "Enter API Key (sk-...)",
 
   "oauthLoginComplete": "✅ Login complete",

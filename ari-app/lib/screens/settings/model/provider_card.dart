@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'provider_meta.dart';
 import 'oauth/oauth_section.dart';
-import 'widgets/api_key_input.dart';
+import 'apikey/api_key_section.dart';
 import 'widgets/settings_dropdown.dart';
 
 const _uuid = Uuid();
@@ -14,7 +14,9 @@ class ProviderCard extends StatefulWidget {
   final VoidCallback onMoveUp;
   final VoidCallback onMoveDown;
   final VoidCallback onRemove;
-  final VoidCallback onChanged;
+  final VoidCallback onSave;
+  final VoidCallback onLogoutSave;
+  final VoidCallback onMarkDirty;
 
   const ProviderCard({
     super.key,
@@ -24,7 +26,9 @@ class ProviderCard extends StatefulWidget {
     required this.onMoveUp,
     required this.onMoveDown,
     required this.onRemove,
-    required this.onChanged,
+    required this.onSave,
+    required this.onLogoutSave,
+    required this.onMarkDirty,
   });
 
   @override
@@ -54,9 +58,20 @@ class _ProviderCardState extends State<ProviderCard> {
           _buildDropdownRow(meta),
           const SizedBox(height: 8),
           if (meta.isOAuth)
-            OAuthSection(item: item, onChanged: widget.onChanged)
+            OAuthSection(
+              item: item,
+              onSave: widget.onSave,
+              onLogoutSave: widget.onLogoutSave,
+              onLockStateChanged: () {
+                if (mounted) setState(() {});
+              },
+            )
           else
-            ApiKeyInput(item: item, onChanged: widget.onChanged),
+            ApiKeySection(
+              item: item,
+              onSave: widget.onSave,
+              onMarkDirty: widget.onMarkDirty,
+            ),
         ],
       ),
     );
@@ -119,6 +134,7 @@ class _ProviderCardState extends State<ProviderCard> {
   }
 
   Widget _buildDropdownRow(ProviderMeta meta) {
+    final locked = meta.isOAuth && item.oauthLoggedIn;
     return Row(
       children: [
         Expanded(
@@ -127,33 +143,35 @@ class _ProviderCardState extends State<ProviderCard> {
             items: allProviders
                 .map((m) => DropdownMenuItem(value: m.id, child: Text(m.label)))
                 .toList(),
-            onChanged: (v) {
-              if (v != null && v != item.provider) {
-                final newMeta = metaFor(v);
-                setState(() {
-                  item.provider = v;
-                  item.authType = newMeta.isOAuth ? 'oauth' : 'apikey';
-                  item.model = newMeta.models.firstOrNull?.id ?? '';
-                  // 프로바이더가 바뀌면 이전 상태를 전부 비워준다.
-                  // accountId도 새로 발급 — 이전 OAuth 계정과 완전 분리.
-                  item.accountId = _uuid.v4();
-                  item.oauthLoggedIn = false;
-                  item.hasApiKey = false;
-                  item.apiKeyController.clear();
-                  item.apiKeyObscured = true;
-                });
-                widget.onChanged();
-              }
-            },
+            onChanged: locked
+                ? null
+                : (v) {
+                    if (v != null && v != item.provider) {
+                      final newMeta = metaFor(v);
+                      setState(() {
+                        item.provider = v;
+                        item.authType = newMeta.isOAuth ? 'oauth' : 'apikey';
+                        item.model = newMeta.models.firstOrNull?.id ?? '';
+                        // 프로바이더가 바뀌면 이전 상태를 전부 비워준다.
+                        // accountId도 새로 발급 — 이전 OAuth 계정과 완전 분리.
+                        item.accountId = _uuid.v4();
+                        item.oauthLoggedIn = false;
+                        item.hasApiKey = false;
+                        item.apiKeyController.clear();
+                        item.apiKeyObscured = true;
+                      });
+                      widget.onMarkDirty();
+                    }
+                  },
           ),
         ),
         const SizedBox(width: 8),
-        Expanded(child: _buildModelDropdown(meta)),
+        Expanded(child: _buildModelDropdown(meta, locked: locked)),
       ],
     );
   }
 
-  Widget _buildModelDropdown(ProviderMeta meta) {
+  Widget _buildModelDropdown(ProviderMeta meta, {bool locked = false}) {
     final models = meta.models.isNotEmpty
         ? meta.models
         : [ModelItem(id: item.model, label: item.model)];
@@ -165,12 +183,14 @@ class _ProviderCardState extends State<ProviderCard> {
       items: models
           .map((m) => DropdownMenuItem(value: m.id, child: Text(m.label)))
           .toList(),
-      onChanged: (v) {
-        if (v != null) {
-          setState(() => item.model = v);
-          widget.onChanged();
-        }
-      },
+      onChanged: locked
+          ? null
+          : (v) {
+              if (v != null) {
+                setState(() => item.model = v);
+                widget.onMarkDirty();
+              }
+            },
     );
   }
 }

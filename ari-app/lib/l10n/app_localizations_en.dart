@@ -254,6 +254,9 @@ class SEn extends S {
   String get modelSaveFailed => 'Save failed';
 
   @override
+  String get modelUnsaved => 'Not saved';
+
+  @override
   String get modelApiKeyHint => 'Enter API Key (sk-...)';
 
   @override

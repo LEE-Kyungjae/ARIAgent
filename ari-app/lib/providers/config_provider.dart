@@ -325,6 +325,17 @@ class ConfigProvider extends ChangeNotifier {
     }
   }
 
+  /// 진행 중인 OAuth 로그인 취소
+  Future<bool> cancelOAuthLogin(String accountId) async {
+    try {
+      await AriAgent.call('/OAUTH_CANCEL', {'accountId': accountId});
+      return true;
+    } catch (e) {
+      debugPrint('[ConfigProvider] cancelOAuthLogin failed: $e');
+      return false;
+    }
+  }
+
   /// OAuth 로그인 상태 조회
   Future<Map<String, dynamic>?> getOAuthStatus(String accountId) async {
     try {

@@ -250,6 +250,9 @@ class SKo extends S {
   String get modelSaveFailed => '저장 실패';
 
   @override
+  String get modelUnsaved => '저장되지 않음';
+
+  @override
   String get modelApiKeyHint => 'API Key 입력 (sk-...)';
 
   @override
