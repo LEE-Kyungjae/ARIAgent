@@ -46,6 +46,19 @@ void main() async {
   // AriAgent 초기화 (Repository에서 URL 가져옴) — Provider init 전에 먼저
   AriAgent.init(url: configRepo.wsUrl);
 
+  // 본앱도 하나의 앱으로 서버에 등록한다.
+  // 서버 입장에서 ari 도 써드파티와 동일한 1급 시민.
+  AppProtocolHandler(
+    appId: 'ari',
+    persona: const AriPersona(
+      name: '아리',
+      systemPrompt:
+          '당신은 아리(ARI)입니다. 프로젝트 매니저 역할의 오케스트레이터로, '
+          '스케줄을 감시하고 담당 써드파티 에이전트에게 작업을 위임합니다. '
+          '도메인 작업을 직접 수행하지 않고, 조율·감독·보고에 집중합니다.',
+    ),
+  ).start();
+
   // Provider 초기화
   await ConfigProvider().init();
   await AgentProvider().init();
@@ -208,17 +221,8 @@ class _ARIAppState extends State<ARIApp> with WindowListener {
         ChangeNotifierProvider<PlaceAgentStatusProvider>.value(
           value: PlaceAgentStatusProvider(),
         ),
-        ChangeNotifierProxyProvider<ConfigProvider, AriChatProvider>(
-          create: (_) {
-            final chatProvider = AriChatProvider();
-            chatProvider.showTaskMessages = ConfigProvider().showTaskMessages;
-            return chatProvider;
-          },
-          update: (_, config, chatProvider) {
-            final provider = chatProvider ?? AriChatProvider();
-            provider.showTaskMessages = config.showTaskMessages;
-            return provider;
-          },
+        ChangeNotifierProvider<AriChatProvider>(
+          create: (_) => AriChatProvider(),
         ),
       ],
       child: Consumer<ConfigProvider>(

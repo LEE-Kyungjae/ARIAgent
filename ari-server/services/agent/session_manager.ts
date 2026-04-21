@@ -25,7 +25,7 @@ export function getOrCreateSession(
   }
 
   // 파일 시스템에서 최근 대화 로그 로드 (최근 20개)
-  const { logs } = readChatLogs(agentId, 0, 20);
+  const { logs } = readChatLogs(agentInfo.appId, agentId, 0, 20);
   const initialMessages: AgentMessage[] = logs
     .filter((log: any) => log.type === "chat")
     .reverse() // readChatLogs는 최신순이므로 Agent 포맷에 맞게 과거순으로 정렬
@@ -89,4 +89,8 @@ export function clearAllAgentSessions(): void {
     if (session.agent) session.agent.abort();
   }
   agentsMap.clear();
+}
+
+export function listAgentSessions(): Array<{ agentId: string; session: AgentSession }> {
+  return Array.from(agentsMap.entries()).map(([agentId, session]) => ({ agentId, session }));
 }

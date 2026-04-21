@@ -65,6 +65,8 @@ dependencies:
 
 - **서버 접속 정보**: 기본값은 `ws://127.0.0.1:29277`이며, 필요시 `url` 또는 `host`/`port`로 초기화할 수 있습니다.
 - **App Protocol Handler**: 에이전트의 명령(`COMMAND`)과 예약 상태 조회 명령(`GET_STATE`)을 처리합니다.
+- **AriPersona (선택)**: 앱이 소유한 고정 정체성. `AriPersona(name, systemPrompt)` 로 선언하고 `AppProtocolHandler` 에 전달하면 `/APP.REGISTER` 시 서버로 함께 보내져 해당 앱 전용 에이전트 세션의 시스템 프롬프트에 주입됩니다.
+- **onAgentMessage (선택)**: 다른 에이전트(예: 아리 PM)에서 보낸 메시지를 수신합니다. `AriAgent.sendMessageToAri(...)` 의 응답이 이 콜백으로 도착합니다.
 
 **추가 패턴 (ProtocolConfig)**:
 ```dart
@@ -74,13 +76,23 @@ import 'package:ari_plugin/ari_plugin.dart';
 class ProtocolConfig {
   static const String appId = 'my_app_id';
 
+  static const persona = AriPersona(
+    name: '마이',
+    systemPrompt: '당신은 [도메인] 전문가 "마이"입니다. …',
+  );
+
   static AppProtocolHandler createHandler() => AppProtocolHandler(
     appId: appId,
+    persona: persona,
     onCommand: (command, params) => handleCommand(
       command: command,
       params: params,
     ),
     onGetState: () => { 'status': 'ready' },
+    onAgentMessage: (from, message, _) {
+      // 다른 에이전트(주로 아리)에서 온 메시지 처리
+      debugPrint('[from $from] $message');
+    },
   );
 
   static dynamic handleCommand({
@@ -147,23 +159,30 @@ class _MyAppState extends State<MyApp> {
 
 ## 4. 통신 프로토콜 규격 (Communication Protocol)
 
+> [!IMPORTANT]
+> 써드파티 앱은 `/AGENT.PROGRESS`, `/APP.PUSH` 같은 **raw 프로토콜을 직접 다루지 않습니다.**
+> 항상 `ari_plugin` 이 제공하는 래퍼 함수·콜백(`AriAgent.sendMessageToAgent`, `AppProtocolHandler.onAgentMessage` 등)만 사용하세요.
+> 프로토콜 규격은 참고용이며, 프레임워크 내부에서 자동으로 라우팅합니다.
+
 에이전트와 앱은 WebSocket을 통해 아래와 같이 실시간 소통합니다.
 
-1.  **플러그인 등록**: `/APP.REGISTER {"appId": "..."}` (연결 시 자동 수행)
+1.  **플러그인 등록**: `/APP.REGISTER {"appId": "...", "persona": {...}}` (연결 시 자동 수행)
 2.  **명령 수신 (COMMAND)**: `/APP.COMMAND {"command": "...", "params": {...}}`
     - 명령어 중 `GET_STATE`는 앱의 현재 상태를 요청하는 예약된 명령어입니다.
 3.  **결과 응답**: `/APP.COMMAND_RESPONSE {"requestId": "...", "result": {...}}`
-4.  **에이전트 메시지 전송**: `/AGENT` 요청을 사용해 서버의 에이전트에 메시지를 전달합니다.
-    - 앱이 스스로 서버(에이전트)에게 특정 사건이나 요청을 전달할 때 사용합니다.
-    - **중요**: 이 요청을 보내면 서버의 에이전트가 내용을 분석하고 사용자에게 **자연스러운 문장**으로 답변을 생성하여 전달할 수 있습니다.
+4.  **에이전트 메시지 전송**: `/AGENT {"to": "...", "message": "...", ...}` 로 서버의 에이전트 세션에 메시지를 전달합니다.
+    - `to` 생략 시 발신 앱 자신의 에이전트 세션으로 전달됩니다.
+    - `to` 를 다른 appId 로 지정하면 해당 앱의 에이전트 세션이 처리하고, 응답은 **발신 앱의 소켓으로 `/APP.PUSH`** 로 도착합니다 (`from`/`to` 필드 포함 → 자신의 `appId` 가 아닌 `from` 이 있으면 `onAgentMessage` 콜백으로 노출).
+5.  **응답 수신**: `/APP.PUSH {"response": "...", "message": "...", ...}` — 에이전트 최종 응답. 일반 응답은 채팅 버블로, `from` 이 자신의 `appId` 가 아니면 `onAgentMessage` 로 전달됩니다.
 
 ---
 
 ### 4.1 편의 메서드 (Helper Methods)
 `AriAgent` 클래스는 위 프로토콜을 쉽게 사용할 수 있도록 래퍼 메서드를 제공합니다.
 
-- **등록**: `AriAgent.register(appId)`
-- **메시지 전송**: `AriAgent.call('/AGENT', {'appId': appId, 'message': '메시지', 'requestId': '...', 'platform': appId})`
+- **등록**: `AriAgent.register(appId, persona: ...)` — `AppProtocolHandler` 가 연결 시 자동 호출.
+- **다른 에이전트에 메시지**: `AriAgent.sendMessageToAgent(toAppId, message)`
+- **아리(PM) 에이전트에 메시지**: `AriAgent.sendMessageToAri(message)` — `sendMessageToAgent('ari', …)` 의 헬퍼.
 - **응답**: `AriAgent.sendResponse(requestId: id, result: data)`
 
 ---

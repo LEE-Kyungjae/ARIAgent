@@ -54,6 +54,8 @@ router.on("/TASKS.NOTIFY_RESULT", async (ws, params) => {
     (params.agentId as string | undefined) ||
     matchedTask?.agentId ||
     "default";
+  const appId =
+    (params.appId as string | undefined) || matchedTask?.appId;
 
   // 브로드캐스트 데이터 구성
   const broadcastData = {
@@ -66,7 +68,7 @@ router.on("/TASKS.NOTIFY_RESULT", async (ws, params) => {
   };
 
   // 태스크 결과 저장
-  appendChatLog(agentId, {
+  appendChatLog(appId, agentId, {
     type: 'task',
     taskId: params.taskId,
     label: params.label,
@@ -74,7 +76,7 @@ router.on("/TASKS.NOTIFY_RESULT", async (ws, params) => {
   });
 
   // /TASK_RESULT 채널로 모든 클라이언트에게 전송 (MQ의 Publish 역할)
-  UserSocketHandler.broadcast("/TASK_RESULT", broadcastData);
+  UserSocketHandler.send({ appId: "ari" }, "/TASK_RESULT", broadcastData);
 
   logger.info(`📡 MQ: Broadcaster finished for [${params.label || "unknown"}]`);
   ws.send("/TASKS.NOTIFY_RESULT", { ok: true });

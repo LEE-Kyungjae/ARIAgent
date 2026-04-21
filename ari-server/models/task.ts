@@ -10,7 +10,6 @@ export class Task {
   label: string;            // 사용자에게 보여줄 이름
   agentId?: string;         // 어떤 아바타의 스케줄인지 기록 (기본: default)
   appId?: string;           // 어떤 앱에서 생성한 스케줄인지 기록
-  managedAppId?: string;    // 태스크 실행 전 자동 런치하고 완료 후 종료할 앱 ID
   isOneOff?: boolean;       // 1회성 스케줄 여부
   enabled: boolean;         // 활성화 여부
   timeout?: number;         // 태스크 최대 실행 시간 (초, 기본값: 120)
@@ -20,6 +19,10 @@ export class Task {
   lastRunAt?: string;       // 마지막 실행 시각
   lastResult?: string;      // 마지막 실행 결과
   lastError?: string;       // 마지막 실행 오류
+  // 대상 에이전트 세션에 주입할 페르소나 (sender-push 원칙의 저장본).
+  // 생성자가 대상 앱을 알고 있으므로 그 시점에 함께 기록한다.
+  persona?: string;
+  avatarName?: string;
 
   constructor(data: any = {}) {
     this.id = data?.id || Date.now().toString();
@@ -28,7 +31,6 @@ export class Task {
     this.label = data?.label || "";
     this.agentId = data?.agentId || "default";
     this.appId = data?.appId;
-    this.managedAppId = data?.managedAppId;
     this.isOneOff = data?.isOneOff !== undefined ? data.isOneOff : false;
     this.enabled = data?.enabled !== undefined ? data.enabled : true;
     this.timeout = data?.timeout;
@@ -38,6 +40,8 @@ export class Task {
     this.lastRunAt = data?.lastRunAt;
     this.lastResult = data?.lastResult;
     this.lastError = data?.lastError;
+    this.persona = data?.persona;
+    this.avatarName = data?.avatarName;
   }
 
   static fromJson(jsonStr: string | any): Task {

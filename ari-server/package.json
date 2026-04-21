@@ -22,6 +22,7 @@
     "node-schedule": "^2.1.1",
     "nodemailer": "^7.0.4",
     "playwright": "^1.58.2",
+    "sharp": "^0.34.5",
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0",
     "ws": "^8.19.0"

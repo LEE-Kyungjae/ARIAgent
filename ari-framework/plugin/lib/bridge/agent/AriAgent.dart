@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../model/AriPersona.dart';
 import '../ws/WebSocketService.dart';
 import '../ws/settings_loader_stub.dart'
     if (dart.library.io) '../ws/settings_loader_io.dart';
@@ -12,6 +13,11 @@ class AriAgent {
   static final WebSocketService _webSocketService = WebSocketService();
   static const String defaultHost = '127.0.0.1';
   static const int defaultPort = 29277;
+
+  /// 이 프로세스(=이 소켓)가 소유한 고정 페르소나.
+  /// 원칙: 이 앱이 서버로 보내는 모든 /AGENT 호출에는 자기 페르소나가 동봉된다.
+  static AriPersona? _ownPersona;
+  static AriPersona? get ownPersona => _ownPersona;
 
   static get url => _webSocketService.url;
   static get isConnected => _webSocketService.isConnected;
@@ -47,7 +53,13 @@ class AriAgent {
   }
 
   /// Registers the application with the given appId.
-  static Future<void> register(String appId) async {
+  /// [persona] 는 앱이 소유한 고정 정체성. 이 프로세스에 기억되고, 이후 이 앱이
+  /// 보내는 모든 /AGENT 호출의 페이로드에 자동 동봉된다. 서버는 /APP.REGISTER
+  /// 시점에는 페르소나를 수신하지 않는다 (Payload-only 원칙).
+  static Future<void> register(String appId, {AriPersona? persona}) async {
+    if (persona != null) {
+      _ownPersona = persona;
+    }
     await emit('/APP.REGISTER', {'appId': appId});
   }
 
@@ -60,6 +72,31 @@ class AriAgent {
       'requestId': requestId,
       'result': result,
     });
+  }
+
+  /// 다른 에이전트(앱)에게 메시지를 전달한다.
+  static Future<void> sendMessageToAgent(
+    String toAppId,
+    String message, {
+    String? requestId,
+    Map<String, dynamic>? details,
+  }) async {
+    final payload = <String, dynamic>{
+      'to': toAppId,
+      'message': message,
+    };
+    if (requestId != null) payload['requestId'] = requestId;
+    if (details != null) payload['details'] = details;
+    await emit('/AGENT', payload);
+  }
+
+  /// 아리(PM) 에이전트에게 메시지를 전달한다. `sendMessageToAgent('ari', …)` 의 헬퍼.
+  static Future<void> sendMessageToAri(
+    String message, {
+    String? requestId,
+    Map<String, dynamic>? details,
+  }) {
+    return sendMessageToAgent('ari', message, requestId: requestId, details: details);
   }
 
   static Future<Map<String, dynamic>> call(

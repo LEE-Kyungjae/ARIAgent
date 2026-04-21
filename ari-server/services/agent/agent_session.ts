@@ -28,6 +28,10 @@ import { logger } from "../../infra/logger.js";
 import { t } from "../../infra/i18n.js";
 import { getSettings } from "../../repositories/setting_repository.js";
 import { Settings } from "../../models/settings.js";
+import {
+  resolveForwardIfPending,
+  rejectForwardIfPending,
+} from "../../tools/app_control.js";
 import { markAgentIdle, markAgentWorking } from "./runtime_state.js";
 
 function parseProviderErrorMessage(raw: string): string {
@@ -72,9 +76,9 @@ export class AgentSession {
   }
 
   private shouldBroadcastPending(pending: PendingAgentResponse): boolean {
-    if (pending.source !== "task") {
-      return true;
-    }
+    // 소켓 origin 이 없으면 task (스케줄러 등 서버 내부 발행).
+    // SHOW_TASK_MESSAGES 설정에 따라 로그·브로드캐스트 여부 결정.
+    if (pending.originUuid) return true;
     return getSettings(new Settings()).SHOW_TASK_MESSAGES === true;
   }
 
@@ -222,23 +226,21 @@ export class AgentSession {
     markAgentIdle(pending.agentId);
 
     if (this.shouldBroadcastPending(pending)) {
-      appendChatLog(pending.agentId, {
+      appendChatLog(pending.appId, pending.agentId, {
         type: "chat",
         isUser: true,
         message: pending.originalMessage,
         requestId: pending.requestId,
-        source: pending.source || "user",
       });
 
       const meta = this._pendingMeta;
       this._pendingMeta = null;
 
-      appendChatLog(pending.agentId, {
+      appendChatLog(pending.appId, pending.agentId, {
         type: "chat",
         isUser: false,
         message: responseText,
         requestId: pending.requestId,
-        source: pending.source || "user",
       });
 
       if (meta && (meta.usage?.totalTokens ?? 0) > 0) {
@@ -247,30 +249,62 @@ export class AgentSession {
           provider: meta.provider,
           model: meta.model,
           usage: meta.usage,
-          source: pending.source || "user",
         });
       }
 
+      // originUuid 소켓으로 전송. 끊겼으면 drop (sender-push 원칙).
+      // 에이전트 간 호출(isInterAgent)도 동일하게 `/APP.PUSH` 로 통합 (from/to 메타 포함).
       if (isError) {
-        UserSocketHandler.broadcast("/APP.ERROR", {
+        UserSocketHandler.sendToOrigin(pending.originUuid, "/APP.ERROR", {
           ok: false,
           data: {
             message: responseText,
             requestId: pending.requestId,
             agentId: pending.agentId,
             appId: pending.appId,
-            source: pending.source || "user",
           },
         });
+        rejectForwardIfPending(
+          pending.requestId,
+          new Error(responseText || "inter-agent error"),
+        );
+      } else if (pending.isInterAgent) {
+        UserSocketHandler.sendToOrigin(pending.originUuid, "/APP.PUSH", {
+          ok: true,
+          data: {
+            response: responseText,
+            message: responseText,
+            requestId: pending.requestId,
+            agentId: pending.agentId,
+            appId: pending.appId,
+            from: pending.toAppId,
+            to: pending.fromAppId,
+          },
+        });
+        // 대상 앱 채팅창이 자기 에이전트의 최종 응답을 어시스턴트 버블로 볼 수 있게 팬아웃.
+        if (pending.toAppId) {
+          UserSocketHandler.send({ appId: pending.toAppId }, "/APP.PUSH", {
+            ok: true,
+            data: {
+              response: responseText,
+              requestId: pending.requestId,
+              agentId: pending.agentId,
+              appId: pending.appId,
+              from: pending.toAppId,
+              to: pending.fromAppId,
+            },
+          });
+        }
+        // control_app (`message` 모드) 에서 걸어둔 forward 대기를 해제한다.
+        resolveForwardIfPending(pending.requestId, responseText);
       } else {
-        UserSocketHandler.broadcast("/APP.PUSH", {
+        UserSocketHandler.sendToOrigin(pending.originUuid, "/APP.PUSH", {
           ok: true,
           data: {
             response: responseText,
             requestId: pending.requestId,
             agentId: pending.agentId,
             appId: pending.appId,
-            source: pending.source || "user",
           },
         });
       }
@@ -311,15 +345,32 @@ export class AgentSession {
           markAgentWorking({
             agentId: pending.agentId,
             requestId: pending.requestId,
-            source: pending.source || "user",
           });
-          UserSocketHandler.broadcast("/AGENT.REQUEST", {
+          // originUuid 타겟팅. 소켓 origin 이 없는 task 는 drop.
+          const requestPayload = {
             message: pending.originalMessage,
             requestId: pending.requestId,
             agentId: pending.agentId,
             appId: pending.appId,
-            source: pending.source || "user",
-          });
+          };
+          UserSocketHandler.sendToOrigin(
+            pending.originUuid,
+            "/AGENT.REQUEST",
+            requestPayload,
+          );
+          // 에이전트 간 호출이면 대상(`toAppId`) 소켓에도 팬아웃하여
+          // 해당 앱의 채팅창이 "외부에서 들어온 요청"을 사용자 메시지처럼 표시할 수 있게 함.
+          if (pending.isInterAgent && pending.toAppId) {
+            UserSocketHandler.send(
+              { appId: pending.toAppId },
+              "/AGENT.REQUEST",
+              {
+                ...requestPayload,
+                from: pending.fromAppId,
+                to: pending.toAppId,
+              },
+            );
+          }
           this.currentRequestAnnounced = true;
         }
         this.currentResponseText = "";

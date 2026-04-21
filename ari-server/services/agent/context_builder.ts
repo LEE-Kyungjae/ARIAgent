@@ -49,7 +49,18 @@ export async function buildSystemPrompt(
     .filter((s) => s.isApp)
     .map((s) => ({ name: s.name, description: s.description }));
 
-  const systemPrompt = await Prompt.load("system_prompt.hbs", {
+  // 템플릿 라우팅.
+  //   - `ari` 세션: PM 역할 (`ari_pm_prompt.hbs`)
+  //   - 그 외 (써드파티 앱 페르소나): 도메인 전문가 역할 (`third_party_prompt.hbs`)
+  //   - 레거시 `default` 및 설정되지 않은 id: 기존 `system_prompt.hbs` 유지.
+  const templateName =
+    agentId === "ari"
+      ? "ari_pm_prompt.hbs"
+      : agentId && agentId !== "default"
+      ? "third_party_prompt.hbs"
+      : "system_prompt.hbs";
+
+  const systemPrompt = await Prompt.load(templateName, {
     avatarName,
     platform,
     persona: agentProfile.persona,
@@ -82,8 +93,8 @@ export function pruneContext(
     startIndex++;
   }
 
-  // 만약 윈도우 내에서 user 메시지를 찾지 못하면(매우 드문 경우),
-  // 기존처럼 단순히 뒤에서부터 자릅니다.
+  // 윈도우 내에서 user 메시지를 찾지 못하면(매우 드문 경우),
+  // 단순히 뒤에서부터 maxMessages 개만 취합니다.
   if (startIndex >= messages.length - 1) {
     startIndex = messages.length - maxMessages;
   }

@@ -1,9 +1,13 @@
 import axios from "axios";
 import { logger } from "../../infra/logger.js";
-import { getTelegramConfig, saveTelegramConfig } from "../../repositories/channel_repository.js";
-import { executeAgentRequest } from "../agent/index.js";
+import { getTelegramConfig } from "../../repositories/channel_repository.js";
 
 const TELEGRAM_API = "https://api.telegram.org/bot";
+
+// Telegram 어댑터는 현재 비활성 상태입니다.
+// sender-push persona 모델 재정비 중이며, 재구현 전까지는 polling/웹훅을 기동하지 않습니다.
+// 파일은 재구현 시 참고용으로 남겨둡니다.
+const TELEGRAM_ADAPTER_DISABLED = true;
 
 let pollingActive = false;
 let pollingTimer: NodeJS.Timeout | undefined;
@@ -87,35 +91,10 @@ async function pollOnce(token: string, agentId?: string): Promise<void> {
 
     logger.info(`[Telegram] 메세지 수신 from ${fromName} (chatId=${chatId}): ${text}`);
 
-    // 에이전트에 메세지 전달 후 응답 대기
-    try {
-      const requestId = `telegram-${Date.now()}-${chatId}`;
-      const result = await executeAgentRequest({
-        message: text,
-        requestId,
-        agentId: agentId || undefined,
-        source: "user",
-        platform: "telegram",
-        details: {
-          chatId: String(chatId),
-          fromName,
-        },
-        waitForCompletion: true,
-      });
-
-      const responseText = result.responseText || "✅ 처리 완료";
-
-      // 읽어온 토큰으로 응답 전송
-      const currentConfig = getTelegramConfig();
-      if (currentConfig.enabled && currentConfig.botToken) {
-        await sendTelegramMessage(currentConfig.botToken, chatId, responseText);
-      }
-    } catch (err: any) {
-      logger.error(`[Telegram] 에이전트 처리 오류: ${err.message}`);
-      try {
-        await sendTelegramMessage(token, chatId, `❌ 오류가 발생했습니다: ${err.message}`);
-      } catch {}
-    }
+    // 어댑터 비활성 상태 — 수신만 로깅하고 응답은 보내지 않음.
+    void agentId;
+    void fromName;
+    void text;
   }
 }
 
@@ -137,6 +116,10 @@ async function pollingLoop(): Promise<void> {
 // ─────────────────────────────────────────────
 
 export function startTelegramPolling(): void {
+  if (TELEGRAM_ADAPTER_DISABLED) {
+    logger.info("[Telegram] 어댑터 비활성 — polling skip");
+    return;
+  }
   const config = getTelegramConfig();
   if (!config.enabled || !config.botToken) {
     logger.info("[Telegram] 비활성화 상태 — polling 시작 안 함");

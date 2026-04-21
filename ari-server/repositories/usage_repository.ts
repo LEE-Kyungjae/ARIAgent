@@ -40,7 +40,6 @@ export function appendUsageLog(
     provider: string;
     model: string;
     usage: any;
-    source?: string;
   },
 ): void {
   if (!fs.existsSync(USAGE_DIR)) {

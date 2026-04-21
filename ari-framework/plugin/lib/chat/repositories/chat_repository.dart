@@ -11,11 +11,13 @@ class ChatRepository {
   /// 서버 히스토리 조회 → [AriChatMessage] 목록 반환
   Future<List<AriChatMessage>> fetchHistory(
     String agentId, {
+    String? appId,
     int index = 0,
     int size = 50,
   }) async {
     final response = await AriAgent.call('/CHAT.GET_HISTORY', {
       'agentId': agentId,
+      if (appId != null) 'appId': appId,
       'index': index,
       'size': size,
     });
@@ -54,7 +56,10 @@ class ChatRepository {
     return history;
   }
 
-  /// 에이전트에 메시지 송신
+  /// 에이전트에 메시지 송신.
+  ///
+  /// 원칙: 발신 소켓이 자기 페르소나를 payload 로 동봉한다. 호출자가 명시적으로
+  /// `persona`/`avatarName` 을 넘기지 않으면 [AriAgent.ownPersona] 를 사용한다.
   Future<void> sendMessage({
     required String message,
     required String requestId,
@@ -65,12 +70,16 @@ class ChatRepository {
     Map<String, dynamic>? details,
     String platform = 'Client',
   }) async {
+    final own = AriAgent.ownPersona;
+    final resolvedPersona = persona ?? own?.systemPrompt;
+    final resolvedAvatarName = avatarName ?? own?.name;
+
     await AriAgent.call('/AGENT', {
       'message': message,
       'requestId': requestId,
       if (agentId != null) 'agentId': agentId,
-      if (persona != null) 'persona': persona,
-      if (avatarName != null) 'avatarName': avatarName,
+      if (resolvedPersona != null) 'persona': resolvedPersona,
+      if (resolvedAvatarName != null) 'avatarName': resolvedAvatarName,
       if (appId != null) 'appId': appId,
       if (details != null) 'details': details,
       'platform': platform,
@@ -92,7 +101,10 @@ class ChatRepository {
   }
 
   /// 서버 대화 이력 삭제
-  void clearHistory(String agentId) {
-    AriAgent.emit('/CHAT.CLEAR', {'agentId': agentId});
+  void clearHistory(String agentId, {String? appId}) {
+    AriAgent.emit('/CHAT.CLEAR', {
+      'agentId': agentId,
+      if (appId != null) 'appId': appId,
+    });
   }
 }

@@ -206,7 +206,7 @@ router.on("/APP.UPDATE", async (ws, params) => {
       logger.info(`[AppUpdate] Plugin metadata synced to ${installParent}`);
       await loadAllApps();
       const pluginId = path.basename(installParent);
-      UserSocketHandler.broadcast("/INSTALLED_APPS_CHANGED", { appId: pluginId });
+      UserSocketHandler.send({ appId: "ari" }, "/INSTALLED_APPS_CHANGED", { appId: pluginId });
     }
 
     // 6. 교체 스크립트 생성 후 detached 실행 (서버·앱이 종료돼도 안전)
@@ -320,7 +320,7 @@ router.on("/DELETE_APP", async (ws, params) => {
 
     await initAgent();
     ws.send("/DELETE_APP", { ok: true, data: { success: true } });
-    UserSocketHandler.broadcast("/INSTALLED_APPS_CHANGED", { appId: name });
+    UserSocketHandler.send({ appId: "ari" }, "/INSTALLED_APPS_CHANGED", { appId: name });
   } catch (e) {
     logger.error(`[Apps] Error deleting app ${name}: ${e}`);
     ws.send("/DELETE_APP", { ok: false, error: String(e) });

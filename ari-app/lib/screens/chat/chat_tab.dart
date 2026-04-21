@@ -41,7 +41,7 @@ class _ChatTabState extends State<ChatTab> {
   void _onConnectionChanged() {
     if (AriAgent.isConnected) {
       if (_lastAgentId != null) {
-        context.read<AriChatProvider>().loadServerHistory(_lastAgentId!);
+        context.read<AriChatProvider>().loadServerHistory(_lastAgentId!, appId: 'ari_agent');
       }
       context.read<ConfigProvider>().getServerHealth();
     }
@@ -64,7 +64,7 @@ class _ChatTabState extends State<ChatTab> {
       _lastConnected = isConnected;
       chatProvider.setFilterAgentId(avatarId);
       if (isConnected) {
-        Future.microtask(() => chatProvider.loadServerHistory(avatarId));
+        Future.microtask(() => chatProvider.loadServerHistory(avatarId, appId: 'ari_agent'));
       }
     }
 

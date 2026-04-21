@@ -1,7 +1,7 @@
 import { router } from "../system/router.js";
-import { UserSocketHandler } from "../system/ws.js";
 import {
   abortAgent,
+  canCancelAgent,
   clearAgentInstance,
   dropPendingResponse,
   executeAgentRequest,
@@ -17,7 +17,9 @@ function resolveAgentId(agentId?: string): string {
 // /AGENT
 router.on("/AGENT", async (ws, params) => {
   const requestId = (params.requestId as string | undefined) || "";
-  const currentAgentId = resolveAgentId(params.agentId as string | undefined);
+  const rawTtl = Number(params.ttl);
+  const ttl = Number.isFinite(rawTtl) ? Math.floor(rawTtl) : undefined;
+  let resolvedAgentId: string | undefined;
 
   try {
     const result = await executeAgentRequest({
@@ -26,18 +28,24 @@ router.on("/AGENT", async (ws, params) => {
       persona: (params.persona as string | undefined) || "",
       avatarName: (params.avatarName as string | undefined) || "",
       platform: (params.platform as string | undefined) || "",
-      agentId: currentAgentId,
-      source: (params.source as "user" | "task" | undefined) || "user",
       appId: params.appId as string | undefined,
       socketAppId: ws.appId,
+      // 원본 소켓 uuid. 응답 라우팅 타겟.
+      originUuid: ws.uuid,
+      // 에이전트 간 라우팅 raw 입력 (서비스 내부에서 해석).
+      from: params.from as string | undefined,
+      to: params.to as string | undefined,
+      ttl,
       details:
         params.details && typeof params.details === "object" && !Array.isArray(params.details)
           ? (params.details as Record<string, unknown>)
           : undefined,
     });
 
+    resolvedAgentId = result.agentId;
+
     if (result.status === "cancelled") {
-      dropPendingResponse(currentAgentId, requestId);
+      dropPendingResponse(result.agentId, requestId);
       logger.info(`[/AGENT] Request cancelled by user: ${requestId}`);
       ws.send("/AGENT", { ok: true, data: { status: "cancelled", requestId } });
       return;
@@ -45,17 +53,30 @@ router.on("/AGENT", async (ws, params) => {
 
     ws.send("/AGENT", { ok: true, data: { status: result.status, requestId } });
   } catch (err: any) {
-    dropPendingResponse(currentAgentId, requestId);
+    if (resolvedAgentId) {
+      dropPendingResponse(resolvedAgentId, requestId);
+    }
     ws.send("/AGENT", { ok: false, message: err.message });
   }
 });
 
-// /AGENT.CANCEL
-router.on("/AGENT.CANCEL", async (_ws, params) => {
+// /AGENT.CANCEL  (소유권 검증 + 요청 소켓에만 응답)
+router.on("/AGENT.CANCEL", async (ws, params) => {
   const agentId = resolveAgentId(params.agentId as string | undefined);
 
+  if (!canCancelAgent(agentId, ws.uuid, ws.appId)) {
+    logger.warn(
+      `[/AGENT.CANCEL] Rejected: uuid=${ws.uuid} appId=${ws.appId} is not owner of agent=${agentId}`,
+    );
+    ws.send("/AGENT.CANCEL", {
+      ok: false,
+      message: "Not owner of agent session.",
+    });
+    return;
+  }
+
   abortAgent(agentId);
-  UserSocketHandler.broadcast("/AGENT.CANCEL", { ok: true, data: { agentId } });
+  ws.send("/AGENT.CANCEL", { ok: true, data: { agentId } });
 });
 
 // /AGENT.RESET

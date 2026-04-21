@@ -163,7 +163,10 @@ class _ChatHeaderState extends State<ChatHeader> {
 
         if (confirmed == true && context.mounted) {
           final avatarId = context.read<AgentProvider>().currentAvatarId;
-          await context.read<AriChatProvider>().clearServerHistory(avatarId);
+          await context.read<AriChatProvider>().clearServerHistory(
+            avatarId,
+            appId: 'ari_agent',
+          );
         }
       },
     );

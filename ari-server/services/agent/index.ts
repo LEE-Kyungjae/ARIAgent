@@ -24,6 +24,7 @@ import {
   clearAllAgentSessions,
   getOrCreateSession,
   getSession,
+  listAgentSessions,
 } from "./session_manager.js";
 import {
   clearSkillCache,
@@ -36,6 +37,9 @@ import { isOAuthProvider, ARI_CLOUD_PROVIDER } from "./provider_selector.js";
 import { UserSocketHandler } from "../../system/ws.js";
 import { loadAllApps } from "../../skills/index.js";
 import { readRecentDailyLogs } from "../memory.js";
+
+// 에이전트 간 전달 체인 기본 TTL. `/AGENT` 에 ttl 미지정 시 적용.
+const DEFAULT_INTER_AGENT_TTL = 5;
 
 const agentState = new AIProviders();
 let currentTools = [] as Awaited<ReturnType<typeof loadMainTools>>;
@@ -55,8 +59,6 @@ function getSessionForAgent(agentProfile: AgentInfo) {
   );
 }
 
-type AgentRequestSource = "user" | "task";
-
 type ExecuteAgentRequestParams = {
   message: string;
   requestId: string;
@@ -64,12 +66,37 @@ type ExecuteAgentRequestParams = {
   persona?: string;
   avatarName?: string;
   platform?: string;
-  source?: AgentRequestSource;
   appId?: string;
   socketAppId?: string;
   details?: Record<string, unknown>;
   waitForCompletion?: boolean;
+  /** 요청을 보낸 소켓 uuid. 응답 라우팅 타겟. 없으면 task (스케줄러) 기원. */
+  originUuid?: string;
+  /** 에이전트 간 라우팅 raw 입력. `resolveInterAgentTarget` 가 해석한다. */
+  from?: string;
+  to?: string;
+  /** 에이전트 간 잔여 TTL. `<= 0` 이면 reject (loop 방지). */
+  ttl?: number;
 };
+
+/**
+ * `/AGENT` 라우팅 메타 해석.
+ * - `to`: 대상 에이전트 appId (생략 시 sender 자기 자신).
+ * - `from`: 발신 appId (생략 시 socketAppId).
+ */
+function resolveInterAgentTarget(
+  params: { from?: string; to?: string },
+  socketAppId?: string,
+): { targetAgentId: string; fromAppId?: string; toAppId?: string } {
+  const fromAppId = params.from?.trim() || socketAppId || undefined;
+  const explicitTo = params.to?.trim();
+  const toAppId = explicitTo || fromAppId;
+
+  const targetAgentId =
+    toAppId || getAgentsConfig(new AgentsConfig()).selected || "default";
+
+  return { targetAgentId, fromAppId, toAppId };
+}
 
 function isRequestCancellationError(error: unknown): boolean {
   if (!(error instanceof Error)) {
@@ -209,6 +236,7 @@ export async function chatWithAgent(
     {
       agentId: currentAgentId,
       appId: currentAgentProfile.appId,
+      ttl: pendingResponse?.ttl,
     },
     () =>
       session.runInference(
@@ -257,30 +285,38 @@ export async function submitAgentRequest(
 
   if (agentState.availableProviders.length === 0) {
     const responseText = `[에코 모드] "${message}"\n\n⚠️ Settings에서 하나 이상의 AI Provider API Key를 추가하세요.`;
-    UserSocketHandler.broadcast("/AGENT.REQUEST", {
-      message: pendingResponse.originalMessage,
-      requestId: pendingResponse.requestId,
-    });
-    appendChatLog(agentId, {
+    UserSocketHandler.sendToOrigin(
+      pendingResponse.originUuid,
+      "/AGENT.REQUEST",
+      {
+        message: pendingResponse.originalMessage,
+        requestId: pendingResponse.requestId,
+      },
+    );
+    appendChatLog(pendingResponse.appId, agentId, {
       type: "chat",
       isUser: true,
       message: pendingResponse.originalMessage,
       requestId: pendingResponse.requestId,
     });
-    appendChatLog(agentId, {
+    appendChatLog(pendingResponse.appId, agentId, {
       type: "chat",
       isUser: false,
       message: responseText,
       requestId: pendingResponse.requestId,
     });
-    UserSocketHandler.broadcast("/APP.PUSH", {
-      ok: true,
-      data: {
-        response: responseText,
-        requestId: pendingResponse.requestId,
-        appId: pendingResponse.appId,
+    UserSocketHandler.sendToOrigin(
+      pendingResponse.originUuid,
+      "/APP.PUSH",
+      {
+        ok: true,
+        data: {
+          response: responseText,
+          requestId: pendingResponse.requestId,
+          appId: pendingResponse.appId,
+        },
       },
-    });
+    );
     return { status: "broadcasted" };
   }
 
@@ -294,15 +330,19 @@ export async function submitAgentRequest(
       content: [{ type: "text", text: message }],
       timestamp: Date.now(),
     } as AgentMessage);
-    UserSocketHandler.broadcast("/AGENT.FOLLOW_UP", {
-      ok: true,
-      data: {
-        requestId: pendingResponse.requestId,
-        message: pendingResponse.originalMessage,
-        agentId,
-        reason: "busy",
+    UserSocketHandler.sendToOrigin(
+      pendingResponse.originUuid,
+      "/AGENT.FOLLOW_UP",
+      {
+        ok: true,
+        data: {
+          requestId: pendingResponse.requestId,
+          message: pendingResponse.originalMessage,
+          agentId,
+          reason: "busy",
+        },
       },
-    });
+    );
     logger.info(
       `[Agent] Follow-up queued for ${agentId} (${pendingResponse.requestId})`,
     );
@@ -332,7 +372,7 @@ export async function submitAgentRequest(
   }
 
   session.beginNextRequest();
-  const result = await chatWithAgent(message, agentProfile, onProgress);
+  const result = await chatWithAgent(message, agentProfile, onProgress, pendingResponse);
 
   if (result.aborted) {
     session.removeRequest(pendingResponse.requestId);
@@ -417,6 +457,7 @@ export async function executeAgentRequest(
 ): Promise<{
   status: "follow_up" | "broadcasted" | "cancelled";
   requestId: string;
+  agentId: string;
   responseText?: string;
 }> {
   const {
@@ -426,16 +467,37 @@ export async function executeAgentRequest(
     avatarName = "",
     platform = "",
     agentId,
-    source = "user",
     appId,
     socketAppId,
     details,
     waitForCompletion = false,
+    originUuid,
+    from,
+    to,
+    ttl,
   } = params;
 
   let message = originalMessage;
-  const currentAgentId =
-    agentId || getAgentsConfig(new AgentsConfig()).selected || "default";
+  const resolved = resolveInterAgentTarget({ from, to }, socketAppId);
+  const fromAppId = resolved.fromAppId;
+  const toAppId = resolved.toAppId;
+  const currentAgentId = agentId || resolved.targetAgentId;
+
+  // 루프 방지: TTL 소진 시 거부. 미지정 시 기본값 적용.
+  const isInterAgent = !!(fromAppId && toAppId && fromAppId !== toAppId);
+  const effectiveTtl =
+    typeof ttl === "number" && Number.isFinite(ttl) ? ttl : DEFAULT_INTER_AGENT_TTL;
+  if (isInterAgent && effectiveTtl <= 0) {
+    logger.warn(
+      `[Agent] Rejected inter-agent request: ttl=${effectiveTtl} (${fromAppId} → ${toAppId})`,
+    );
+    throw new Error(`Inter-agent TTL exhausted (${effectiveTtl})`);
+  }
+
+  // 페르소나/아바타명은 메시지 페이로드로만 흘러온다 (단일 원칙).
+  // 발신자(소켓) 쪽에서 자기 페르소나를 읽어 /AGENT 에 실어 보낸다.
+  const effectivePersona = persona;
+  const effectiveAvatarName = avatarName || "ARI";
   const normalizedPlatform =
     typeof platform === "string" ? platform.trim() : "";
   let resolvedAppId =
@@ -467,7 +529,7 @@ export async function executeAgentRequest(
 
   const connectedAppIds = UserSocketHandler.getConnectedAppIds();
   const recentDailyLogs = readRecentDailyLogs(currentAgentId);
-  const recentUserMessages = readRecentUserMessages(currentAgentId, 5);
+  const recentUserMessages = readRecentUserMessages(resolvedAppId, currentAgentId, 5);
 
   message = await Prompt.load("app_user_context.hbs", {
     now_str: new Date().toISOString(),
@@ -482,23 +544,28 @@ export async function executeAgentRequest(
 
   const agentProfile = new AgentInfo({
     id: currentAgentId,
-    name: avatarName || "ARI",
-    persona,
+    name: effectiveAvatarName,
+    persona: effectivePersona,
     platform: normalizedPlatform,
     appId: resolvedAppId,
   });
 
+  // 에이전트 간 호출이면 대상(`toAppId`) 소켓에도 팬아웃하여
+  // 해당 앱 채팅창이 자기 세션의 "생각 중" 진행도를 볼 수 있게 함.
   const onProgress = (progressMessage: string) => {
-    UserSocketHandler.broadcast("/AGENT.PROGRESS", {
+    const payload = {
       ok: true,
       data: {
         requestId,
         agentId: currentAgentId,
         appId: resolvedAppId,
         message: progressMessage,
-        source,
       },
-    });
+    };
+    UserSocketHandler.sendToOrigin(originUuid, "/AGENT.PROGRESS", payload);
+    if (isInterAgent && toAppId) {
+      UserSocketHandler.send({ appId: toAppId }, "/AGENT.PROGRESS", payload);
+    }
   };
 
   const pendingResponse: PendingAgentResponse = {
@@ -506,7 +573,13 @@ export async function executeAgentRequest(
     agentId: currentAgentId,
     originalMessage,
     appId: resolvedAppId,
-    source,
+    // 원본 소켓. 없으면 task (스케줄러) 기원 — 응답은 drop.
+    originUuid,
+    // 에이전트 간 라우팅 메타. 응답 채널 분기에 사용.
+    fromAppId,
+    toAppId,
+    isInterAgent,
+    ttl: effectiveTtl,
   };
 
   if (waitForCompletion) {
@@ -519,6 +592,7 @@ export async function executeAgentRequest(
     return {
       status: result.status,
       requestId,
+      agentId: currentAgentId,
       responseText: result.responseText,
     };
   }
@@ -532,6 +606,7 @@ export async function executeAgentRequest(
   return {
     status: result.status,
     requestId,
+    agentId: currentAgentId,
   };
 }
 
@@ -559,4 +634,39 @@ export function abortAgent(agentId: string) {
   } else {
     logger.warn(`[Agent] No active session to abort for: ${agentId}`);
   }
+}
+
+/**
+ * 소켓 종료 시 해당 소켓이 발행한 진행 중 요청을 abort.
+ * originUuid 가 일치하는 세션을 찾아 abort + 큐 정리.
+ * 반환값은 abort 된 agentId 목록 (로깅용).
+ */
+export function abortAgentsForOrigin(originUuid: string): string[] {
+  const aborted: string[] = [];
+  for (const { agentId, session } of listAgentSessions()) {
+    const pending = session.currentPendingResponse;
+    if (pending?.originUuid !== originUuid) continue;
+    if (session.agent) {
+      session.agent.clearAllQueues();
+      session.resetRequestQueue();
+      session.agent.abort();
+    }
+    aborted.push(agentId);
+  }
+  return aborted;
+}
+
+export function canCancelAgent(
+  agentId: string,
+  requesterUuid: string,
+  requesterAppId?: string,
+): boolean {
+  const session = getSession(agentId);
+  if (!session) return true;
+  const pending = session.currentPendingResponse;
+  if (!pending) return true;
+  if (pending.originUuid) {
+    return pending.originUuid === requesterUuid;
+  }
+  return requesterAppId === "ari";
 }

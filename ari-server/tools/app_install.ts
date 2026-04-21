@@ -186,7 +186,7 @@ export const installAppTool: AgentTool = {
               logger.warn(`[AppInstall] No execution context — '${appId}' not added to any agent's list`);
             }
             if (addedToAgent) {
-              UserSocketHandler.broadcast("/INSTALLED_APPS_CHANGED", { appId });
+              UserSocketHandler.send({ appId: "ari" }, "/INSTALLED_APPS_CHANGED", { appId });
             }
             const agentNote = addedToAgent
               ? `\n✅ 이 에이전트의 앱 목록에 추가되었습니다.`
@@ -232,7 +232,7 @@ export const installAppTool: AgentTool = {
         logger.warn(`[AppInstall] No execution context — '${appId}' not added to any agent's list`);
       }
 
-      UserSocketHandler.broadcast("/INSTALLED_APPS_CHANGED", { appId });
+      UserSocketHandler.send({ appId: "ari" }, "/INSTALLED_APPS_CHANGED", { appId });
 
       return {
         content: [

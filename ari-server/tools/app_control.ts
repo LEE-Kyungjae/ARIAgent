@@ -1,6 +1,7 @@
 import { AgentTool } from "@mariozechner/pi-agent-core";
 import { Type } from "@mariozechner/pi-ai";
 import { spawn } from "child_process";
+import crypto from "crypto";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -8,10 +9,47 @@ import { UserSocketHandler } from "../system/ws.js";
 import { logger } from "../infra/logger.js";
 import { findAppExecutable } from "../infra/runtime_paths.js";
 import { DATA_DIR } from "../infra/data.js";
+import { getExecutionContext } from "../services/agent/execution_context.js";
 
-const LAUNCH_WAIT_TIMEOUT_MS = 15_000;
+export const LAUNCH_WAIT_TIMEOUT_MS = 15_000;
 const LAUNCH_POLL_INTERVAL_MS = 300;
 const SHUTDOWN_COMMAND = "SHUTDOWN";
+const FORWARD_WAIT_TIMEOUT_MS = 5 * 60 * 1000;
+
+// Sender-push persona 원칙: ARI 가 SARI 에게 자연어 지시를 보내려면
+// SARI 소켓으로 요청을 포워드하고, SARI 가 자기 쪽에서 /AGENT 를 재발행하도록 한다.
+// 그렇게 재발행된 세션이 끝나면 /APP.PUSH 가 발생하는데, 그 시점에 아래 맵을
+// 조회해 ARI 도구 호출의 대기 Promise 를 해제한다.
+interface ForwardWaiter {
+  resolve: (text: string) => void;
+  reject: (error: Error) => void;
+  timer: NodeJS.Timeout;
+}
+const pendingForwards = new Map<string, ForwardWaiter>();
+
+export function resolveForwardIfPending(
+  requestId: string,
+  responseText: string,
+): boolean {
+  const w = pendingForwards.get(requestId);
+  if (!w) return false;
+  pendingForwards.delete(requestId);
+  clearTimeout(w.timer);
+  w.resolve(responseText);
+  return true;
+}
+
+export function rejectForwardIfPending(
+  requestId: string,
+  error: Error,
+): boolean {
+  const w = pendingForwards.get(requestId);
+  if (!w) return false;
+  pendingForwards.delete(requestId);
+  clearTimeout(w.timer);
+  w.reject(error);
+  return true;
+}
 
 function resolveAppExecutable(appName: string): string {
   const executable = findAppExecutable(appName);
@@ -19,7 +57,7 @@ function resolveAppExecutable(appName: string): string {
   throw new Error(`로컬 ${appName} 실행 파일을 찾지 못했습니다.`);
 }
 
-async function waitForAppConnection(
+export async function waitForAppConnection(
   appId: string,
   timeoutMs: number,
 ): Promise<boolean> {
@@ -31,7 +69,7 @@ async function waitForAppConnection(
   return UserSocketHandler.isAppConnected(appId);
 }
 
-function spawnApp(
+export function spawnApp(
   appName: string,
   env?: Record<string, string>,
   args?: string[],
@@ -91,30 +129,42 @@ function spawnApp(
 }
 
 /**
- * control_app
+ * control_app — 통합 앱 제어 툴
  *
- * 단일 동작: 앱에 명령을 전송합니다.
- *  - 앱이 꺼져 있으면 자동으로 실행 후 연결을 기다려 명령을 전송합니다.
- *  - 종료도 별도 action이 아닌 'SHUTDOWN' 명령으로 처리합니다. (앱이 SHUTDOWN을 받으면 스스로 정리 후 종료)
- *  - command === 'SHUTDOWN'이고 앱이 이미 꺼져 있다면 no-op으로 반환합니다. (종료 의도로 앱을 켜지 않음)
+ * 두 가지 호출 모드:
+ *  1. **대화 위임 모드** (`message` 지정): 자연어 메시지를 대상 앱 에이전트에게 전달하고 응답을 받는다.
+ *     - 대상 에이전트가 스스로 판단해서 자기 내부 프로토콜을 발동한다.
+ *     - 호출자가 커맨드 이름·파라미터를 알 필요 없음.
+ *  2. **커맨드 모드** (`command` 지정): 앱의 내부 프로토콜 커맨드를 직접 보낸다.
+ *     - 라이프사이클(`SHUTDOWN`) 또는 자기 자신에게 도메인 커맨드를 발동할 때 사용.
+ *     - 꺼져 있으면 자동 실행 후 연결 대기.
+ *     - `SHUTDOWN` + 이미 꺼짐 = no-op.
  *
- * 프리즈/무응답 앱의 강제 종료는 이 도구가 담당하지 않습니다. 필요하면 execute_bash로 OS 레벨 처리하세요.
+ * `message` 와 `command` 는 동시에 지정할 수 없다.
  */
 export const controlAppTool: AgentTool = {
   name: "control_app",
   label: "앱 제어",
   description:
-    "앱에 명령을 전송합니다. 앱이 꺼져 있으면 자동으로 실행 후 명령을 전달합니다. 앱을 끄고 싶을 때는 'SHUTDOWN' 명령을 보내세요 (앱이 스스로 종료).",
+    "대상 앱을 제어합니다. `message` 로 자연어 지시를 보내면 대상 에이전트가 스스로 판단해 수행하고 응답합니다. `command` 로 내부 프로토콜 커맨드를 직접 보낼 수도 있습니다 (`SHUTDOWN` 으로 종료, 자기 자신 호출 등).",
   parameters: Type.Object({
     app: Type.String({
       description: "대상 앱 식별자 (번들/폴더 이름이자 WebSocket appId)",
     }),
-    command: Type.String({
-      description:
-        "전송할 명령어 (예: UPDATE, PLAY, PAUSE, SHUTDOWN). 'SHUTDOWN'은 앱에게 스스로 종료하라는 약속된 명령입니다.",
-    }),
+    message: Type.Optional(
+      Type.String({
+        description:
+          "자연어 지시 (위임). 대상 에이전트가 받아 스스로 판단해 수행합니다. `command` 와 함께 쓸 수 없습니다.",
+      }),
+    ),
+    command: Type.Optional(
+      Type.String({
+        description:
+          "내부 프로토콜 커맨드. 라이프사이클 종료는 'SHUTDOWN'. `message` 와 함께 쓸 수 없습니다.",
+      }),
+    ),
     params: Type.Optional(
-      Type.Any({ description: "명령어에 필요한 파라미터 객체 (선택)" }),
+      Type.Any({ description: "커맨드 모드에서 필요한 파라미터 객체 (선택)" }),
     ),
     env: Type.Optional(
       Type.Record(Type.String(), Type.String(), {
@@ -130,116 +180,218 @@ export const controlAppTool: AgentTool = {
   execute: async (_id, params) => {
     const {
       app,
+      message,
       command,
       params: cmdParams,
       env,
       args,
     } = params as {
       app: string;
-      command: string;
+      message?: string;
+      command?: string;
       params?: any;
       env?: Record<string, string>;
       args?: string[];
     };
 
-    const isConnected = UserSocketHandler.isAppConnected(app);
-    const isShutdown = command === SHUTDOWN_COMMAND;
-
-    // 종료 명령인데 이미 꺼져 있으면 no-op — 종료하려고 앱을 켤 이유가 없음
-    if (isShutdown && !isConnected) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `ℹ️ '${app}' 앱이 이미 실행되지 않은 상태입니다. SHUTDOWN을 건너뜁니다.`,
-          },
-        ],
-        details: { app, command, success: true, skipped: true },
-      };
+    if (!app) {
+      return errorResult("❌ `app` 은 필수입니다.", { success: false });
     }
 
-    // 필요 시 자동 실행 + 연결 대기
-    if (!isConnected) {
-      logger.info(`[ControlApp] '${app}' 미연결 상태 — 자동 실행 시도`);
+    const hasMessage = typeof message === "string" && message.trim().length > 0;
+    const hasCommand = typeof command === "string" && command.trim().length > 0;
 
-      try {
-        spawnApp(app, env, args);
-      } catch (error: any) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `❌ '${app}' 앱 자동 실행 실패: ${error.message}`,
-            },
-          ],
-          details: { app, command, success: false, error: error.message },
-        };
-      }
-
-      const connected = await waitForAppConnection(app, LAUNCH_WAIT_TIMEOUT_MS);
-      if (!connected) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `❌ '${app}' 앱이 ${LAUNCH_WAIT_TIMEOUT_MS / 1000}초 내에 서버에 연결되지 않았습니다.`,
-            },
-          ],
-          details: { app, command, success: false, launched: true, connected: false },
-        };
-      }
-      logger.info(`[ControlApp] '${app}' 연결 확인됨 — 명령 전송 진행`);
-    }
-
-    try {
-      const result = await UserSocketHandler.commandApp(
-        app,
-        command,
-        cmdParams || {},
+    if (hasMessage && hasCommand) {
+      return errorResult(
+        "❌ `message` 와 `command` 는 동시에 지정할 수 없습니다. 하나만 선택하세요.",
+        { success: false, app },
       );
-
-      const isAppError = result?.status === "error" || result?.ok === false;
-
-      if (isAppError) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `❌ '${app}' 앱에서 명령 실행 중 에러가 발생했습니다:\n${result?.message || JSON.stringify(result)}`,
-            },
-          ],
-          details: {
-            app,
-            command,
-            params: cmdParams,
-            result,
-            success: false,
-            error: result?.message,
-          },
-        };
-      }
-
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `🚀 '${app}' 앱의 '${command}' 실행 결과:\n${JSON.stringify(result, null, 2)}`,
-          },
-        ],
-        details: { app, command, params: cmdParams, result, success: true },
-      };
-    } catch (error: any) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `❌ '${app}' 앱으로 명령 전송 또는 실행 실패: ${error.message}`,
-          },
-        ],
-        details: { app, command, success: false, error: error.message },
-      };
     }
+    if (!hasMessage && !hasCommand) {
+      return errorResult(
+        "❌ `message` 또는 `command` 중 하나는 반드시 지정해야 합니다.",
+        { success: false, app },
+      );
+    }
+
+    if (hasMessage) {
+      return runMessageMode(app, message!.trim());
+    }
+
+    return runCommandMode(app, command!, cmdParams, env, args);
   },
 };
+
+function errorResult(text: string, details: Record<string, unknown>) {
+  return {
+    content: [{ type: "text" as const, text }],
+    details,
+  };
+}
+
+async function runMessageMode(app: string, message: string) {
+  const ctx = getExecutionContext();
+  const fromAppId = ctx?.appId || ctx?.agentId || "ari";
+  // 현재 호출의 잔여 TTL 에서 1 감소. 미설정(ctx 없음)이면 undefined → 수신 서버가 기본값 적용.
+  const forwardedTtl =
+    typeof ctx?.ttl === "number" ? ctx.ttl - 1 : undefined;
+
+  if (app === fromAppId) {
+    return errorResult(
+      "❌ `message` 모드로 자기 자신에게 말을 걸 수 없습니다. 자기 도메인 작업은 `command` 모드를 쓰세요.",
+      { success: false, app, fromAppId },
+    );
+  }
+
+  if (!UserSocketHandler.isAppConnected(app)) {
+    logger.info(`[ControlApp:message] '${app}' 미연결 — 자동 실행 시도`);
+    try {
+      spawnApp(app);
+    } catch (error: any) {
+      return errorResult(`❌ '${app}' 앱 자동 실행 실패: ${error.message}`, {
+        success: false,
+        app,
+        error: error.message,
+      });
+    }
+    const connected = await waitForAppConnection(app, LAUNCH_WAIT_TIMEOUT_MS);
+    if (!connected) {
+      return errorResult(
+        `❌ '${app}' 앱이 ${LAUNCH_WAIT_TIMEOUT_MS / 1000}초 내에 연결되지 않았습니다.`,
+        { success: false, app, error: "not connected" },
+      );
+    }
+  }
+
+  const requestId = crypto.randomUUID();
+
+  // 응답 대기 Promise 를 먼저 등록한다 (targeted /AGENT.FORWARD 직후 바로 해제될 수 있음).
+  const waiterPromise = new Promise<string>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      if (pendingForwards.delete(requestId)) {
+        reject(
+          new Error(
+            `'${app}' 에이전트 응답 대기 타임아웃 (${FORWARD_WAIT_TIMEOUT_MS / 1000}s)`,
+          ),
+        );
+      }
+    }, FORWARD_WAIT_TIMEOUT_MS);
+    pendingForwards.set(requestId, { resolve, reject, timer });
+  });
+
+  UserSocketHandler.send({ appId: app }, "/AGENT.FORWARD", {
+    from: fromAppId,
+    to: app,
+    message,
+    requestId,
+    ttl: forwardedTtl,
+  });
+
+  try {
+    const responseText = (await waiterPromise).trim() || "(응답 없음)";
+    return {
+      content: [
+        { type: "text" as const, text: `💬 '${app}' 응답:\n${responseText}` },
+      ],
+      details: {
+        success: true,
+        app,
+        mode: "message",
+        requestId,
+        responseText,
+      },
+    };
+  } catch (error: any) {
+    return errorResult(`❌ '${app}' 에이전트 호출 실패: ${error.message}`, {
+      success: false,
+      app,
+      requestId,
+      error: error.message,
+    });
+  }
+}
+
+async function runCommandMode(
+  app: string,
+  command: string,
+  cmdParams?: any,
+  env?: Record<string, string>,
+  args?: string[],
+) {
+  const isConnected = UserSocketHandler.isAppConnected(app);
+  const isShutdown = command === SHUTDOWN_COMMAND;
+
+  if (isShutdown && !isConnected) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `ℹ️ '${app}' 앱이 이미 실행되지 않은 상태입니다. SHUTDOWN 을 건너뜁니다.`,
+        },
+      ],
+      details: { app, command, success: true, skipped: true },
+    };
+  }
+
+  if (!isConnected) {
+    logger.info(`[ControlApp:command] '${app}' 미연결 — 자동 실행 시도`);
+    try {
+      spawnApp(app, env, args);
+    } catch (error: any) {
+      return errorResult(`❌ '${app}' 앱 자동 실행 실패: ${error.message}`, {
+        app,
+        command,
+        success: false,
+        error: error.message,
+      });
+    }
+    const connected = await waitForAppConnection(app, LAUNCH_WAIT_TIMEOUT_MS);
+    if (!connected) {
+      return errorResult(
+        `❌ '${app}' 앱이 ${LAUNCH_WAIT_TIMEOUT_MS / 1000}초 내에 서버에 연결되지 않았습니다.`,
+        { app, command, success: false, launched: true, connected: false },
+      );
+    }
+    logger.info(`[ControlApp:command] '${app}' 연결 확인됨`);
+  }
+
+  try {
+    const result = await UserSocketHandler.commandApp(
+      app,
+      command,
+      cmdParams || {},
+    );
+    const isAppError = result?.status === "error" || result?.ok === false;
+
+    if (isAppError) {
+      return errorResult(
+        `❌ '${app}' 앱에서 명령 실행 중 에러: ${result?.message || JSON.stringify(result)}`,
+        {
+          app,
+          command,
+          params: cmdParams,
+          result,
+          success: false,
+          error: result?.message,
+        },
+      );
+    }
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `🚀 '${app}' '${command}' 실행 결과:\n${JSON.stringify(result, null, 2)}`,
+        },
+      ],
+      details: { app, command, params: cmdParams, result, success: true },
+    };
+  } catch (error: any) {
+    return errorResult(
+      `❌ '${app}' 앱으로 명령 전송 또는 실행 실패: ${error.message}`,
+      { app, command, success: false, error: error.message },
+    );
+  }
+}
 
 export const TOOLS = [controlAppTool];

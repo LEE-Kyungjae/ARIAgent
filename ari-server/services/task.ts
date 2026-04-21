@@ -44,11 +44,8 @@ export async function handleTasksCrontabWs(_params: Record<string, unknown>): Pr
 // ── 스케줄러 자동 갱신 + 모든 클라이언트에 변경 알림 ──
 export async function refreshScheduler(): Promise<void> {
   await handleTasksCrontabWs({});
-  UserSocketHandler.broadcast("/TASKS.UPDATED", { tasks: getTasks() });
+  UserSocketHandler.send({ appId: "ari" }, "/TASKS.UPDATED", { tasks: getTasks() });
 }
-
-/** @deprecated refreshScheduler 사용 권장 */
-export const refreshCrontab = refreshScheduler;
 
 // ── 개별 CRUD API 핸들러 ──
 
@@ -71,9 +68,14 @@ export async function handleAddTaskWs(params: Record<string, unknown>): Promise<
     appId: params.appId,
     isOneOff: params.isOneOff || false,
     enabled: true,
+    timeout: params.timeout,
     startAt,
     endAt,
     createdAt: now,
+    // Sender-push 원칙: 태스크 생성자가 대상 세션의 페르소나/아바타명을
+    // 알고 있다면 함께 저장한다. 실행 시점에 executeAgentRequest 로 전달.
+    persona: params.persona,
+    avatarName: params.avatarName,
   });
 
   const tasks = getTasks();

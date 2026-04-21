@@ -23,12 +23,10 @@ class AriChatProvider extends ChangeNotifier {
   final List<StreamSubscription> _customSubs = [];
   final Set<String> _inFlightRequestIds = {};
   final Set<String> _backgroundRequestIds = {};
-  final Set<String> _taskRequestIds = {};
   final List<AriQueuedFollowUp> _queuedFollowUps = [];
 
   bool _isLoading = false;
   String? _activeRequestId;
-  bool showTaskMessages = true;
   String? _filterAgentId; // 현재 표시 중인 에이전트 ID 필터
 
   /// 아바타 전환 시 호출 — 이 ID와 다른 에이전트 메시지는 무시
@@ -87,20 +85,21 @@ class AriChatProvider extends ChangeNotifier {
     _agentRequestSub = AriAgent.on('/AGENT.REQUEST', (data) {
       final requestId = data['requestId']?.toString() ?? '';
       final message = data['message']?.toString() ?? '';
-      final source = data['source']?.toString() ?? 'user';
       final msgAgent = data['agentId']?.toString() ?? 'default';
+      final from = data['from']?.toString() ?? '';
+      final to = data['to']?.toString() ?? '';
+      final isInterAgent = from.isNotEmpty && to.isNotEmpty && from != to;
 
       if (message.isEmpty) return;
       if (_filterAgentId != null && msgAgent != _filterAgentId) return;
-      if (source == 'task') {
-        _taskRequestIds.add(requestId);
-        return; // 스케줄 작업 프롬프트는 UI에 표시하지 않음 (APP.NOTICE로 대체)
-      }
       if (requestId.isNotEmpty &&
           _messages.any((m) => m.isUser && m.requestId == requestId)) return;
 
+      // 에이전트 간 호출로 들어온 메시지는 발신자 라벨을 붙여 채팅창에 표기.
+      final displayText = isInterAgent ? '[$from] $message' : message;
+
       _messages.add(AriChatMessage(
-        text: message,
+        text: displayText,
         isUser: true,
         createdAt: DateTime.now(),
         requestId: requestId,
@@ -112,15 +111,11 @@ class AriChatProvider extends ChangeNotifier {
       final payload = data['data'] is Map ? data['data'] as Map : data;
       final response = payload['response']?.toString() ?? '';
       final requestId = payload['requestId']?.toString() ?? '';
-      final source = payload['source']?.toString() ?? 'user';
       final msgAgent = payload['agentId']?.toString() ?? 'default';
 
       if (response.isEmpty) return;
       if (_filterAgentId != null && msgAgent != _filterAgentId) return;
 
-      if (source == 'task') {
-        _taskRequestIds.add(requestId);
-      }
       if (requestId.isNotEmpty) removeSystemMessage(requestId);
       final removedFollowUp = _removeFollowUpByRequestId(requestId);
       onResponseReceived(requestId);
@@ -147,7 +142,6 @@ class AriChatProvider extends ChangeNotifier {
       final payload = data['data'] is Map ? data['data'] as Map : data;
       final progressMessage = payload['message']?.toString() ?? '';
       final requestId = payload['requestId']?.toString() ?? '';
-      final source = payload['source']?.toString() ?? '';
       final msgAgent = payload['agentId']?.toString() ?? 'default';
 
       if (progressMessage.isEmpty) return;
@@ -156,10 +150,7 @@ class AriChatProvider extends ChangeNotifier {
       if (requestId.isNotEmpty) {
         _inFlightRequestIds.add(requestId);
       }
-      if (source == 'task') {
-        _taskRequestIds.add(requestId);
-      } else if (requestId.startsWith('report-') ||
-          requestId.startsWith('sys-')) {
+      if (requestId.startsWith('report-') || requestId.startsWith('sys-')) {
         _backgroundRequestIds.add(requestId);
       }
       _syncLoadingState();
@@ -253,9 +244,7 @@ class AriChatProvider extends ChangeNotifier {
       final taskId = data['taskId']?.toString() ?? 'unknown';
       final requestId = data['requestId']?.toString() ?? '';
       if (taskId != 'unknown') {
-        _taskRequestIds.remove(taskId);
         if (requestId.isNotEmpty) {
-          _taskRequestIds.remove(requestId);
           _inFlightRequestIds.remove(requestId);
           _backgroundRequestIds.remove(requestId);
           removeSystemMessage(requestId);
@@ -282,10 +271,10 @@ class AriChatProvider extends ChangeNotifier {
   }
 
   /// 표준 서버 히스토리 불러오기
-  Future<void> loadServerHistory(String agentId) async {
+  Future<void> loadServerHistory(String agentId, {String? appId}) async {
     if (!AriAgent.isConnected) return;
     try {
-      final history = await _repository.fetchHistory(agentId);
+      final history = await _repository.fetchHistory(agentId, appId: appId);
       setMessages(history);
     } catch (e) {
       debugPrint('[AriChatProvider] 히스토리 로드 실패: $e');
@@ -364,9 +353,7 @@ class AriChatProvider extends ChangeNotifier {
         _activeRequestId != null && requestId == _activeRequestId;
     bool isBackgroundRequest =
         requestId.startsWith('report-') || requestId.startsWith('sys-');
-    bool isScheduledTaskRequest =
-        showTaskMessages && _taskRequestIds.contains(requestId);
-    if (!isMyRequest && !isBackgroundRequest && !isScheduledTaskRequest) return;
+    if (!isMyRequest && !isBackgroundRequest) return;
 
     final idx = _messages.lastIndexWhere(
       (m) => m.isSystem && m.requestId == requestId,
@@ -443,7 +430,6 @@ class AriChatProvider extends ChangeNotifier {
     _messages.clear();
     _inFlightRequestIds.clear();
     _backgroundRequestIds.clear();
-    _taskRequestIds.clear();
     _queuedFollowUps.clear();
     _activeRequestId = null;
     _syncLoadingState();
@@ -461,8 +447,8 @@ class AriChatProvider extends ChangeNotifier {
   }
 
   /// 서버의 대화 이력을 삭제하고 로컬 메시지도 초기화합니다.
-  Future<void> clearServerHistory(String agentId) async {
-    _repository.clearHistory(agentId);
+  Future<void> clearServerHistory(String agentId, {String? appId}) async {
+    _repository.clearHistory(agentId, appId: appId);
     clearMessages();
   }
 

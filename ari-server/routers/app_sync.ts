@@ -6,6 +6,17 @@ import { getSettings } from "../repositories/setting_repository.js";
 import { Settings } from "../models/settings.js";
 import { getEmbeddingStatus } from "../services/embedding.js";
 
+/**
+ * 실시간 연결된 앱 목록을 ari 소켓에 전송 (대시보드 갱신용).
+ * ws.ts 의 소켓 close/error 및 아래 /APP.REGISTER 에서 호출된다.
+ */
+function broadcastConnectedApps(): void {
+  const connectedIds = UserSocketHandler.getConnectedAppIds();
+  UserSocketHandler.send({ appId: "ari" }, "/CONNECTED_APPS_CHANGED", { connectedIds });
+}
+
+UserSocketHandler.setOnAppConnectionChanged(broadcastConnectedApps);
+
 router.on("/HEALTH", async (ws) => {
   logger.info(`[Health] Check from ${ws.uuid}`);
   const state = getCurrentState();
@@ -53,6 +64,11 @@ router.on("/GET_CONNECTED_APPS", async (ws, params) => {
 /**
  * /APP.REGISTER
  * 앱이 자신을 서버에 등록하고 상태를 보고할 때 사용 (Standardized)
+ *
+ * 1 앱 = 1 소켓 원칙:
+ * - 동일 appId 가 이미 연결되어 있으면 기존 소켓을 살아있는지 확인.
+ * - 살아있음 → 새 등록 거부 (중복 인스턴스 차단).
+ * - 죽음 → 기존 정리 후 새 소켓 수락 (재접속 시나리오).
  */
 router.on("/APP.REGISTER", (ws, params) => {
   const { appId } = params;
@@ -60,12 +76,32 @@ router.on("/APP.REGISTER", (ws, params) => {
     return ws.send("/APP.REGISTER", { ok: false, message: "appId required" });
   }
 
-  // 소켓에 appId만 식별용으로 바인딩 (Pull 방식을 위해)
+  // 자기 자신이 재등록하는 경우(같은 소켓에서 다시 /APP.REGISTER) 는 통과
+  const existing = UserSocketHandler.findSocketByAppId(appId);
+  if (existing && existing.uuid !== ws.uuid) {
+    if (UserSocketHandler.isSocketAlive(existing)) {
+      logger.warn(
+        `[AppSync] Rejected duplicate register for '${appId}' (existing uuid=${existing.uuid} alive)`,
+      );
+      return ws.send("/APP.REGISTER", {
+        ok: false,
+        message: `App '${appId}' is already connected.`,
+      });
+    }
+    // 죽은 좀비 소켓 정리
+    logger.info(
+      `[AppSync] Cleaning up stale socket for '${appId}' (uuid=${existing.uuid})`,
+    );
+    UserSocketHandler.dropSocket(existing);
+  }
+
+  // 소켓에 appId만 식별용으로 바인딩 (Pull 방식을 위해).
+  // 페르소나는 소켓 수명 동안 서버에 저장하지 않는다 — 매 /AGENT 호출 시 페이로드로 동봉.
   ws.appId = appId;
   logger.info(`[AppSync] App registered: ${appId}`);
 
   // 연결된 앱 목록 브로드캐스트
-  UserSocketHandler.broadcastConnectedApps();
+  broadcastConnectedApps();
 
   // 성공 응답
   ws.send("/APP.REGISTER", { ok: true, data: { appId } });
