@@ -5,17 +5,69 @@ import { getCurrentState, getPluginsInfo } from "../services/agent/index.js";
 import { getSettings } from "../repositories/setting_repository.js";
 import { Settings } from "../models/settings.js";
 import { getEmbeddingStatus } from "../infra/embedding.js";
-import { commandApp, notifyConnectedAppsChanged } from "../protocol/app.js";
+import {
+  commandApp,
+  notifyAppNotice,
+  notifyConnectedAppsChanged,
+} from "../protocol/app.js";
+
+/**
+ * 이전 broadcast 시점의 연결 앱 목록. join/leave 차분을 계산해
+ * /APP.NOTICE 로 채팅창에 "XXX 참여/퇴장" 메시지를 발행하는 데 쓰인다.
+ */
+let previousConnectedAppIds: Set<string> = new Set();
+
+async function resolveAppTitle(appId: string): Promise<string> {
+  if (appId === "ari") return "ARI";
+  try {
+    const { apps } = await getPluginsInfo();
+    const match = apps.find((a: any) => a.name === appId);
+    return (match as any)?.title || appId;
+  } catch {
+    return appId;
+  }
+}
 
 /**
  * 실시간 연결된 앱 목록을 ari 소켓에 전송 (대시보드 갱신용).
+ * 차분이 있는 경우 채팅창에 join/leave notice 도 발행.
  * ws.ts 의 소켓 close/error 및 아래 /APP.REGISTER 에서 호출된다.
  */
-function broadcastConnectedApps(): void {
-  notifyConnectedAppsChanged(UserSocketHandler.getConnectedAppIds());
+async function broadcastConnectedApps(): Promise<void> {
+  const ids = UserSocketHandler.getConnectedAppIds();
+  const current = new Set(ids);
+
+  notifyConnectedAppsChanged(ids);
+
+  // ari 본앱은 notice 발행 대상에서 제외 (자기 자신의 입장 알림은 불필요).
+  const joined = [...current].filter(
+    (id) => id !== "ari" && !previousConnectedAppIds.has(id),
+  );
+  const left = [...previousConnectedAppIds].filter(
+    (id) => id !== "ari" && !current.has(id),
+  );
+
+  previousConnectedAppIds = current;
+
+  for (const appId of joined) {
+    const title = await resolveAppTitle(appId);
+    notifyAppNotice({
+      noticeId: `app-join-${appId}-${Date.now()}`,
+      message: `${title}이(가) 대화방에 참여했습니다`,
+    });
+  }
+  for (const appId of left) {
+    const title = await resolveAppTitle(appId);
+    notifyAppNotice({
+      noticeId: `app-leave-${appId}-${Date.now()}`,
+      message: `${title}이(가) 대화방에서 나갔습니다`,
+    });
+  }
 }
 
-UserSocketHandler.setOnAppConnectionChanged(broadcastConnectedApps);
+UserSocketHandler.setOnAppConnectionChanged(() => {
+  void broadcastConnectedApps();
+});
 
 router.on("/HEALTH", async (ctx) => {
   logger.info(`[Health] Check from ${ctx.uuid}`);
@@ -101,7 +153,7 @@ router.on("/APP.REGISTER", (ctx, params) => {
   logger.info(`[AppSync] App registered: ${appId}`);
 
   // 연결된 앱 목록 브로드캐스트
-  broadcastConnectedApps();
+  void broadcastConnectedApps();
 
   // 성공 응답
   ctx.send("/APP.REGISTER", { ok: true, data: { appId } });

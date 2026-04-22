@@ -74,10 +74,11 @@ export const notifyInstalledAppsChanged = (appId: string): void => {
 
 /**
  * ari 에게 태스크/작업 관련 notice 전달 (채팅창 상단 배너 등).
+ * agentId 를 생략하면 모든 에이전트 채팅에 노출된다.
  */
 export const notifyAppNotice = (payload: {
   noticeId: string;
-  agentId: string;
+  agentId?: string;
   message: string;
 }): void => {
   UserSocketHandler.send({ appId: "ari" }, "/APP.NOTICE", payload);
