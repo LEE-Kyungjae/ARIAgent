@@ -5,7 +5,9 @@ import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../place/providers/place_agent_status_provider.dart';
 import 'friends_schedule.dart';
+import 'widgets/add_domain_agent_tile.dart';
 import 'widgets/add_friend_tile.dart';
+import 'widgets/domain_agent_tile.dart';
 import 'widgets/friend_tile.dart';
 import 'widgets/friends_header.dart';
 
@@ -75,71 +77,117 @@ class _FriendsTabState extends State<FriendsTab> {
   Widget build(BuildContext context) {
     final agentProv = context.watch<AgentProvider>();
     final statusProv = context.watch<PlaceAgentStatusProvider>();
-    final agents = agentProv.allAvatars;
+    final pmAgents = agentProv.allAvatars;
     final currentId = agentProv.currentAvatarId;
 
+    final currentAgent = agentProv.currentAgent;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        children: [
+          FriendsHeader(
+            title: S.of(context).pmAgentSection,
+            count: pmAgents.length,
+          ),
+          _buildPmList(pmAgents, currentId, statusProv),
+          ListenableBuilder(
+            listenable: currentAgent,
+            builder: (context, _) => _buildDomainSection(currentAgent),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDomainSection(AgentModel agent) {
+    final apps = agent.installedApps;
+    final connectedIds = agent.connectedAppIds;
     return Column(
       children: [
-        FriendsHeader(count: agents.length),
-        Expanded(
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: agents.length + 1,
-            separatorBuilder: (_, index) {
-              if (index >= agents.length - 1) return const SizedBox(height: 8);
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 6,
+        FriendsHeader(
+          title: S.of(context).domainAgentSection,
+          count: apps.length,
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            children: [
+              for (final app in apps)
+                DomainAgentTile(
+                  key: ValueKey(app['name']),
+                  app: app,
+                  isConnected:
+                      connectedIds.contains(app['name'] as String),
                 ),
-                child: Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: Colors.white.withValues(alpha: 0.06),
-                ),
-              );
-            },
-            itemBuilder: (context, index) {
-              if (index == agents.length) {
-                return const AddFriendTile();
-              }
-              final agent = agents[index];
-              final isActive = agent.id == currentId;
-              final isSelected = agent.id == _selectedId;
-              final allTasks = agent.tasks.toList();
-              final enabledTasks = allTasks
-                  .where((t) => t.enabled)
-                  .toList();
-              final now = DateTime.now();
-              final nextRun = enabledTasks
-                  .map((t) => nextRunOf(t, now))
-                  .whereType<DateTime>()
-                  .fold<DateTime?>(
-                    null,
-                    (a, b) => a == null || b.isBefore(a) ? b : a,
-                  );
-              return FriendTile(
-                agent: agent,
-                isActive: isActive,
-                isSelected: isSelected,
-                status: statusProv.statusFor(
-                  agent.id.toString(),
-                  isSelected: isActive,
-                ),
-                scheduleCount: allTasks.length,
-                nextRunAt: nextRun,
-                onListSelect: () =>
-                    setState(() => _selectedId = agent.id.toString()),
-                onOpenChat: () {
-                  context.read<AgentProvider>().switchAvatar(agent.id);
-                  widget.onOpenChat();
-                },
-                onDelete: () => _confirmDelete(context, agent),
-              );
-            },
+              const SizedBox(height: 8),
+              const AddDomainAgentTile(),
+            ],
           ),
         ),
       ],
     );
   }
+
+  Widget _buildPmList(
+    List<AgentModel> agents,
+    String currentId,
+    PlaceAgentStatusProvider statusProv,
+  ) {
+    final children = <Widget>[];
+    for (var i = 0; i < agents.length; i++) {
+      if (i > 0) {
+        children.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+            child: Divider(
+              height: 1,
+              thickness: 1,
+              color: Colors.white.withValues(alpha: 0.06),
+            ),
+          ),
+        );
+      }
+      final agent = agents[i];
+      final isActive = agent.id == currentId;
+      final isSelected = agent.id == _selectedId;
+      final allTasks = agent.tasks.toList();
+      final enabledTasks = allTasks.where((t) => t.enabled).toList();
+      final now = DateTime.now();
+      final nextRun = enabledTasks
+          .map((t) => nextRunOf(t, now))
+          .whereType<DateTime>()
+          .fold<DateTime?>(
+            null,
+            (a, b) => a == null || b.isBefore(a) ? b : a,
+          );
+      children.add(
+        FriendTile(
+          agent: agent,
+          isActive: isActive,
+          isSelected: isSelected,
+          status: statusProv.statusFor(
+            agent.id.toString(),
+            isSelected: isActive,
+          ),
+          scheduleCount: allTasks.length,
+          nextRunAt: nextRun,
+          onListSelect: () =>
+              setState(() => _selectedId = agent.id.toString()),
+          onOpenChat: () {
+            context.read<AgentProvider>().switchAvatar(agent.id);
+            widget.onOpenChat();
+          },
+          onDelete: () => _confirmDelete(context, agent),
+        ),
+      );
+    }
+    children.add(const SizedBox(height: 8));
+    children.add(const AddFriendTile());
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(children: children),
+    );
+  }
+
 }

@@ -8,8 +8,6 @@ import { DATA_DIR } from "../infra/data.js";
 import { notifyInstalledAppsChanged } from "../protocol/app.js";
 import { loadAllApps } from "../skills/index.js";
 import { execPromise } from "./bash.js";
-import { getExecutionContext } from "../services/agent/execution_context.js";
-import { addAppIdToAgent } from "../repositories/agent_repository.js";
 
 interface AppInfo {
   app_id: string;
@@ -180,29 +178,17 @@ export const installAppTool: AgentTool = {
           const oldVer = oldInfo.version_code ?? oldInfo.version;
 
           if (newVer <= oldVer && !force) {
-            const ctx = getExecutionContext();
-            const addedToAgent = ctx?.agentId ? (addAppIdToAgent(ctx.agentId, appId), true) : false;
-            if (!addedToAgent) {
-              logger.warn(`[AppInstall] No execution context — '${appId}' not added to any agent's list`);
-            }
-            if (addedToAgent) {
-              notifyInstalledAppsChanged(appId);
-            }
-            const agentNote = addedToAgent
-              ? `\n✅ 이 에이전트의 앱 목록에 추가되었습니다.`
-              : "";
             return {
               content: [
                 {
                   type: "text",
-                  text: `ℹ️ 이미 최신 버전(${oldInfo.version})이 설치되어 있습니다.${agentNote}`,
+                  text: `ℹ️ 이미 최신 버전(${oldInfo.version})이 설치되어 있습니다.`,
                 },
               ],
               details: {
                 appId,
                 success: true,
                 updated: false,
-                addedToAgent,
                 currentVersion: oldInfo.version,
               },
             };
@@ -224,13 +210,6 @@ export const installAppTool: AgentTool = {
       fs.renameSync(sourceDir, appInstallDir);
 
       await loadAllApps();
-
-      const ctx = getExecutionContext();
-      if (ctx?.agentId) {
-        addAppIdToAgent(ctx.agentId, appId);
-      } else {
-        logger.warn(`[AppInstall] No execution context — '${appId}' not added to any agent's list`);
-      }
 
       notifyInstalledAppsChanged(appId);
 

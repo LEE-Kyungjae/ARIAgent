@@ -34,7 +34,7 @@ export class AgentInfo {
   persona: string;
   platform?: string;
   appId?: string;
-  appIds: string[];
+  pinnedAppIds: string[];
   skillNames: string[];
   declare availableSkills: AgentAvailableSkill[];
   declare activeSkills: AgentRuntimeSkill[];
@@ -48,7 +48,9 @@ export class AgentInfo {
     this.description = data?.description || "Default AI Assistant";
     this.persona = data?.persona || "";
     this.skillNames = AgentInfo.normalizeNames(data?.skillNames);
-    this.appIds = AgentInfo.normalizeNames(data?.appIds);
+    this.pinnedAppIds = AgentInfo.normalizeNames(
+      data?.pinnedAppIds ?? data?.appIds,
+    );
     this.platform = data?.platform;
     this.appId = data?.appId;
   }
@@ -57,8 +59,8 @@ export class AgentInfo {
     return new Set(this.skillNames);
   }
 
-  get allowedAppIds(): Set<string> {
-    return new Set(this.appIds);
+  get pinnedAppIdSet(): Set<string> {
+    return new Set(this.pinnedAppIds);
   }
 
   get activeSkillToolNames(): Set<string> {
@@ -80,6 +82,17 @@ export class AgentInfo {
     return this.filterVisibleSkills(this.availableSkills);
   }
 
+  /**
+   * 프롬프트에 미리 소개할 핀된 앱 목록 (availableSkills 중 isApp && pinned).
+   * 앱 호출 자체는 pinned 여부와 무관하게 항상 가능 — 이 getter 는 "힌트" 전용.
+   */
+  get pinnedApps(): AgentAvailableSkill[] {
+    const pinned = this.pinnedAppIdSet;
+    return this.availableSkills.filter(
+      (skill) => skill.isApp && pinned.has(skill.name),
+    );
+  }
+
   get promptSkills(): PromptSkillEntry[] {
     return this.visibleSkills
       .filter((skill) => !skill.isApp)
@@ -89,36 +102,36 @@ export class AgentInfo {
       }));
   }
 
+  /**
+   * 스킬(비앱) 화이트리스트 필터. 앱(isApp=true)은 이 필터에서 제외 — 앱은
+   * 더 이상 에이전트가 "소유"하는 개념이 아니며, 호출 자체는 자유.
+   * 프롬프트에 미리 소개할 핀 앱은 `pinnedApps` 게터를 사용한다.
+   */
   filterVisibleSkills<T extends { name: string; isApp?: boolean }>(
     skills: T[],
   ): T[] {
     const allowedSkillNames = this.allowedSkillNames;
-    const allowedAppIds = this.allowedAppIds;
 
     return skills.filter((skill) => {
-      if (skill.isApp) {
-        // appIds는 해당 에이전트가 소유한 앱 목록 — 반드시 목록에 있어야 표시
-        return allowedAppIds.has(skill.name);
-      }
-
+      if (skill.isApp) return false;
       return (
         allowedSkillNames.size === 0 || allowedSkillNames.has(skill.name)
       );
     });
   }
 
-  addAppId(appId: string): boolean {
-    if (!this.appIds.includes(appId)) {
-      this.appIds.push(appId);
+  pinApp(appId: string): boolean {
+    if (!this.pinnedAppIds.includes(appId)) {
+      this.pinnedAppIds.push(appId);
       return true;
     }
     return false;
   }
 
-  removeAppId(appId: string): boolean {
-    const idx = this.appIds.indexOf(appId);
+  unpinApp(appId: string): boolean {
+    const idx = this.pinnedAppIds.indexOf(appId);
     if (idx !== -1) {
-      this.appIds.splice(idx, 1);
+      this.pinnedAppIds.splice(idx, 1);
       return true;
     }
     return false;
@@ -150,13 +163,11 @@ export class AgentInfo {
   toPromptApps(connectedAppIds: string[]): PromptAppEntry[] {
     const connectedAppIdSet = new Set(connectedAppIds);
 
-    return this.visibleSkills
-      .filter((skill) => skill.isApp)
-      .map((skill) => ({
-        name: skill.name,
-        description: skill.description,
-        isRunning: connectedAppIdSet.has(skill.name),
-      }));
+    return this.pinnedApps.map((skill) => ({
+      name: skill.name,
+      description: skill.description,
+      isRunning: connectedAppIdSet.has(skill.name),
+    }));
   }
 
   resetTurnScopedSkills(): void {
@@ -173,7 +184,7 @@ export class AgentInfo {
     this.platform = next.platform;
     this.appId = next.appId;
     this.skillNames = [...next.skillNames];
-    this.appIds = [...next.appIds];
+    this.pinnedAppIds = [...next.pinnedAppIds];
   }
 
   static fromJson(jsonStr: string | any): AgentInfo {

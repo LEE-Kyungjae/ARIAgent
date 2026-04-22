@@ -67,12 +67,14 @@ export const listAppsTool: AgentTool = {
   execute: async () => {
     const connectedIds = UserSocketHandler.getConnectedAppIds();
 
+    // 현재 에이전트의 pinnedAppIds 는 표시용 힌트로만 사용.
+    // 모든 설치 앱은 에이전트와 무관하게 노출됨.
     const ctx = getExecutionContext();
-    const agentAppIds: Set<string> | null = (() => {
-      if (!ctx?.agentId) return null;
+    const pinnedSet: Set<string> = (() => {
+      if (!ctx?.agentId) return new Set();
       const config = getAgentsConfig(new AgentsConfig());
       const agent = config.agents.find((a) => a.id === ctx.agentId);
-      return agent ? new Set(agent.appIds) : null;
+      return agent ? new Set(agent.pinnedAppIds) : new Set();
     })();
 
     const bundleRoots = getBundleRoots();
@@ -83,13 +85,17 @@ export const listAppsTool: AgentTool = {
         const items = fs.readdirSync(root).filter((dir) => {
           const stats = fs.statSync(path.join(root, dir));
           if (!stats.isDirectory() || dir.startsWith(".") || dir === "__MACOSX") return false;
-          return agentAppIds ? agentAppIds.has(dir) : true;
+          return true;
         });
         installedApps.push(...items);
       }
     }
 
     const uniqueInstalled = Array.from(new Set(installedApps));
+    const pinned = uniqueInstalled.filter((id) => pinnedSet.has(id));
+
+    const renderItem = (id: string) =>
+      pinnedSet.has(id) ? `- ${id} ⭐` : `- ${id}`;
 
     return {
       content: [
@@ -97,11 +103,15 @@ export const listAppsTool: AgentTool = {
           type: "text" as const,
           text:
             `📱 ARI 앱 목록:\n\n` +
-            `🟢 연결됨 (Connected):\n${connectedIds.length > 0 ? connectedIds.map((id) => `- ${id}`).join("\n") : "(없음)"}\n\n` +
-            `📦 설치됨 (Installed):\n${uniqueInstalled.length > 0 ? uniqueInstalled.map((id) => `- ${id}`).join("\n") : "(없음)"}`,
+            `🟢 연결됨 (Connected):\n${connectedIds.length > 0 ? connectedIds.map(renderItem).join("\n") : "(없음)"}\n\n` +
+            `📦 설치됨 (Installed, ⭐ = pinned):\n${uniqueInstalled.length > 0 ? uniqueInstalled.map(renderItem).join("\n") : "(없음)"}`,
         },
       ],
-      details: { connected: connectedIds, installed: uniqueInstalled },
+      details: {
+        connected: connectedIds,
+        installed: uniqueInstalled,
+        pinned,
+      },
     };
   },
 };

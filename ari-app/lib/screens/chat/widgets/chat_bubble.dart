@@ -149,7 +149,7 @@ class ChatBubble extends StatelessWidget {
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        margin: const EdgeInsets.symmetric(vertical: 4),
         child: showCopyButton
             ? _BubbleWithCopy(bubble: bubble, message: message)
             : Row(

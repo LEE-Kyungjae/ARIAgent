@@ -626,7 +626,13 @@ class SKo extends S {
   String get currentAgent => '현재 에이전트';
 
   @override
-  String get agentSelect => '에이전트 선택';
+  String get pmAgentSection => 'PM Agent';
+
+  @override
+  String get domainAgentSection => 'Domain Agent';
+
+  @override
+  String get addDomainAgent => '에이전트 추가하기';
 
   @override
   String get newAvatar => '새로운 아바타';

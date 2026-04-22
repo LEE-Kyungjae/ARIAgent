@@ -10,7 +10,7 @@ import { notifyInstalledAppsChanged } from "../protocol/app.js";
 import { logger } from "../infra/logger.js";
 import { initAgent } from "../services/agent/index.js";
 import { execPromise } from "../tools/bash.js";
-import { removeAppIdFromAgent, isAppUsedByOtherAgents } from "../repositories/agent_repository.js";
+import { sweepPinnedAppFromAllAgents } from "../repositories/agent_repository.js";
 import { loadAllApps } from "../skills/index.js";
 
 /**
@@ -285,38 +285,29 @@ router.on("/DELETE_SKILL", async (ctx, params) => {
 });
 
 router.on("/DELETE_APP", async (ctx, params) => {
-  const { name, agentId } = params as { name: string; agentId?: string };
-  logger.info(`[Apps] Deleting app: ${name} (agentId: ${agentId ?? "none"})`);
+  const { name } = params as { name: string };
+  logger.info(`[Apps] Deleting app: ${name}`);
   if (!name) {
     return ctx.send("/DELETE_APP", { ok: false, error: "Name is required" });
   }
 
   try {
-    // 1. 에이전트 appIds 목록에서 제거
-    if (agentId) {
-      removeAppIdFromAgent(agentId, name);
-    }
+    // 앱은 top-level 엔티티 — 모든 에이전트의 핀 목록에서 청소하고 폴더 삭제
+    sweepPinnedAppFromAllAgents(name);
 
-    // 2. 다른 에이전트가 이 앱을 사용하는지 확인 — 없으면 폴더 삭제
-    // agentId 없이 호출된 경우 전체 에이전트 목록을 검사해 안전하게 처리
-    const usedByOthers = agentId
-      ? isAppUsedByOtherAgents(agentId, name)
-      : isAppUsedByOtherAgents("", name); // agentId ""는 어떤 에이전트와도 매칭 안 되므로 전체 체크
+    const appsDir = path.join(DATA_DIR, "apps", name);
+    const legacyDir = path.join(DATA_DIR, "skills", name);
+    const targetDir = fs.existsSync(appsDir)
+      ? appsDir
+      : fs.existsSync(legacyDir)
+        ? legacyDir
+        : null;
 
-    if (!usedByOthers) {
-      // 새 apps 디렉토리 우선, 레거시 skills 디렉토리도 확인
-      const appsDir = path.join(DATA_DIR, "apps", name);
-      const legacyDir = path.join(DATA_DIR, "skills", name);
-      const targetDir = fs.existsSync(appsDir) ? appsDir : fs.existsSync(legacyDir) ? legacyDir : null;
-
-      if (targetDir) {
-        rmDirSyncSafe(targetDir);
-        logger.info(`[Apps] App folder '${name}' removed (no other agents reference it)`);
-      } else {
-        logger.warn(`[Apps] App folder '${name}' not found on disk`);
-      }
+    if (targetDir) {
+      rmDirSyncSafe(targetDir);
+      logger.info(`[Apps] App folder '${name}' removed`);
     } else {
-      logger.info(`[Apps] App '${name}' folder kept — still referenced by other agents`);
+      logger.warn(`[Apps] App folder '${name}' not found on disk`);
     }
 
     await initAgent();

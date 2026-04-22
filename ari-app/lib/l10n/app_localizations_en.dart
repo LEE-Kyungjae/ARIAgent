@@ -642,7 +642,13 @@ class SEn extends S {
   String get currentAgent => 'Current Agent';
 
   @override
-  String get agentSelect => 'Select Agent';
+  String get pmAgentSection => 'PM Agent';
+
+  @override
+  String get domainAgentSection => 'Domain Agent';
+
+  @override
+  String get addDomainAgent => 'Add Agent';
 
   @override
   String get newAvatar => 'New Avatar';

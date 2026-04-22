@@ -299,7 +299,9 @@
   "goToSettings": "설정으로 이동",
 
   "currentAgent": "현재 에이전트",
-  "agentSelect": "에이전트 선택",
+  "pmAgentSection": "PM Agent",
+  "domainAgentSection": "Domain Agent",
+  "addDomainAgent": "에이전트 추가하기",
   "newAvatar": "새로운 아바타",
   "defaultAvatarName": "아리",
 

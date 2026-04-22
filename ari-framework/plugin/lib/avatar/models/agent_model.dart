@@ -21,6 +21,7 @@ class AgentModel extends ChangeNotifier {
   // ── 런타임: 앱 ───────────────────────────────────────────
   List<Map<String, dynamic>> _installedApps = [];
   Set<String> _connectedAppIds = {};
+  Set<String> _pinnedAppIds = {};
 
   // ── 런타임: 태스크 ───────────────────────────────────────
   List<AgentSchedule> _tasks = [];
@@ -66,6 +67,8 @@ class AgentModel extends ChangeNotifier {
       List.unmodifiable(_installedApps);
   Set<String> get connectedAppIds => Set.unmodifiable(_connectedAppIds);
   bool isAppConnected(String appId) => _connectedAppIds.contains(appId);
+  Set<String> get pinnedAppIds => Set.unmodifiable(_pinnedAppIds);
+  bool isAppPinned(String appId) => _pinnedAppIds.contains(appId);
 
   // ── 태스크 게터 ──────────────────────────────────────────
   List<AgentSchedule> get tasks => List.unmodifiable(_tasks);
@@ -137,6 +140,20 @@ class AgentModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setPinnedAppIds(Set<String> ids) {
+    _pinnedAppIds = ids;
+    notifyListeners();
+  }
+
+  void applyPinnedAppId(String appId, bool pinned) {
+    if (pinned) {
+      _pinnedAppIds = {..._pinnedAppIds, appId};
+    } else {
+      _pinnedAppIds = {..._pinnedAppIds}..remove(appId);
+    }
+    notifyListeners();
+  }
+
   // ── 태스크 상태 세터 ──────────────────────────────────────
   void setTasks(List<AgentSchedule> tasks) {
     _tasks = tasks;
@@ -181,6 +198,9 @@ class AgentModel extends ChangeNotifier {
       _installedApps = (res['apps'] as List? ?? [])
           .whereType<Map<String, dynamic>>()
           .toList();
+      _pinnedAppIds = (res['pinnedAppIds'] as List? ?? [])
+          .whereType<String>()
+          .toSet();
       notifyListeners();
     } catch (e) {
       debugPrint('[AgentModel($id)] loadApps failed: $e');

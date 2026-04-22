@@ -223,7 +223,9 @@
   "goToSettings": "Go to Settings",
 
   "currentAgent": "Current Agent",
-  "agentSelect": "Select Agent",
+  "pmAgentSection": "PM Agent",
+  "domainAgentSection": "Domain Agent",
+  "addDomainAgent": "Add Agent",
   "newAvatar": "New Avatar",
   "defaultAvatarName": "ARI",
 

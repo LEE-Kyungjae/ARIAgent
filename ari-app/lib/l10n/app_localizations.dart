@@ -1254,11 +1254,23 @@ abstract class S {
   /// **'현재 에이전트'**
   String get currentAgent;
 
-  /// No description provided for @agentSelect.
+  /// No description provided for @pmAgentSection.
   ///
   /// In ko, this message translates to:
-  /// **'에이전트 선택'**
-  String get agentSelect;
+  /// **'PM Agent'**
+  String get pmAgentSection;
+
+  /// No description provided for @domainAgentSection.
+  ///
+  /// In ko, this message translates to:
+  /// **'Domain Agent'**
+  String get domainAgentSection;
+
+  /// No description provided for @addDomainAgent.
+  ///
+  /// In ko, this message translates to:
+  /// **'에이전트 추가하기'**
+  String get addDomainAgent;
 
   /// No description provided for @newAvatar.
   ///

@@ -27,6 +27,7 @@ class _PlaceTabState extends State<PlaceTab> {
   final Random _random = Random();
   final Map<String, Offset> _avatarPositions = {};
   final Map<String, Offset> _devicePositions = {};
+  final Map<String, Offset> _appPositions = {};
   List<Map<String, dynamic>> _haDevices = [];
 
   @override
@@ -52,81 +53,147 @@ class _PlaceTabState extends State<PlaceTab> {
 
   Offset _randomDevicePosition() =>
       Offset(0.05 + _random.nextDouble() * 0.9,
-          0.15 + _random.nextDouble() * 0.45);
+          0.15 + _random.nextDouble() * 0.35);
+
+  Offset _randomAppPosition() =>
+      Offset(0.1 + _random.nextDouble() * 0.8,
+          0.35 + _random.nextDouble() * 0.2);
 
   Offset _randomPosition() =>
       Offset(0.12 + _random.nextDouble() * 0.76,
           0.6 + _random.nextDouble() * 0.22);
 
-  Widget _buildAppIcon(Map<String, dynamic> app, bool isConnected) {
+  Widget _buildFloatingApp(
+    Map<String, dynamic> app,
+    bool isConnected,
+    BoxConstraints constraints,
+  ) {
     final appId = app['name'] as String;
     final iconName = app['icon'] as String?;
+    final title = (app['title'] as String?) ?? appId;
+    final pos = _appPositions[appId]!;
 
-    return Padding(
-      padding: const EdgeInsets.only(right: 6),
-      child: Tooltip(
-        message: '${app['title'] ?? appId}${isConnected ? ' (${S.of(context).placeConnected})' : ''}',
+    return Positioned(
+      key: ValueKey('app-$appId'),
+      left: constraints.maxWidth * pos.dx - 26,
+      top: constraints.maxHeight * pos.dy - 26,
+      child: GestureDetector(
+        onTap: () => context.read<AgentProvider>().launchApp(appId),
+        onPanUpdate: (details) {
+          setState(() {
+            final current = _appPositions[appId]!;
+            _appPositions[appId] = Offset(
+              (current.dx + details.delta.dx / constraints.maxWidth)
+                  .clamp(0.0, 1.0),
+              (current.dy + details.delta.dy / constraints.maxHeight)
+                  .clamp(0.0, 1.0),
+            );
+          });
+        },
         child: MouseRegion(
           cursor: SystemMouseCursors.click,
-          child: GestureDetector(
-            onTap: () => context.read<AgentProvider>().launchApp(appId),
-            child: Stack(
+          child: Tooltip(
+            message:
+                '$title${isConnected ? ' (${S.of(context).placeConnected})' : ''}',
+            child: Opacity(
+              opacity: isConnected ? 1.0 : 0.6,
+              child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: isConnected
-                        ? const Color(0xFF6C63FF).withValues(alpha: 0.25)
-                        : Colors.black.withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isConnected
-                          ? const Color(0xFF63FF88).withValues(alpha: 0.6)
-                          : Colors.white.withValues(alpha: 0.15),
-                      width: isConnected ? 1.5 : 1.0,
-                    ),
-                  ),
-                  child: app['iconPath'] != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: Image.file(
-                            File(app['iconPath'] as String),
-                            width: 30,
-                            height: 30,
-                            fit: BoxFit.cover,
-                          ),
-                        )
-                      : Center(
-                          child: iconName != null
-                              ? Text(iconName,
-                                  style: const TextStyle(fontSize: 15))
-                              : Icon(Icons.extension_rounded,
-                                  size: 15,
-                                  color: Colors.white.withValues(alpha: 0.7)),
-                        ),
-                ),
-                if (isConnected)
-                  Positioned(
-                    right: 2,
-                    top: 2,
-                    child: Container(
-                      width: 7,
-                      height: 7,
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 53,
+                      height: 53,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF63FF88),
-                        shape: BoxShape.circle,
+                        color: isConnected
+                            ? const Color(0xFF6C63FF).withValues(alpha: 0.25)
+                            : Colors.black.withValues(alpha: 0.45),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isConnected
+                              ? const Color(0xFF63FF88).withValues(alpha: 0.6)
+                              : Colors.white.withValues(alpha: 0.2),
+                          width: isConnected ? 1.5 : 1.0,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF63FF88).withValues(alpha: 0.6),
-                            blurRadius: 4,
-                            spreadRadius: 1,
+                            color: Colors.black.withValues(alpha: 0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
+                      child: app['iconPath'] != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.file(
+                                File(app['iconPath'] as String),
+                                width: 53,
+                                height: 53,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : Center(
+                              child: iconName != null
+                                  ? Text(iconName,
+                                      style: const TextStyle(fontSize: 24))
+                                  : Icon(Icons.extension_rounded,
+                                      size: 24,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.7)),
+                            ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(6),
                   ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      if (isConnected) ...[
+                        const SizedBox(width: 4),
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF63FF88),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF63FF88)
+                                    .withValues(alpha: 0.6),
+                                blurRadius: 4,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ],
+            ),
             ),
           ),
         ),
@@ -218,39 +285,33 @@ class _PlaceTabState extends State<PlaceTab> {
                       );
                     });
                   },
-                  // 각 AgentModel을 직접 구독 → 앱/연결상태 변화 시 해당 위젯만 rebuild
-                  child: ListenableBuilder(
-                    listenable: avatar.profile,
-                    builder: (context, _) {
-                      final apps = avatar.profile.installedApps;
-                      final connectedIds = avatar.profile.connectedAppIds;
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AgentAvatar(item: avatar),
-                          if (apps.isNotEmpty) ...[
-                            const SizedBox(height: 6),
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: apps
-                                    .map((app) => _buildAppIcon(
-                                          app,
-                                          connectedIds.contains(
-                                              app['name'] as String),
-                                        ))
-                                    .toList(),
-                              ),
-                            ),
-                          ],
-                        ],
-                      );
-                    },
-                  ),
+                  child: AgentAvatar(item: avatar),
                 ),
               );
             }),
+
+            ListenableBuilder(
+              listenable: agent.currentAgent,
+              builder: (context, _) {
+                final apps = agent.currentAgent.installedApps;
+                final connectedIds = agent.currentAgent.connectedAppIds;
+                final activeIds =
+                    apps.map((a) => a['name'] as String).toSet();
+                _appPositions.removeWhere((id, _) => !activeIds.contains(id));
+                for (final id in activeIds) {
+                  _appPositions.putIfAbsent(id, () => _randomAppPosition());
+                }
+                return Stack(
+                  children: apps
+                      .map((app) => _buildFloatingApp(
+                            app,
+                            connectedIds.contains(app['name'] as String),
+                            constraints,
+                          ))
+                      .toList(),
+                );
+              },
+            ),
 
             Positioned(
               right: 16,
@@ -265,6 +326,9 @@ class _PlaceTabState extends State<PlaceTab> {
                   }
                   for (final id in _devicePositions.keys) {
                     _devicePositions[id] = _randomDevicePosition();
+                  }
+                  for (final id in _appPositions.keys) {
+                    _appPositions[id] = _randomAppPosition();
                   }
                 }),
                 child: const Icon(Icons.refresh, color: Colors.white),

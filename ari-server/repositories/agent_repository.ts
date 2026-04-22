@@ -25,42 +25,57 @@ export function saveAgents(agents: AgentsConfig | any): void {
 }
 
 /**
- * 특정 에이전트의 appIds에 appId를 추가하고 저장합니다.
- * 이미 목록에 있으면 아무 작업도 하지 않습니다.
+ * 특정 에이전트의 pinnedAppIds에 appId를 추가하고 저장합니다.
+ * 이미 핀되어 있으면 아무 작업도 하지 않습니다.
  */
-export function addAppIdToAgent(agentId: string, appId: string): void {
+export function pinAppToAgent(agentId: string, appId: string): boolean {
   const config = getAgentsConfig(new AgentsConfig());
   const agent = config.agents.find((a) => a.id === agentId);
   if (!agent) {
-    logger.warn(`[AgentRepo] addAppIdToAgent: agent '${agentId}' not found`);
-    return;
+    logger.warn(`[AgentRepo] pinAppToAgent: agent '${agentId}' not found`);
+    return false;
   }
-  if (agent.addAppId(appId)) {
+  if (agent.pinApp(appId)) {
     saveAgents(config);
-    logger.info(`[AgentRepo] Added app '${appId}' to agent '${agentId}'`);
+    logger.info(`[AgentRepo] Pinned app '${appId}' to agent '${agentId}'`);
+    return true;
   }
+  return false;
 }
 
 /**
- * 특정 에이전트의 appIds에서 appId를 제거하고 저장합니다.
+ * 특정 에이전트의 pinnedAppIds에서 appId를 제거하고 저장합니다.
  */
-export function removeAppIdFromAgent(agentId: string, appId: string): void {
+export function unpinAppFromAgent(agentId: string, appId: string): boolean {
   const config = getAgentsConfig(new AgentsConfig());
   const agent = config.agents.find((a) => a.id === agentId);
   if (!agent) {
-    logger.warn(`[AgentRepo] removeAppIdFromAgent: agent '${agentId}' not found`);
-    return;
+    logger.warn(`[AgentRepo] unpinAppFromAgent: agent '${agentId}' not found`);
+    return false;
   }
-  if (agent.removeAppId(appId)) {
+  if (agent.unpinApp(appId)) {
     saveAgents(config);
-    logger.info(`[AgentRepo] Removed app '${appId}' from agent '${agentId}'`);
+    logger.info(`[AgentRepo] Unpinned app '${appId}' from agent '${agentId}'`);
+    return true;
   }
+  return false;
 }
 
 /**
- * 지정한 agentId를 제외한 다른 에이전트 중 해당 appId를 사용하는 에이전트가 있는지 확인합니다.
+ * 모든 에이전트의 pinnedAppIds에서 주어진 appId 를 일괄 제거합니다.
+ * 앱 삭제 시 에이전트 핀 목록을 청소하기 위해 사용.
  */
-export function isAppUsedByOtherAgents(agentId: string, appId: string): boolean {
+export function sweepPinnedAppFromAllAgents(appId: string): number {
   const config = getAgentsConfig(new AgentsConfig());
-  return config.agents.some((a) => a.id !== agentId && a.appIds.includes(appId));
+  let changed = 0;
+  for (const agent of config.agents) {
+    if (agent.unpinApp(appId)) changed++;
+  }
+  if (changed > 0) {
+    saveAgents(config);
+    logger.info(
+      `[AgentRepo] Swept app '${appId}' from ${changed} agent(s) pinned list`,
+    );
+  }
+  return changed;
 }

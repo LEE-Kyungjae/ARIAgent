@@ -45,9 +45,12 @@ export async function buildSystemPrompt(
   const platform = agentProfile.platform?.trim() || process.platform;
   const loadedSkills = agentProfile.toLoadedSkills(agentProfile.activeSkills);
 
-  const apps = agentProfile.visibleSkills
-    .filter((s) => s.isApp)
-    .map((s) => ({ name: s.name, description: s.description }));
+  // 시스템 프롬프트에는 "핀된 앱"만 미리 소개한다. 호출 자체는
+  // list_apps / control_app 을 통해 어떤 앱이든 가능.
+  const apps = agentProfile.pinnedApps.map((s) => ({
+    name: s.name,
+    description: s.description,
+  }));
 
   // 템플릿 라우팅.
   //   - `ari` 세션: PM 역할 (`ari_pm_prompt.hbs`)

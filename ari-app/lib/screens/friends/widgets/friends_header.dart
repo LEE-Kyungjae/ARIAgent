@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../l10n/app_localizations.dart';
-
 class FriendsHeader extends StatelessWidget {
+  final String title;
   final int count;
 
-  const FriendsHeader({super.key, required this.count});
+  const FriendsHeader({super.key, required this.title, required this.count});
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +19,7 @@ class FriendsHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Text(
-            S.of(context).agentSelect,
+            title,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 15,

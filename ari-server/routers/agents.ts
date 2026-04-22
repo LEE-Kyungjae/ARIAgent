@@ -2,7 +2,12 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { router } from "../system/router.js";
-import { getAgentsConfig, saveAgents } from "../repositories/agent_repository.js";
+import {
+  getAgentsConfig,
+  saveAgents,
+  pinAppToAgent,
+  unpinAppFromAgent,
+} from "../repositories/agent_repository.js";
 import { AgentsConfig } from "../models/agent.js";
 
 router.on("/AGENTS", async (ctx, params) => {
@@ -29,6 +34,35 @@ router.on("/AGENTS.SET_SELECTED", async (ctx, params) => {
   config.selected = id;
   saveAgents(config);
   ctx.send("/AGENTS.SET_SELECTED", { ok: true, data: { success: true } });
+});
+
+router.on("/AGENTS.APP.PIN", async (ctx, params) => {
+  const agentId = params.agentId as string;
+  const appId = params.appId as string;
+  if (!agentId || !appId) {
+    return ctx.send("/AGENTS.APP.PIN", {
+      ok: false,
+      message: "agentId and appId required",
+    });
+  }
+  const changed = pinAppToAgent(agentId, appId);
+  ctx.send("/AGENTS.APP.PIN", { ok: true, data: { agentId, appId, changed } });
+});
+
+router.on("/AGENTS.APP.UNPIN", async (ctx, params) => {
+  const agentId = params.agentId as string;
+  const appId = params.appId as string;
+  if (!agentId || !appId) {
+    return ctx.send("/AGENTS.APP.UNPIN", {
+      ok: false,
+      message: "agentId and appId required",
+    });
+  }
+  const changed = unpinAppFromAgent(agentId, appId);
+  ctx.send("/AGENTS.APP.UNPIN", {
+    ok: true,
+    data: { agentId, appId, changed },
+  });
 });
 
 router.on("/AGENTS.IMAGE.SAVE", async (ctx, params) => {

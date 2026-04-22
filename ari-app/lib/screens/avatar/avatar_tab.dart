@@ -5,9 +5,9 @@ import 'package:provider/provider.dart';
 import 'tabs/profile_tab.dart';
 import 'tabs/memory_tab.dart';
 import 'schedule/schedule_tab.dart';
-import 'tabs/apps_tab.dart';
 import 'tabs/skills_tab.dart';
 import 'tabs/tools_tab.dart';
+import 'tabs/apps_tab.dart';
 import 'tabs/channels_tab.dart';
 import 'tabs/settings_tab.dart';
 import '../../providers/config_provider.dart';
@@ -39,7 +39,7 @@ class _AvatarTabState extends State<AvatarTab> {
       const Tab(text: 'Profile'),
       const Tab(text: 'Schedule'),
       const Tab(text: 'Memory'),
-      const Tab(text: 'Apps'),
+      const Tab(text: 'Domain'),
       if (showAdvanced) const Tab(text: 'Skills'),
       if (showAdvanced) const Tab(text: 'Tools'),
       const Tab(text: 'Channels'),

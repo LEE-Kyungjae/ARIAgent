@@ -99,20 +99,19 @@ router.on("/PLUGINS.SKILLS", async (ctx, _params) => {
 
 router.on("/PLUGINS.APPS", async (ctx, params) => {
   const agentId = params?.agentId as string | undefined;
-  logger.info(`[Plugins] Apps requested from ${ctx.uuid} (agentId: ${agentId ?? "all"})`);
+  logger.info(`[Plugins] Apps requested from ${ctx.uuid} (agentId: ${agentId ?? "none"})`);
   const { apps } = await getPluginsInfo();
 
-  // agentId가 전달된 경우, 해당 에이전트의 appIds 기준으로 필터링
+  // 앱은 top-level 엔티티 — 항상 전체 목록 반환.
+  // agentId 전달 시 해당 에이전트의 pinnedAppIds 만 같이 실어 UI 표시용으로 사용.
+  let pinnedAppIds: string[] = [];
   if (agentId) {
     const config = getAgentsConfig(new AgentsConfig());
     const agent = config.agents.find((a) => a.id === agentId);
-    if (agent) {
-      const filtered = agent.filterVisibleSkills(apps);
-      return ctx.send("/PLUGINS.APPS", { ok: true, data: { apps: filtered } });
-    }
+    pinnedAppIds = agent ? [...agent.pinnedAppIds] : [];
   }
 
-  ctx.send("/PLUGINS.APPS", { ok: true, data: { apps } });
+  ctx.send("/PLUGINS.APPS", { ok: true, data: { apps, pinnedAppIds } });
 });
 
 router.on("/PLUGINS.TOOLS", async (ctx, _params) => {

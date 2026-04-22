@@ -178,7 +178,22 @@ class AgentProvider extends ChangeNotifier {
     for (final agent in agentListNotifier.value) {
       await agent.loadApps();
     }
+    await _refreshConnectedApps();
     notifyListeners();
+  }
+
+  Future<void> _refreshConnectedApps() async {
+    try {
+      final res = await AriAgent.call('/GET_CONNECTED_APPS', {});
+      final ids = (res['connectedIds'] as List? ?? [])
+          .whereType<String>()
+          .toSet();
+      for (final agent in agentListNotifier.value) {
+        agent.setConnectedAppIds(ids);
+      }
+    } catch (e) {
+      debugPrint('[AgentProvider] refreshConnectedApps failed: $e');
+    }
   }
 
   // ── 에이전트 액션 ─────────────────────────────────────────
@@ -266,15 +281,46 @@ class AgentProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> deleteApp(String name, {String? agentId}) async {
+  Future<bool> deleteApp(String name) async {
     try {
-      await AriAgent.call('/DELETE_APP', {
-        'name': name,
-        'agentId': agentId ?? _currentAgentId,
-      });
+      await AriAgent.call('/DELETE_APP', {'name': name});
       return true;
     } catch (e) {
       debugPrint('[AgentProvider] deleteApp failed: $e');
+      return false;
+    }
+  }
+
+  Future<bool> pinApp(String appId) async {
+    final agent = currentAgent;
+    final wasPinned = agent.isAppPinned(appId);
+    agent.applyPinnedAppId(appId, true);
+    try {
+      await AriAgent.call('/AGENTS.APP.PIN', {
+        'agentId': agent.id,
+        'appId': appId,
+      });
+      return true;
+    } catch (e) {
+      debugPrint('[AgentProvider] pinApp failed: $e');
+      agent.applyPinnedAppId(appId, wasPinned);
+      return false;
+    }
+  }
+
+  Future<bool> unpinApp(String appId) async {
+    final agent = currentAgent;
+    final wasPinned = agent.isAppPinned(appId);
+    agent.applyPinnedAppId(appId, false);
+    try {
+      await AriAgent.call('/AGENTS.APP.UNPIN', {
+        'agentId': agent.id,
+        'appId': appId,
+      });
+      return true;
+    } catch (e) {
+      debugPrint('[AgentProvider] unpinApp failed: $e');
+      agent.applyPinnedAppId(appId, wasPinned);
       return false;
     }
   }
