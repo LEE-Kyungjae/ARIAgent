@@ -65,8 +65,32 @@ export function abortAgent(agentId: string): void {
   logger.info(`[Agent] Thinking aborted for: ${agentId}`);
 
   // 모든 abort 경로 일원화: origin 에 /AGENT.CANCEL 이벤트 발행.
-  if (originUuid) {
+  // ari-broadcast sub-agent 취소면 ari 소켓에도 송신 — ari 채팅창 thinking 정리용.
+  if (pending?.dispatchMode === "ari-broadcast") {
+    sendAgentCancel({ appId: "ari" }, { agentId, requestId });
+  } else if (originUuid) {
     sendAgentCancel({ uuid: originUuid }, { agentId, requestId });
+  }
+}
+
+/**
+ * ari 방 cascade 취소. 메인 세션 + 같은 parentRequestId 로 진행 중인 sub-agent 세션을 모두 abort.
+ * 유저 재발화(R1) 시 PM·참여 도메인 in-flight 를 일괄 정리한다.
+ */
+export function cancelAllInFlight(
+  agentId: string,
+  parentRequestId?: string,
+): void {
+  abortAgent(agentId);
+  if (!parentRequestId) return;
+
+  const subPrefix = `${parentRequestId}-`;
+  for (const { agentId: subAgentId, session } of listAgentSessions()) {
+    if (subAgentId === agentId) continue;
+    const subPending = session.currentPendingResponse;
+    if (subPending?.requestId.startsWith(subPrefix)) {
+      abortAgent(subAgentId);
+    }
   }
 }
 

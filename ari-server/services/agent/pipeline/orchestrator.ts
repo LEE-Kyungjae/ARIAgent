@@ -29,7 +29,7 @@ import {
   clearStaleRequests,
   decideQueueAction,
 } from "./request_queue.js";
-import { abortAgent, dropPendingResponse } from "../control.js";
+import { cancelAllInFlight, dropPendingResponse } from "../control.js";
 import { forwardToAgent } from "../../../protocol/agent.js";
 import { UserSocketHandler } from "../../../system/ws.js";
 import { appendChatLog } from "../../../repositories/chat_log_repository.js";
@@ -142,12 +142,14 @@ export async function submitAgentRequest(
   session.enqueueRequest(pendingResponse);
 
   // R1: 팔로업 큐잉 대신, 진행 중 추론이 있으면 즉시 취소 후 새 요청 실행.
+  // ari-broadcast 팬아웃이 진행 중이면 parentRequestId 로 sub-agent 세션도 cascade 취소.
   if (decideQueueAction(session) === "follow_up") {
+    const prevParentRequestId = session.currentPendingResponse?.requestId;
     logger.info(
-      `[Agent] Aborting in-flight request for ${agentId} (user re-entered)`,
+      `[Agent] Cancelling in-flight for ${agentId} (user re-entered, parent=${prevParentRequestId})`,
     );
-    abortAgent(agentId);
-    // abortAgent 가 큐를 비우므로 현재 요청을 재등록.
+    cancelAllInFlight(agentId, prevParentRequestId);
+    // cancelAllInFlight 가 큐를 비우므로 현재 요청을 재등록.
     session.enqueueRequest(pendingResponse);
   }
 
@@ -170,8 +172,13 @@ export async function submitAgentRequest(
   }
 
   // PM 실행과 병렬로 연결된 타 앱 (SARI 등) 에 포워딩.
-  // isInterAgent 재발행 요청은 이미 포워딩된 결과이므로 다시 팬아웃하지 않음 (무한 루프 방지).
-  if (!pendingResponse.isInterAgent && pendingResponse.appId === "ari") {
+  // - isInterAgent 재발행 요청은 이미 포워딩된 결과 → 다시 팬아웃 X (무한 루프 방지).
+  // - 스케줄러 발 (originUuid 없음) 은 R5 — PM 입구로만, 도메인엔 fanout X.
+  if (
+    !pendingResponse.isInterAgent &&
+    pendingResponse.appId === "ari" &&
+    pendingResponse.originUuid
+  ) {
     for (const appId of UserSocketHandler.getConnectedAppIds()) {
       if (appId === "ari") continue;
       forwardToAgent(appId, {

@@ -364,9 +364,22 @@ export class AgentSession {
         // control_app (`message` 모드) 에서 걸어둔 forward 대기를 해제한다.
         resolveForwardIfPending(pending.requestId, responseText);
       } else {
-        // "user": 일반 사용자 요청 — 호출자 소켓에만 응답.
+        // "user": 일반 사용자 요청 — 호출자 소켓에 응답.
+        // 스케줄러 발 (originUuid 없음) 의 PM 응답은 ari 소켓에 fallback push
+        // → ari 채팅창에 task 결과가 자연스럽게 뜸.
         if (pending.originUuid) {
           pushApp({ uuid: pending.originUuid }, {
+            ok: true,
+            data: {
+              response: responseText,
+              requestId: pending.requestId,
+              agentId: pending.agentId,
+              appId: pending.appId,
+              senderName: pending.senderName,
+            },
+          });
+        } else if (pending.appId === "ari") {
+          pushApp({ appId: "ari" }, {
             ok: true,
             data: {
               response: responseText,

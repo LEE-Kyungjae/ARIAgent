@@ -62,9 +62,12 @@ export const registerScheduleTool: AgentTool = {
     endAt: Type.Optional(Type.String({
       description: "스케줄 종료 일시 (ISO 8601). 반복 타입 전용. 이 시각 이후에는 실행 안 함. 생략 시 무한 반복. 예: '2026-06-30T23:59:59+09:00'",
     })),
+    target_appId: Type.Optional(Type.String({
+      description: "위임 대상 도메인 에이전트 appId (예: 'sari'). 지정 시 task 실행 시 PM 을 거치지 않고 해당 도메인에 직접 prompt 전달. ARI 방 응답으로 표시됨. 사용자가 '싸리에게 X 해' 같이 특정 도메인을 지목한 스케줄에 사용.",
+    })),
   }),
   execute: async (_toolCallId, params, _signal, _onUpdate) => {
-    const { scheduleType, every, hour, minute, days, day, month, prompt, label, startAt, endAt } = params as {
+    const { scheduleType, every, hour, minute, days, day, month, prompt, label, startAt, endAt, target_appId } = params as {
       scheduleType: string;
       every?: number;
       hour?: number;
@@ -76,6 +79,7 @@ export const registerScheduleTool: AgentTool = {
       label: string;
       startAt?: string;
       endAt?: string;
+      target_appId?: string;
     };
     const { agentId, appId } = resolveExecutionContext();
 
@@ -99,6 +103,7 @@ export const registerScheduleTool: AgentTool = {
         prompt, label, agentId, appId,
         isOneOff: true,
         startAt: runAt.toISOString(),
+        targetAppId: target_appId,
         // endAt = startAt + 59초 (서버에서 자동 설정)
       });
       return {
@@ -137,7 +142,7 @@ export const registerScheduleTool: AgentTool = {
 
     const specLabel = scheduleSpecToLabel(spec);
     logger.info(`📅 Tool[schedule]: ${label} (${specLabel}) [Agent: ${agentId}, startAt: ${startAt ?? "즉시"}, endAt: ${endAt ?? "무한"}]`);
-    await addScheduledTask({ scheduleSpec: spec, prompt, label, agentId, appId, isOneOff: false, startAt, endAt });
+    await addScheduledTask({ scheduleSpec: spec, prompt, label, agentId, appId, isOneOff: false, startAt, endAt, targetAppId: target_appId });
     return {
       content: [{ type: "text" as const, text: t("tool.schedule.registered", { label, schedule: specLabel }) }],
       details: {},

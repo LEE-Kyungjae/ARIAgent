@@ -56,6 +56,8 @@ export async function addScheduledTask(params: Record<string, unknown>): Promise
     // 알고 있다면 함께 저장한다. 실행 시점에 executeAgentRequest 로 전달.
     persona: params.persona,
     avatarName: params.avatarName,
+    // 명시적 도메인 위임 — 실행 시 PM 우회.
+    targetAppId: params.targetAppId,
   });
 
   addTask(task);

@@ -23,6 +23,10 @@ export class Task {
   // 생성자가 대상 앱을 알고 있으므로 그 시점에 함께 기록한다.
   persona?: string;
   avatarName?: string;
+  // 위임 대상 도메인 에이전트 appId.
+  // 지정되면 task 실행 시 PM 을 거치지 않고 해당 도메인에 forward.
+  // 응답은 ari 채팅창에 ari-broadcast 로 표시.
+  targetAppId?: string;
 
   constructor(data: any = {}) {
     this.id = data?.id || Date.now().toString();
@@ -42,6 +46,7 @@ export class Task {
     this.lastError = data?.lastError;
     this.persona = data?.persona;
     this.avatarName = data?.avatarName;
+    this.targetAppId = data?.targetAppId;
   }
 
   static fromJson(jsonStr: string | any): Task {
