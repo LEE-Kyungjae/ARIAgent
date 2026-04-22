@@ -21,6 +21,7 @@ class ConfigProvider extends ChangeNotifier {
   bool get showTaskMessages => _repository.getShowTaskMessages();
   bool get isExperimentalEnabled => _repository.getIsExperimentalEnabled();
   bool get showAdvancedDeveloperUI => _repository.getShowAdvancedDeveloperUI();
+  bool get isSpaceUnified => _repository.getIsSpaceUnified();
   String get backgroundTheme => _repository.getBackgroundTheme();
   String get localeCode => _repository.getLocale();
   Locale get locale => Locale(localeCode);
@@ -106,6 +107,11 @@ class ConfigProvider extends ChangeNotifier {
 
   Future<void> updateShowAdvancedDeveloperUI(bool value) async {
     await _repository.updateShowAdvancedDeveloperUI(value);
+    notifyListeners();
+  }
+
+  Future<void> updateIsSpaceUnified(bool value) async {
+    await _repository.updateIsSpaceUnified(value);
     notifyListeners();
   }
 

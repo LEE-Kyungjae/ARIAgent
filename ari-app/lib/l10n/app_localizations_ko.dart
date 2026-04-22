@@ -114,6 +114,9 @@ class SKo extends S {
   String get settingsPinToDesktop => '데스크탑에 고정 (항상 위)';
 
   @override
+  String get settingsPinToDesktopDesc => 'ARI 창이 다른 창 위에 항상 떠 있도록 유지합니다.';
+
+  @override
   String get settingsAvatarSize => '아바타 크기';
 
   @override
@@ -623,9 +626,6 @@ class SKo extends S {
   String get currentAgent => '현재 에이전트';
 
   @override
-  String get agentList => '목록';
-
-  @override
   String get agentSelect => '에이전트 선택';
 
   @override
@@ -1060,6 +1060,16 @@ class SKo extends S {
 
   @override
   String get appearanceLanguage => '언어';
+
+  @override
+  String get appearanceSpaceUsage => '공간 사용';
+
+  @override
+  String get appearanceUnifySpace => '플레이스와 리스트 통합';
+
+  @override
+  String get appearanceUnifySpaceDesc =>
+      '활성화하면 플레이스 탭에 공간 화면이 표시됩니다. 끄면 에이전트 목록이 표시됩니다.';
 
   @override
   String get placeWorking => '작업중';

@@ -116,6 +116,10 @@ class SEn extends S {
   String get settingsPinToDesktop => 'Pin to Desktop (Always on Top)';
 
   @override
+  String get settingsPinToDesktopDesc =>
+      'Keep the ARI window always above other windows.';
+
+  @override
   String get settingsAvatarSize => 'Avatar Size';
 
   @override
@@ -638,9 +642,6 @@ class SEn extends S {
   String get currentAgent => 'Current Agent';
 
   @override
-  String get agentList => 'List';
-
-  @override
   String get agentSelect => 'Select Agent';
 
   @override
@@ -1093,6 +1094,16 @@ class SEn extends S {
 
   @override
   String get appearanceLanguage => 'Language';
+
+  @override
+  String get appearanceSpaceUsage => 'Space Usage';
+
+  @override
+  String get appearanceUnifySpace => 'Unify Place and List';
+
+  @override
+  String get appearanceUnifySpaceDesc =>
+      'When enabled, the Place tab shows the space view. When disabled, it shows the agent list.';
 
   @override
   String get placeWorking => 'Working';

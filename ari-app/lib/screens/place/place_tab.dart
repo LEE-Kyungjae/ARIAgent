@@ -15,7 +15,9 @@ import 'widgets/ha_device_icon.dart';
 import 'widgets/ha_registration_sheet.dart';
 
 class PlaceTab extends StatefulWidget {
-  const PlaceTab({super.key});
+  final VoidCallback? onOpenChat;
+
+  const PlaceTab({super.key, this.onOpenChat});
 
   @override
   State<PlaceTab> createState() => _PlaceTabState();
@@ -64,63 +66,69 @@ class _PlaceTabState extends State<PlaceTab> {
       padding: const EdgeInsets.only(right: 6),
       child: Tooltip(
         message: '${app['title'] ?? appId}${isConnected ? ' (${S.of(context).placeConnected})' : ''}',
-        child: Stack(
-          children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: isConnected
-                    ? const Color(0xFF6C63FF).withValues(alpha: 0.25)
-                    : Colors.black.withValues(alpha: 0.45),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isConnected
-                      ? const Color(0xFF63FF88).withValues(alpha: 0.6)
-                      : Colors.white.withValues(alpha: 0.15),
-                  width: isConnected ? 1.5 : 1.0,
-                ),
-              ),
-              child: app['iconPath'] != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: Image.file(
-                        File(app['iconPath'] as String),
-                        width: 30,
-                        height: 30,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                  : Center(
-                      child: iconName != null
-                          ? Text(iconName,
-                              style: const TextStyle(fontSize: 15))
-                          : Icon(Icons.extension_rounded,
-                              size: 15,
-                              color: Colors.white.withValues(alpha: 0.7)),
-                    ),
-            ),
-            if (isConnected)
-              Positioned(
-                right: 2,
-                top: 2,
-                child: Container(
-                  width: 7,
-                  height: 7,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: () => context.read<AgentProvider>().launchApp(appId),
+            child: Stack(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF63FF88),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF63FF88).withValues(alpha: 0.6),
-                        blurRadius: 4,
-                        spreadRadius: 1,
-                      ),
-                    ],
+                    color: isConnected
+                        ? const Color(0xFF6C63FF).withValues(alpha: 0.25)
+                        : Colors.black.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isConnected
+                          ? const Color(0xFF63FF88).withValues(alpha: 0.6)
+                          : Colors.white.withValues(alpha: 0.15),
+                      width: isConnected ? 1.5 : 1.0,
+                    ),
                   ),
+                  child: app['iconPath'] != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: Image.file(
+                            File(app['iconPath'] as String),
+                            width: 30,
+                            height: 30,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : Center(
+                          child: iconName != null
+                              ? Text(iconName,
+                                  style: const TextStyle(fontSize: 15))
+                              : Icon(Icons.extension_rounded,
+                                  size: 15,
+                                  color: Colors.white.withValues(alpha: 0.7)),
+                        ),
                 ),
-              ),
-          ],
+                if (isConnected)
+                  Positioned(
+                    right: 2,
+                    top: 2,
+                    child: Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF63FF88),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF63FF88).withValues(alpha: 0.6),
+                            blurRadius: 4,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -190,6 +198,12 @@ class _PlaceTabState extends State<PlaceTab> {
                 left: constraints.maxWidth * pos.dx - 48,
                 top: constraints.maxHeight * pos.dy - 62,
                 child: GestureDetector(
+                  onDoubleTap: () {
+                    context
+                        .read<AgentProvider>()
+                        .switchAvatar(avatar.profile.id);
+                    widget.onOpenChat?.call();
+                  },
                   onPanUpdate: (details) {
                     setState(() {
                       final current =

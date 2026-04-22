@@ -34,12 +34,48 @@ class AppearanceSettings extends StatelessWidget {
                         S.of(context).settingsPinToDesktop,
                         style: TextStyle(color: Colors.white, fontSize: 13),
                       ),
+                      subtitle: Text(
+                        S.of(context).settingsPinToDesktopDesc,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 11,
+                        ),
+                      ),
                       value: configProvider.isPinned,
                       activeColor: const Color(0xFF6C63FF),
                       onChanged: (val) async {
                         await configProvider.updateIsPinned(val);
                         await windowManager.setAlwaysOnTop(val);
                       },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  _sectionTitle(S.of(context).appearanceSpaceUsage),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: SwitchListTile(
+                      title: Text(
+                        S.of(context).appearanceUnifySpace,
+                        style: TextStyle(color: Colors.white, fontSize: 13),
+                      ),
+                      subtitle: Text(
+                        S.of(context).appearanceUnifySpaceDesc,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 11,
+                        ),
+                      ),
+                      value: configProvider.isSpaceUnified,
+                      activeColor: const Color(0xFF6C63FF),
+                      onChanged: (val) =>
+                          configProvider.updateIsSpaceUnified(val),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -58,31 +94,39 @@ class AppearanceSettings extends StatelessWidget {
                       ),
                     ),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Text(
                           S.of(context).settingsAvatarSize,
                           style: const TextStyle(color: Colors.white, fontSize: 13),
                         ),
-                        const Spacer(),
-                        _configButton(
-                          context,
-                          S.of(context).settingsAvatarSizeSmall,
-                          configProvider.avatarSize == 'small',
-                          () => configProvider.updateAvatarSize('small'),
-                        ),
-                        const SizedBox(width: 6),
-                        _configButton(
-                          context,
-                          S.of(context).settingsAvatarSizeMedium,
-                          configProvider.avatarSize == 'medium',
-                          () => configProvider.updateAvatarSize('medium'),
-                        ),
-                        const SizedBox(width: 6),
-                        _configButton(
-                          context,
-                          S.of(context).appearanceLarge,
-                          configProvider.avatarSize == 'large',
-                          () => configProvider.updateAvatarSize('large'),
+                        Flexible(
+                          child: Wrap(
+                            alignment: WrapAlignment.end,
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              _configButton(
+                                context,
+                                S.of(context).settingsAvatarSizeSmall,
+                                configProvider.avatarSize == 'small',
+                                () => configProvider.updateAvatarSize('small'),
+                              ),
+                              _configButton(
+                                context,
+                                S.of(context).settingsAvatarSizeMedium,
+                                configProvider.avatarSize == 'medium',
+                                () => configProvider.updateAvatarSize('medium'),
+                              ),
+                              _configButton(
+                                context,
+                                S.of(context).appearanceLarge,
+                                configProvider.avatarSize == 'large',
+                                () => configProvider.updateAvatarSize('large'),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -103,24 +147,33 @@ class AppearanceSettings extends StatelessWidget {
                       ),
                     ),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Text(
                           S.of(context).appearanceLanguage,
                           style: const TextStyle(color: Colors.white, fontSize: 13),
                         ),
-                        const Spacer(),
-                        _configButton(
-                          context,
-                          '한국어',
-                          configProvider.localeCode == 'ko',
-                          () => configProvider.updateLocale('ko'),
-                        ),
-                        const SizedBox(width: 6),
-                        _configButton(
-                          context,
-                          'English',
-                          configProvider.localeCode == 'en',
-                          () => configProvider.updateLocale('en'),
+                        Flexible(
+                          child: Wrap(
+                            alignment: WrapAlignment.end,
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              _configButton(
+                                context,
+                                '한국어',
+                                configProvider.localeCode == 'ko',
+                                () => configProvider.updateLocale('ko'),
+                              ),
+                              _configButton(
+                                context,
+                                'English',
+                                configProvider.localeCode == 'en',
+                                () => configProvider.updateLocale('en'),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -141,38 +194,49 @@ class AppearanceSettings extends StatelessWidget {
                       ),
                     ),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Text(
                           S.of(context).appearanceBgTheme,
                           style: const TextStyle(color: Colors.white, fontSize: 13),
                         ),
-                        const Spacer(),
-                        _configButton(
-                          context,
-                          S.of(context).appearanceDark,
-                          configProvider.backgroundTheme == 'dark',
-                          () => configProvider.updateBackgroundTheme('dark'),
-                        ),
-                        const SizedBox(width: 6),
-                        _configButton(
-                          context,
-                          S.of(context).appearanceBlue,
-                          configProvider.backgroundTheme == 'blue',
-                          () => configProvider.updateBackgroundTheme('blue'),
-                        ),
-                        const SizedBox(width: 6),
-                        _configButton(
-                          context,
-                          S.of(context).appearancePurple,
-                          configProvider.backgroundTheme == 'purple',
-                          () => configProvider.updateBackgroundTheme('purple'),
-                        ),
-                        const SizedBox(width: 6),
-                        _configButton(
-                          context,
-                          S.of(context).appearanceGray,
-                          configProvider.backgroundTheme == 'gray',
-                          () => configProvider.updateBackgroundTheme('gray'),
+                        Flexible(
+                          child: Wrap(
+                            alignment: WrapAlignment.end,
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              _configButton(
+                                context,
+                                S.of(context).appearanceDark,
+                                configProvider.backgroundTheme == 'dark',
+                                () =>
+                                    configProvider.updateBackgroundTheme('dark'),
+                              ),
+                              _configButton(
+                                context,
+                                S.of(context).appearanceBlue,
+                                configProvider.backgroundTheme == 'blue',
+                                () =>
+                                    configProvider.updateBackgroundTheme('blue'),
+                              ),
+                              _configButton(
+                                context,
+                                S.of(context).appearancePurple,
+                                configProvider.backgroundTheme == 'purple',
+                                () => configProvider
+                                    .updateBackgroundTheme('purple'),
+                              ),
+                              _configButton(
+                                context,
+                                S.of(context).appearanceGray,
+                                configProvider.backgroundTheme == 'gray',
+                                () =>
+                                    configProvider.updateBackgroundTheme('gray'),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -209,6 +273,8 @@ class AppearanceSettings extends StatelessWidget {
           ),
         ),
         child: Center(
+          widthFactor: 1.0,
+          heightFactor: 1.0,
           child: Text(
             label,
             style: TextStyle(

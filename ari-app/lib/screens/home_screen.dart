@@ -34,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   static const String _launcherExecutableName = 'ARI_Launcher.exe';
 
   final AppUpdateService _appUpdateService = const AppUpdateService();
-  int _currentTab = 1;
+  int _currentTab = 0;
   AppUpdateInfo? _availableUpdate;
   Timer? _updateTimer;
 
@@ -175,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
             currentTab: _currentTab,
             isLight: isLight,
             onTabSelected: (index) {
-              if (index == 0) {
+              if (index == 1 && !config.isSpaceUnified) {
                 AgentProvider().refreshAvatars();
                 AgentProvider().refreshTasks();
               }
@@ -184,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
               });
             },
           ),
-          Expanded(child: _buildTabContent()),
+          Expanded(child: _buildTabContent(config.isSpaceUnified)),
         ],
       ),
     );
@@ -208,13 +208,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildTabContent() {
+  Widget _buildTabContent(bool isSpaceUnified) {
     return IndexedStack(
       index: _currentTab,
       children: [
-        FriendsTab(onOpenChat: () => setState(() => _currentTab = 1)),
         const ChatTab(),
-        _withServerGuard(const PlaceTab()),
+        isSpaceUnified
+            ? _withServerGuard(
+                PlaceTab(onOpenChat: () => setState(() => _currentTab = 0)),
+              )
+            : FriendsTab(onOpenChat: () => setState(() => _currentTab = 0)),
         _withServerGuard(const AvatarTab()),
         const SettingsTab(),
       ],
@@ -226,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
       listenable: ServerProvider(),
       builder: (context, _) => !ServerProvider().isRunning
           ? HomeServerRequiredOverlay(
-              onGoToSettings: () => setState(() => _currentTab = 4),
+              onGoToSettings: () => setState(() => _currentTab = 3),
             )
           : child,
     );

@@ -19,28 +19,22 @@ class HomeTabDefinition {
 List<HomeTabDefinition> homeTabs = <HomeTabDefinition>[
   HomeTabDefinition(
     index: 0,
-    icon: Icons.people_alt_rounded,
-    labelBuilder: (l10n) => l10n.agentList,
-  ),
-  HomeTabDefinition(
-    index: 1,
     icon: Icons.chat_bubble_rounded,
     labelBuilder: (l10n) => l10n.tabChat,
   ),
   HomeTabDefinition(
-    index: 2,
+    index: 1,
     icon: Icons.explore_rounded,
     labelBuilder: (l10n) => l10n.tabPlace,
-    requiresServer: true,
   ),
   HomeTabDefinition(
-    index: 3,
+    index: 2,
     icon: Icons.person_rounded,
     labelBuilder: (l10n) => l10n.tabAvatar,
     requiresServer: true,
   ),
   HomeTabDefinition(
-    index: 4,
+    index: 3,
     icon: Icons.settings_rounded,
     labelBuilder: (l10n) => l10n.tabSettings,
   ),

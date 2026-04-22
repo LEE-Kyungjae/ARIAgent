@@ -16,6 +16,7 @@ class ConfigRepository {
   bool _showTaskMessages = true;
   bool _isExperimentalEnabled = false;
   bool _showAdvancedDeveloperUI = false;
+  bool _isSpaceUnified = false;
   String _avatarSize = 'medium';
   String _backgroundTheme = 'dark';
   String _locale = 'en';
@@ -93,6 +94,9 @@ class ConfigRepository {
           _showAdvancedDeveloperUI =
               _fullConfig['SHOW_ADVANCED_DEVELOPER_UI'] == true;
         }
+        if (_fullConfig['IS_SPACE_UNIFIED'] != null) {
+          _isSpaceUnified = _fullConfig['IS_SPACE_UNIFIED'] == true;
+        }
         if (_fullConfig['AVATAR_SIZE'] != null) {
           _avatarSize = _fullConfig['AVATAR_SIZE'].toString();
         }
@@ -137,6 +141,7 @@ class ConfigRepository {
     _fullConfig['SHOW_TASK_MESSAGES'] = _showTaskMessages;
     _fullConfig['IS_EXPERIMENTAL_ENABLED'] = _isExperimentalEnabled;
     _fullConfig['SHOW_ADVANCED_DEVELOPER_UI'] = _showAdvancedDeveloperUI;
+    _fullConfig['IS_SPACE_UNIFIED'] = _isSpaceUnified;
     _fullConfig['AVATAR_SIZE'] = _avatarSize;
     _fullConfig['BACKGROUND_THEME'] = _backgroundTheme;
     _fullConfig['LOCALE'] = _locale;
@@ -216,6 +221,15 @@ class ConfigRepository {
 
   Future<void> updateShowAdvancedDeveloperUI(bool value) async {
     _showAdvancedDeveloperUI = value;
+    await _saveConfig();
+  }
+
+  bool getIsSpaceUnified() {
+    return _isSpaceUnified;
+  }
+
+  Future<void> updateIsSpaceUnified(bool value) async {
+    _isSpaceUnified = value;
     await _saveConfig();
   }
 

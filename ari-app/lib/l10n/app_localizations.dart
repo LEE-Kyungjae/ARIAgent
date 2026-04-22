@@ -307,6 +307,12 @@ abstract class S {
   /// **'데스크탑에 고정 (항상 위)'**
   String get settingsPinToDesktop;
 
+  /// No description provided for @settingsPinToDesktopDesc.
+  ///
+  /// In ko, this message translates to:
+  /// **'ARI 창이 다른 창 위에 항상 떠 있도록 유지합니다.'**
+  String get settingsPinToDesktopDesc;
+
   /// No description provided for @settingsAvatarSize.
   ///
   /// In ko, this message translates to:
@@ -1248,12 +1254,6 @@ abstract class S {
   /// **'현재 에이전트'**
   String get currentAgent;
 
-  /// No description provided for @agentList.
-  ///
-  /// In ko, this message translates to:
-  /// **'목록'**
-  String get agentList;
-
   /// No description provided for @agentSelect.
   ///
   /// In ko, this message translates to:
@@ -2063,6 +2063,24 @@ abstract class S {
   /// In ko, this message translates to:
   /// **'언어'**
   String get appearanceLanguage;
+
+  /// No description provided for @appearanceSpaceUsage.
+  ///
+  /// In ko, this message translates to:
+  /// **'공간 사용'**
+  String get appearanceSpaceUsage;
+
+  /// No description provided for @appearanceUnifySpace.
+  ///
+  /// In ko, this message translates to:
+  /// **'플레이스와 리스트 통합'**
+  String get appearanceUnifySpace;
+
+  /// No description provided for @appearanceUnifySpaceDesc.
+  ///
+  /// In ko, this message translates to:
+  /// **'활성화하면 플레이스 탭에 공간 화면이 표시됩니다. 끄면 에이전트 목록이 표시됩니다.'**
+  String get appearanceUnifySpaceDesc;
 
   /// No description provided for @placeWorking.
   ///
