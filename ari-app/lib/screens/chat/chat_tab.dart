@@ -41,7 +41,7 @@ class _ChatTabState extends State<ChatTab> {
   void _onConnectionChanged() {
     if (AriAgent.isConnected) {
       if (_lastAgentId != null) {
-        context.read<AriChatProvider>().loadServerHistory(_lastAgentId!, appId: 'ari_agent');
+        context.read<AriChatProvider>().loadServerHistory(_lastAgentId!, appId: 'ari');
       }
       context.read<ConfigProvider>().getServerHealth();
     }
@@ -64,14 +64,14 @@ class _ChatTabState extends State<ChatTab> {
       _lastConnected = isConnected;
       chatProvider.setFilterAgentId(avatarId);
       if (isConnected) {
-        Future.microtask(() => chatProvider.loadServerHistory(avatarId, appId: 'ari_agent'));
+        Future.microtask(() => chatProvider.loadServerHistory(avatarId, appId: 'ari'));
       }
     }
 
     final Widget? overlay = isServerRunning ? null : const ServerStoppedView();
 
     return AriChatPanel(
-      appId: 'ari_agent',
+      appId: 'ari',
       messages: chatProvider.messages,
       onSend: (text) => chatProvider.sendAgentMessage(
         text,

@@ -77,7 +77,7 @@ class _SettingsTabContent extends StatelessWidget {
                 if (context.mounted) {
                   await context.read<AriChatProvider>().clearServerHistory(
                     avatarId,
-                    appId: 'ari_agent',
+                    appId: 'ari',
                   );
                 }
               },

@@ -123,7 +123,9 @@ class AriChatProvider extends ChangeNotifier {
       if (requestId.isNotEmpty &&
           _messages.any(
             (m) => !m.isUser && !m.isSystem && m.requestId == requestId,
-          )) return;
+          )) {
+        return;
+      }
 
       _messages.add(AriChatMessage(
         text: response,

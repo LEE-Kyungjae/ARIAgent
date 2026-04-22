@@ -28,6 +28,7 @@ router.on("/AGENT", async (ctx, params) => {
       persona: (params.persona as string | undefined) || "",
       avatarName: (params.avatarName as string | undefined) || "",
       platform: (params.platform as string | undefined) || "",
+      agentId: params.agentId as string | undefined,
       appId: params.appId as string | undefined,
       socketAppId: ctx.appId,
       // 원본 소켓 uuid. 응답 라우팅 타겟.

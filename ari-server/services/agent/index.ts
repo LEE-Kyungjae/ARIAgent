@@ -1,49 +1,58 @@
-import { AgentMessage } from "@mariozechner/pi-agent-core";
-import { getSettings } from "../../repositories/setting_repository.js";
 import { getAgentsConfig } from "../../repositories/agent_repository.js";
-import { appendChatLog, readRecentUserMessages } from "../../repositories/chat_log_repository.js";
 import { AgentInfo, AgentsConfig } from "../../models/agent.js";
 import {
   ChatWithAgentResult,
   PendingAgentResponse,
 } from "../../models/agent_response.js";
-import {
-  Settings,
-  AIProviderConfig,
-  AIProviders,
-  AvailablePlugins,
-} from "../../models/settings.js";
 import { logger } from "../../infra/logger.js";
 import { buildSystemPrompt, pruneContext } from "./context_builder.js";
 import { extractFinalResponseText } from "./response_parser.js";
-import { getOAuthStatus } from "../oauth/index.js";
-import { Prompt } from "../../infra/prompt.js";
 import { runWithExecutionContext } from "./execution_context.js";
-import {
-  clearAgentSession,
-  clearAllAgentSessions,
-  getOrCreateSession,
-  getSession,
-  listAgentSessions,
-} from "./session_manager.js";
-import {
-  clearSkillCache,
-  loadAvailableApps,
-  loadAvailableSkills,
-  loadSkillsForPrompt,
-} from "../tools/skill_registry.js";
-import { clearToolCache, loadMainTools } from "../tools/tool_registry.js";
-import { isOAuthProvider, ARI_CLOUD_PROVIDER } from "./provider_selector.js";
-import { UserSocketHandler } from "../../system/ws.js";
-import { loadAllApps } from "../../skills/index.js";
-import { readRecentDailyLogs } from "../memory.js";
+import { getOrCreateSession } from "./session_manager.js";
+import { loadAvailableSkills } from "../tools/skill_registry.js";
+import { loadMainTools } from "../tools/tool_registry.js";
 
-// 에이전트 간 전달 체인 기본 TTL. `/AGENT` 에 ttl 미지정 시 적용.
-const DEFAULT_INTER_AGENT_TTL = 5;
-
-const agentState = new AIProviders();
-let currentTools = [] as Awaited<ReturnType<typeof loadMainTools>>;
-let currentSkills = [] as Awaited<ReturnType<typeof loadAvailableSkills>>;
+import {
+  DEFAULT_INTER_AGENT_TTL,
+  isRequestCancellationError,
+  resolveInterAgentTarget,
+} from "./inter_agent.js";
+import { createProgressFanout } from "./progress_fanout.js";
+import {
+  composeUserMessage,
+  normalizeDetailEntries,
+  resolveAppIdFromPlatform,
+} from "./request_builder.js";
+import {
+  agentState,
+  getCurrentSkills,
+  getCurrentTools,
+  setCurrentSkills,
+  setCurrentTools,
+} from "./bootstrap.js";
+import {
+  broadcastEchoResponse,
+  buildEchoMessage,
+  isEchoMode,
+} from "./echo_mode.js";
+import {
+  applyFollowUp,
+  clearStaleRequests,
+  decideQueueAction,
+} from "./queue_router.js";
+export {
+  getCurrentState,
+  getPluginsInfo,
+  initAgent,
+} from "./bootstrap.js";
+export {
+  abortAgent,
+  abortAgentsForOrigin,
+  canCancelAgent,
+  clearAgentInstance,
+  dropPendingResponse,
+} from "./control.js";
+import { dropPendingResponse } from "./control.js";
 
 function getSessionForAgent(agentProfile: AgentInfo) {
   return getOrCreateSession(
@@ -79,124 +88,6 @@ type ExecuteAgentRequestParams = {
   ttl?: number;
 };
 
-/**
- * `/AGENT` 라우팅 메타 해석.
- * - `to`: 대상 에이전트 appId (생략 시 sender 자기 자신).
- * - `from`: 발신 appId (생략 시 socketAppId).
- */
-function resolveInterAgentTarget(
-  params: { from?: string; to?: string },
-  socketAppId?: string,
-): { targetAgentId: string; fromAppId?: string; toAppId?: string } {
-  const fromAppId = params.from?.trim() || socketAppId || undefined;
-  const explicitTo = params.to?.trim();
-  const toAppId = explicitTo || fromAppId;
-
-  const targetAgentId =
-    toAppId || getAgentsConfig(new AgentsConfig()).selected || "default";
-
-  return { targetAgentId, fromAppId, toAppId };
-}
-
-function isRequestCancellationError(error: unknown): boolean {
-  if (!(error instanceof Error)) {
-    return false;
-  }
-
-  const message = error.message.toLowerCase();
-  return (
-    message.includes("request aborted") ||
-    message.includes("request queue reset")
-  );
-}
-
-export async function initAgent(providersConfig?: AIProviders): Promise<void> {
-  const globalSettings = getSettings(new Settings()) || {};
-  const state = agentState;
-
-  clearToolCache();
-  clearSkillCache();
-  currentTools = await loadMainTools();
-  currentSkills = await loadSkillsForPrompt();
-
-  if (providersConfig && providersConfig.providers.length > 0) {
-    state.setProviders(providersConfig.providers);
-  } else if (globalSettings.PROVIDERS && globalSettings.PROVIDERS.length > 0) {
-    state.setProviders(globalSettings.PROVIDERS);
-  } else {
-    const defaultProvider = globalSettings.PROVIDER || "openai-codex";
-    state.setProviders([
-      new AIProviderConfig({
-        provider: defaultProvider,
-        model: globalSettings.OPENAI_MODEL || "gpt-5.3-codex",
-        apiKey: globalSettings.OPENAI_API_KEY || "",
-        authType: defaultProvider === "openai-codex" ? "oauth" : "apikey",
-      }),
-    ]);
-  }
-  const active =
-    state.providers.find((provider) => !!provider.apiKey) || state.providers[0];
-  state.currentModel =
-    active?.model || globalSettings.OPENAI_MODEL || "gpt-5.3-codex";
-  state.currentProvider =
-    active?.provider || globalSettings.PROVIDER || "openai-codex";
-
-  state.setAvailableProviders(
-    (state.providers || []).filter((provider: AIProviderConfig) => {
-      if (provider.apiKey) return true;
-      if (provider.authType === "oauth" || isOAuthProvider(provider.provider)) {
-        const oauthStatus = getOAuthStatus(provider.accountId);
-        if (!oauthStatus.loggedIn) {
-          logger.warn(
-            `[Agent] OAuth provider ${provider.provider} (${provider.accountId}) is not logged in. Skipping.`,
-          );
-          return false;
-        }
-        return true;
-      }
-      return false;
-    }),
-  );
-  clearAllAgentSessions();
-
-  if (state.availableProviders.length === 0) {
-    // 사용 가능한 프로바이더가 없으면 ARICloud 프록시를 통한 setup agent 모드로 전환
-    const cloudSetupProvider = new AIProviderConfig({
-      provider: ARI_CLOUD_PROVIDER,
-      model: "gpt-4.1-mini",
-      apiKey: "ari-cloud",
-      authType: "apikey",
-    });
-    state.setAvailableProviders([cloudSetupProvider]);
-    state.currentProvider = ARI_CLOUD_PROVIDER;
-    state.currentModel = "gpt-4.1-mini";
-    logger.info(
-      "🌐 Setup 모드 — ARICloud 프록시를 통해 앱 사용 가이드 에이전트가 활성화됩니다.",
-    );
-    return;
-  }
-
-  logger.info(
-    `✅ Agent initialized. (${state.availableProviders.length} providers loaded, current: ${state.currentProvider}/${state.currentModel})`,
-  );
-}
-
-export function getCurrentState() {
-  return agentState;
-}
-
-export async function getPluginsInfo(): Promise<AvailablePlugins> {
-  getSettings(new Settings());
-  if (currentTools.length === 0) {
-    currentTools = await loadMainTools();
-  }
-  const [skills, apps] = await Promise.all([
-    loadAvailableSkills(),
-    loadAvailableApps(),
-  ]);
-  return { tools: currentTools, skills, apps };
-}
-
 export async function chatWithAgent(
   message: string,
   agentProfile: AgentInfo = new AgentInfo(),
@@ -212,20 +103,18 @@ export async function chatWithAgent(
     id: currentAgentId,
   });
 
-  if (agentState.availableProviders.length === 0) {
-    return {
-      responseText: `[에코 모드] "${message}"\n\n⚠️ Settings에서 하나 이상의 AI Provider API Key를 추가하세요.`,
-    };
+  if (isEchoMode()) {
+    return { responseText: buildEchoMessage(message) };
   }
 
-  if (currentTools.length === 0) {
-    currentTools = await loadMainTools();
+  if (getCurrentTools().length === 0) {
+    setCurrentTools(await loadMainTools());
   }
 
-  currentSkills = await loadAvailableSkills();
+  setCurrentSkills(await loadAvailableSkills());
 
   const session = getSessionForAgent(currentAgentProfile);
-  session.agentInfo.availableSkills = currentSkills;
+  session.agentInfo.availableSkills = getCurrentSkills();
   session.ensureLifecycleAttached();
   if (pendingResponse) {
     session.enqueueRequest(pendingResponse);
@@ -283,40 +172,8 @@ export async function submitAgentRequest(
     id: agentId,
   });
 
-  if (agentState.availableProviders.length === 0) {
-    const responseText = `[에코 모드] "${message}"\n\n⚠️ Settings에서 하나 이상의 AI Provider API Key를 추가하세요.`;
-    UserSocketHandler.sendToOrigin(
-      pendingResponse.originUuid,
-      "/AGENT.REQUEST",
-      {
-        message: pendingResponse.originalMessage,
-        requestId: pendingResponse.requestId,
-      },
-    );
-    appendChatLog(pendingResponse.appId, agentId, {
-      type: "chat",
-      isUser: true,
-      message: pendingResponse.originalMessage,
-      requestId: pendingResponse.requestId,
-    });
-    appendChatLog(pendingResponse.appId, agentId, {
-      type: "chat",
-      isUser: false,
-      message: responseText,
-      requestId: pendingResponse.requestId,
-    });
-    UserSocketHandler.sendToOrigin(
-      pendingResponse.originUuid,
-      "/APP.PUSH",
-      {
-        ok: true,
-        data: {
-          response: responseText,
-          requestId: pendingResponse.requestId,
-          appId: pendingResponse.appId,
-        },
-      },
-    );
+  if (isEchoMode()) {
+    broadcastEchoResponse(message, agentId, pendingResponse);
     return { status: "broadcasted" };
   }
 
@@ -324,61 +181,19 @@ export async function submitAgentRequest(
   session.ensureLifecycleAttached();
   session.enqueueRequest(pendingResponse);
 
-  if (session.agent.state.isStreaming) {
-    session.agent.followUp({
-      role: "user",
-      content: [{ type: "text", text: message }],
-      timestamp: Date.now(),
-    } as AgentMessage);
-    UserSocketHandler.sendToOrigin(
-      pendingResponse.originUuid,
-      "/AGENT.FOLLOW_UP",
-      {
-        ok: true,
-        data: {
-          requestId: pendingResponse.requestId,
-          message: pendingResponse.originalMessage,
-          agentId,
-          reason: "busy",
-        },
-      },
-    );
-    logger.info(
-      `[Agent] Follow-up queued for ${agentId} (${pendingResponse.requestId})`,
-    );
+  if (decideQueueAction(session) === "follow_up") {
+    applyFollowUp(session, message, agentId, pendingResponse);
     return { status: "follow_up" };
   }
 
-  if (
-    session.currentPendingResponse &&
-    session.currentPendingResponse.requestId !== pendingResponse.requestId
-  ) {
-    logger.warn(
-      `[Agent] Clearing stale current pending request for ${agentId}: ${session.currentPendingResponse.requestId}`,
-    );
-    session.currentPendingResponse = null;
-  }
-
-  const stalePendingRequests = session.pendingResponses.filter(
-    (item) => item.requestId !== pendingResponse.requestId,
-  );
-  if (stalePendingRequests.length > 0) {
-    logger.warn(
-      `[Agent] Clearing ${stalePendingRequests.length} stale pending request(s) before immediate execution for ${agentId}.`,
-    );
-    session.pendingResponses = session.pendingResponses.filter(
-      (item) => item.requestId === pendingResponse.requestId,
-    );
-  }
-
+  clearStaleRequests(session, pendingResponse.requestId, agentId);
   session.beginNextRequest();
-  const result = await chatWithAgent(message, agentProfile, onProgress, pendingResponse);
 
+  const result = await chatWithAgent(message, agentProfile, onProgress, pendingResponse);
   if (result.aborted) {
     session.removeRequest(pendingResponse.requestId);
     return { status: "cancelled" };
   }
-
   return { status: "broadcasted" };
 }
 
@@ -397,7 +212,7 @@ export async function submitAgentRequestAndWait(
     id: agentId,
   });
 
-  if (agentState.availableProviders.length === 0) {
+  if (isEchoMode()) {
     const result = await submitAgentRequest(
       message,
       currentAgentProfile,
@@ -406,7 +221,7 @@ export async function submitAgentRequestAndWait(
     );
     return {
       status: result.status,
-      responseText: `[에코 모드] "${message}"\n\n⚠️ Settings에서 하나 이상의 AI Provider API Key를 추가하세요.`,
+      responseText: buildEchoMessage(message),
     };
   }
 
@@ -494,52 +309,28 @@ export async function executeAgentRequest(
     throw new Error(`Inter-agent TTL exhausted (${effectiveTtl})`);
   }
 
+  if (!message) {
+    throw new Error("message required");
+  }
+
   // 페르소나/아바타명은 메시지 페이로드로만 흘러온다 (단일 원칙).
   // 발신자(소켓) 쪽에서 자기 페르소나를 읽어 /AGENT 에 실어 보낸다.
   const effectivePersona = persona;
   const effectiveAvatarName = avatarName || "ARI";
   const normalizedPlatform =
     typeof platform === "string" ? platform.trim() : "";
-  let resolvedAppId =
-    (typeof appId === "string" ? appId.trim() : "") ||
-    socketAppId ||
-    undefined;
+  const resolvedAppId = await resolveAppIdFromPlatform(
+    appId,
+    socketAppId,
+    normalizedPlatform,
+  );
 
-  if (!message) {
-    throw new Error("message required");
-  }
-
-  if (!resolvedAppId && normalizedPlatform) {
-    const apps = await loadAllApps();
-    if (apps.some((entry) => entry.name === normalizedPlatform)) {
-      resolvedAppId = normalizedPlatform;
-    }
-  }
-
-  const detailEntries =
-    details && typeof details === "object" && !Array.isArray(details)
-      ? Object.entries(details)
-          .filter(([, value]) => value != null)
-          .map(([key, value]) => ({
-            key,
-            value:
-              typeof value === "string" ? value : JSON.stringify(value),
-          }))
-      : [];
-
-  const connectedAppIds = UserSocketHandler.getConnectedAppIds();
-  const recentDailyLogs = readRecentDailyLogs(currentAgentId);
-  const recentUserMessages = readRecentUserMessages(resolvedAppId, currentAgentId, 5);
-
-  message = await Prompt.load("app_user_context.hbs", {
-    now_str: new Date().toISOString(),
-    currentAppId: resolvedAppId,
-    platform: normalizedPlatform,
-    details: detailEntries,
-    connectedAppIds: !resolvedAppId && connectedAppIds.length > 0 ? connectedAppIds : undefined,
-    recentDailyLogs: recentDailyLogs || undefined,
-    recentUserMessages: recentUserMessages.length > 0 ? recentUserMessages : undefined,
+  message = await composeUserMessage({
     message,
+    agentId: currentAgentId,
+    resolvedAppId,
+    normalizedPlatform,
+    detailEntries: normalizeDetailEntries(details),
   });
 
   const agentProfile = new AgentInfo({
@@ -550,23 +341,14 @@ export async function executeAgentRequest(
     appId: resolvedAppId,
   });
 
-  // 에이전트 간 호출이면 대상(`toAppId`) 소켓에도 팬아웃하여
-  // 해당 앱 채팅창이 자기 세션의 "생각 중" 진행도를 볼 수 있게 함.
-  const onProgress = (progressMessage: string) => {
-    const payload = {
-      ok: true,
-      data: {
-        requestId,
-        agentId: currentAgentId,
-        appId: resolvedAppId,
-        message: progressMessage,
-      },
-    };
-    UserSocketHandler.sendToOrigin(originUuid, "/AGENT.PROGRESS", payload);
-    if (isInterAgent && toAppId) {
-      UserSocketHandler.send({ appId: toAppId }, "/AGENT.PROGRESS", payload);
-    }
-  };
+  const onProgress = createProgressFanout({
+    requestId,
+    agentId: currentAgentId,
+    appId: resolvedAppId,
+    originUuid,
+    isInterAgent,
+    toAppId,
+  });
 
   const pendingResponse: PendingAgentResponse = {
     requestId,
@@ -610,63 +392,3 @@ export async function executeAgentRequest(
   };
 }
 
-export function dropPendingResponse(agentId: string, requestId: string): void {
-  const session = getSession(agentId);
-  if (!session) {
-    return;
-  }
-
-  session.removeRequest(requestId);
-}
-
-export function clearAgentInstance(agentId: string) {
-  clearAgentSession(agentId);
-  logger.info(`[Agent] Instance cleared for: ${agentId}`);
-}
-
-export function abortAgent(agentId: string) {
-  const session = getSession(agentId);
-  if (session && session.agent) {
-    session.agent.clearAllQueues();
-    session.resetRequestQueue();
-    session.agent.abort();
-    logger.info(`[Agent] Thinking aborted for: ${agentId}`);
-  } else {
-    logger.warn(`[Agent] No active session to abort for: ${agentId}`);
-  }
-}
-
-/**
- * 소켓 종료 시 해당 소켓이 발행한 진행 중 요청을 abort.
- * originUuid 가 일치하는 세션을 찾아 abort + 큐 정리.
- * 반환값은 abort 된 agentId 목록 (로깅용).
- */
-export function abortAgentsForOrigin(originUuid: string): string[] {
-  const aborted: string[] = [];
-  for (const { agentId, session } of listAgentSessions()) {
-    const pending = session.currentPendingResponse;
-    if (pending?.originUuid !== originUuid) continue;
-    if (session.agent) {
-      session.agent.clearAllQueues();
-      session.resetRequestQueue();
-      session.agent.abort();
-    }
-    aborted.push(agentId);
-  }
-  return aborted;
-}
-
-export function canCancelAgent(
-  agentId: string,
-  requesterUuid: string,
-  requesterAppId?: string,
-): boolean {
-  const session = getSession(agentId);
-  if (!session) return true;
-  const pending = session.currentPendingResponse;
-  if (!pending) return true;
-  if (pending.originUuid) {
-    return pending.originUuid === requesterUuid;
-  }
-  return requesterAppId === "ari";
-}
