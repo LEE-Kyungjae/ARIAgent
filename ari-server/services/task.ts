@@ -4,7 +4,7 @@ import { initTasksFileIfMissing, getTasks, saveTasks } from "../repositories/tas
 import { logger } from "../infra/logger.js";
 import { getTaskScheduler } from "./scheduler/runtime.js";
 import { runScheduledTask } from "./jobs/run_task.js";
-import { UserSocketHandler } from "../system/ws.js";
+import { notifyTasksUpdated } from "../protocol/task.js";
 
 // 초기 다운 방지: tasks.json이 없으면 빈 배열로 자동 생성
 initTasksFileIfMissing();
@@ -44,7 +44,7 @@ export async function handleTasksCrontabWs(_params: Record<string, unknown>): Pr
 // ── 스케줄러 자동 갱신 + 모든 클라이언트에 변경 알림 ──
 export async function refreshScheduler(): Promise<void> {
   await handleTasksCrontabWs({});
-  UserSocketHandler.send({ appId: "ari" }, "/TASKS.UPDATED", { tasks: getTasks() });
+  notifyTasksUpdated(getTasks());
 }
 
 // ── 개별 CRUD API 핸들러 ──

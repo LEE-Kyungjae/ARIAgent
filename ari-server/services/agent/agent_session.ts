@@ -4,7 +4,8 @@ import { AIProviders } from "../../models/settings.js";
 import { PendingAgentResponse } from "../../models/agent_response.js";
 import { appendChatLog } from "../../repositories/chat_log_repository.js";
 import { appendUsageLog } from "../../repositories/usage_repository.js";
-import { UserSocketHandler } from "../../system/ws.js";
+import { pushApp, errorApp } from "../../protocol/app.js";
+import { sendAgentRequest } from "../../protocol/agent.js";
 import {
   extractFinalResponseText,
   extractTextFromAgentMessage,
@@ -255,35 +256,39 @@ export class AgentSession {
       // originUuid 소켓으로 전송. 끊겼으면 drop (sender-push 원칙).
       // 에이전트 간 호출(isInterAgent)도 동일하게 `/APP.PUSH` 로 통합 (from/to 메타 포함).
       if (isError) {
-        UserSocketHandler.sendToOrigin(pending.originUuid, "/APP.ERROR", {
-          ok: false,
-          data: {
-            message: responseText,
-            requestId: pending.requestId,
-            agentId: pending.agentId,
-            appId: pending.appId,
-          },
-        });
+        if (pending.originUuid) {
+          errorApp({ uuid: pending.originUuid }, {
+            ok: false,
+            data: {
+              message: responseText,
+              requestId: pending.requestId,
+              agentId: pending.agentId,
+              appId: pending.appId,
+            },
+          });
+        }
         rejectForwardIfPending(
           pending.requestId,
           new Error(responseText || "inter-agent error"),
         );
       } else if (pending.isInterAgent) {
-        UserSocketHandler.sendToOrigin(pending.originUuid, "/APP.PUSH", {
-          ok: true,
-          data: {
-            response: responseText,
-            message: responseText,
-            requestId: pending.requestId,
-            agentId: pending.agentId,
-            appId: pending.appId,
-            from: pending.toAppId,
-            to: pending.fromAppId,
-          },
-        });
+        if (pending.originUuid) {
+          pushApp({ uuid: pending.originUuid }, {
+            ok: true,
+            data: {
+              response: responseText,
+              message: responseText,
+              requestId: pending.requestId,
+              agentId: pending.agentId,
+              appId: pending.appId,
+              from: pending.toAppId,
+              to: pending.fromAppId,
+            },
+          });
+        }
         // 대상 앱 채팅창이 자기 에이전트의 최종 응답을 어시스턴트 버블로 볼 수 있게 팬아웃.
         if (pending.toAppId) {
-          UserSocketHandler.send({ appId: pending.toAppId }, "/APP.PUSH", {
+          pushApp({ appId: pending.toAppId }, {
             ok: true,
             data: {
               response: responseText,
@@ -298,15 +303,17 @@ export class AgentSession {
         // control_app (`message` 모드) 에서 걸어둔 forward 대기를 해제한다.
         resolveForwardIfPending(pending.requestId, responseText);
       } else {
-        UserSocketHandler.sendToOrigin(pending.originUuid, "/APP.PUSH", {
-          ok: true,
-          data: {
-            response: responseText,
-            requestId: pending.requestId,
-            agentId: pending.agentId,
-            appId: pending.appId,
-          },
-        });
+        if (pending.originUuid) {
+          pushApp({ uuid: pending.originUuid }, {
+            ok: true,
+            data: {
+              response: responseText,
+              requestId: pending.requestId,
+              agentId: pending.agentId,
+              appId: pending.appId,
+            },
+          });
+        }
       }
     }
   }
@@ -353,17 +360,14 @@ export class AgentSession {
             agentId: pending.agentId,
             appId: pending.appId,
           };
-          UserSocketHandler.sendToOrigin(
-            pending.originUuid,
-            "/AGENT.REQUEST",
-            requestPayload,
-          );
+          if (pending.originUuid) {
+            sendAgentRequest({ uuid: pending.originUuid }, requestPayload);
+          }
           // 에이전트 간 호출이면 대상(`toAppId`) 소켓에도 팬아웃하여
           // 해당 앱의 채팅창이 "외부에서 들어온 요청"을 사용자 메시지처럼 표시할 수 있게 함.
           if (pending.isInterAgent && pending.toAppId) {
-            UserSocketHandler.send(
+            sendAgentRequest(
               { appId: pending.toAppId },
-              "/AGENT.REQUEST",
               {
                 ...requestPayload,
                 from: pending.fromAppId,

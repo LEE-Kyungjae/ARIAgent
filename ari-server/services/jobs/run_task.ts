@@ -1,7 +1,8 @@
 import { Task } from "../../models/task.js";
 import { getTasks, saveTasks } from "../../repositories/task_repository.js";
 import { executeAgentRequest } from "../agent/index.js";
-import { UserSocketHandler } from "../../system/ws.js";
+import { notifyAppNotice } from "../../protocol/app.js";
+import { notifyTaskResult } from "../../protocol/task.js";
 import { appendChatLog } from "../../repositories/chat_log_repository.js";
 import { logger } from "../../infra/logger.js";
 import { t } from "../../infra/i18n.js";
@@ -55,11 +56,7 @@ export async function runScheduledTask(
     message: noticeMessage,
     noticeId,
   });
-  UserSocketHandler.send({ appId: "ari" }, "/APP.NOTICE", {
-    noticeId,
-    agentId,
-    message: noticeMessage,
-  });
+  notifyAppNotice({ noticeId, agentId, message: noticeMessage });
 
   const timeoutMs = (task.timeout ?? DEFAULT_TIMEOUT_SEC) * 1000;
 
@@ -107,7 +104,7 @@ export async function runScheduledTask(
       lastError: undefined,
     });
 
-    UserSocketHandler.send({ appId: "ari" }, "/TASK_RESULT", {
+    notifyTaskResult({
       taskId: task.id,
       requestId: runRequestId,
       agentId,

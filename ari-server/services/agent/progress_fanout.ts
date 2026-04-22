@@ -1,4 +1,4 @@
-import { UserSocketHandler } from "../../system/ws.js";
+import { sendAgentProgress } from "../../protocol/agent.js";
 
 /**
  * 진행 메시지 팬아웃 헬퍼.
@@ -16,7 +16,7 @@ export function createProgressFanout(opts: {
 }): (progressMessage: string) => void {
   return (progressMessage: string) => {
     const payload = {
-      ok: true,
+      ok: true as const,
       data: {
         requestId: opts.requestId,
         agentId: opts.agentId,
@@ -24,9 +24,11 @@ export function createProgressFanout(opts: {
         message: progressMessage,
       },
     };
-    UserSocketHandler.sendToOrigin(opts.originUuid, "/AGENT.PROGRESS", payload);
+    if (opts.originUuid) {
+      sendAgentProgress({ uuid: opts.originUuid }, payload);
+    }
     if (opts.isInterAgent && opts.toAppId) {
-      UserSocketHandler.send({ appId: opts.toAppId }, "/AGENT.PROGRESS", payload);
+      sendAgentProgress({ appId: opts.toAppId }, payload);
     }
   };
 }

@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import { appStateService } from "../services/app_state_service.js";
 import { UserSocketHandler } from "../system/ws.js";
+import { commandApp } from "../protocol/app.js";
 import { logger } from "../infra/logger.js";
 import { getBundleRoots } from "../infra/runtime_paths.js";
 import { getExecutionContext } from "../services/agent/execution_context.js";
@@ -28,7 +29,7 @@ export const readAppStateTool: AgentTool = {
     const { appId } = params as { appId: string };
 
     try {
-      const result = await UserSocketHandler.commandApp(appId, "GET_STATE");
+      const result = await commandApp(appId, "GET_STATE");
 
       return {
         content: [

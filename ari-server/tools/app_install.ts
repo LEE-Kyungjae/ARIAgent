@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 import { logger } from "../infra/logger.js";
 import { DATA_DIR } from "../infra/data.js";
-import { UserSocketHandler } from "../system/ws.js";
+import { notifyInstalledAppsChanged } from "../protocol/app.js";
 import { loadAllApps } from "../skills/index.js";
 import { execPromise } from "./bash.js";
 import { getExecutionContext } from "../services/agent/execution_context.js";
@@ -186,7 +186,7 @@ export const installAppTool: AgentTool = {
               logger.warn(`[AppInstall] No execution context — '${appId}' not added to any agent's list`);
             }
             if (addedToAgent) {
-              UserSocketHandler.send({ appId: "ari" }, "/INSTALLED_APPS_CHANGED", { appId });
+              notifyInstalledAppsChanged(appId);
             }
             const agentNote = addedToAgent
               ? `\n✅ 이 에이전트의 앱 목록에 추가되었습니다.`
@@ -232,7 +232,7 @@ export const installAppTool: AgentTool = {
         logger.warn(`[AppInstall] No execution context — '${appId}' not added to any agent's list`);
       }
 
-      UserSocketHandler.send({ appId: "ari" }, "/INSTALLED_APPS_CHANGED", { appId });
+      notifyInstalledAppsChanged(appId);
 
       return {
         content: [

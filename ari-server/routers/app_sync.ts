@@ -5,14 +5,14 @@ import { getCurrentState, getPluginsInfo } from "../services/agent/index.js";
 import { getSettings } from "../repositories/setting_repository.js";
 import { Settings } from "../models/settings.js";
 import { getEmbeddingStatus } from "../services/embedding.js";
+import { commandApp, notifyConnectedAppsChanged } from "../protocol/app.js";
 
 /**
  * 실시간 연결된 앱 목록을 ari 소켓에 전송 (대시보드 갱신용).
  * ws.ts 의 소켓 close/error 및 아래 /APP.REGISTER 에서 호출된다.
  */
 function broadcastConnectedApps(): void {
-  const connectedIds = UserSocketHandler.getConnectedAppIds();
-  UserSocketHandler.send({ appId: "ari" }, "/CONNECTED_APPS_CHANGED", { connectedIds });
+  notifyConnectedAppsChanged(UserSocketHandler.getConnectedAppIds());
 }
 
 UserSocketHandler.setOnAppConnectionChanged(broadcastConnectedApps);
@@ -124,7 +124,7 @@ router.on("/APP.CALL", async (ctx, params) => {
   }
 
   try {
-    const result = await UserSocketHandler.commandApp(appId, command, cmdParams);
+    const result = await commandApp(appId, command, cmdParams);
     ctx.send("/APP.CALL", { requestId, ok: true, result });
   } catch (err: any) {
     ctx.send("/APP.CALL", { requestId, ok: false, message: err.message });

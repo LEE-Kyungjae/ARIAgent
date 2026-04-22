@@ -6,6 +6,7 @@ import { DATA_DIR, rmDirSyncSafe } from "../infra/data.js";
 import { findAppExecutable } from "../infra/runtime_paths.js";
 import { router } from "../system/router.js";
 import { UserSocketHandler } from "../system/ws.js";
+import { notifyInstalledAppsChanged } from "../protocol/app.js";
 import { logger } from "../infra/logger.js";
 import { initAgent } from "../services/agent/index.js";
 import { execPromise } from "../tools/bash.js";
@@ -206,7 +207,7 @@ router.on("/APP.UPDATE", async (ctx, params) => {
       logger.info(`[AppUpdate] Plugin metadata synced to ${installParent}`);
       await loadAllApps();
       const pluginId = path.basename(installParent);
-      UserSocketHandler.send({ appId: "ari" }, "/INSTALLED_APPS_CHANGED", { appId: pluginId });
+      notifyInstalledAppsChanged(pluginId);
     }
 
     // 6. 교체 스크립트 생성 후 detached 실행 (서버·앱이 종료돼도 안전)
@@ -320,7 +321,7 @@ router.on("/DELETE_APP", async (ctx, params) => {
 
     await initAgent();
     ctx.send("/DELETE_APP", { ok: true, data: { success: true } });
-    UserSocketHandler.send({ appId: "ari" }, "/INSTALLED_APPS_CHANGED", { appId: name });
+    notifyInstalledAppsChanged(name);
   } catch (e) {
     logger.error(`[Apps] Error deleting app ${name}: ${e}`);
     ctx.send("/DELETE_APP", { ok: false, error: String(e) });

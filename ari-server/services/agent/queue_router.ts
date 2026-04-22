@@ -1,7 +1,7 @@
 import { AgentMessage } from "@mariozechner/pi-agent-core";
 import { logger } from "../../infra/logger.js";
 import { PendingAgentResponse } from "../../models/agent_response.js";
-import { UserSocketHandler } from "../../system/ws.js";
+import { sendAgentFollowUp } from "../../protocol/agent.js";
 import { AgentSession } from "./agent_session.js";
 
 /**
@@ -29,19 +29,15 @@ export function applyFollowUp(
     content: [{ type: "text", text: message }],
     timestamp: Date.now(),
   } as AgentMessage);
-  UserSocketHandler.sendToOrigin(
-    pendingResponse.originUuid,
-    "/AGENT.FOLLOW_UP",
-    {
-      ok: true,
-      data: {
-        requestId: pendingResponse.requestId,
-        message: pendingResponse.originalMessage,
-        agentId,
-        reason: "busy",
-      },
+  sendAgentFollowUp(pendingResponse.originUuid, {
+    ok: true,
+    data: {
+      requestId: pendingResponse.requestId,
+      message: pendingResponse.originalMessage,
+      agentId,
+      reason: "busy",
     },
-  );
+  });
   logger.info(
     `[Agent] Follow-up queued for ${agentId} (${pendingResponse.requestId})`,
   );

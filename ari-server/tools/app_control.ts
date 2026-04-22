@@ -6,6 +6,8 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { UserSocketHandler } from "../system/ws.js";
+import { commandApp } from "../protocol/app.js";
+import { forwardToAgent } from "../protocol/agent.js";
 import { logger } from "../infra/logger.js";
 import { findAppExecutable } from "../infra/runtime_paths.js";
 import { DATA_DIR } from "../infra/data.js";
@@ -279,7 +281,7 @@ async function runMessageMode(app: string, message: string) {
     pendingForwards.set(requestId, { resolve, reject, timer });
   });
 
-  UserSocketHandler.send({ appId: app }, "/AGENT.FORWARD", {
+  forwardToAgent(app, {
     from: fromAppId,
     to: app,
     message,
@@ -356,11 +358,7 @@ async function runCommandMode(
   }
 
   try {
-    const result = await UserSocketHandler.commandApp(
-      app,
-      command,
-      cmdParams || {},
-    );
+    const result = await commandApp(app, command, cmdParams || {});
     const isAppError = result?.status === "error" || result?.ok === false;
 
     if (isAppError) {

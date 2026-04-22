@@ -1,6 +1,6 @@
 import { router } from "../system/router.js";
 import { handleGetTasksWs, handleTasksSyncWs, handleTasksCrontabWs, handleAddTaskWs, handleDeleteTaskWs, handleToggleTaskWs, handleRunTaskWs } from "../services/task.js";
-import { UserSocketHandler } from "../system/ws.js";
+import { notifyTaskResult } from "../protocol/task.js";
 import { logger } from "../infra/logger.js";
 import { appendChatLog } from "../repositories/chat_log_repository.js";
 import { getTasks } from "../repositories/task_repository.js";
@@ -76,7 +76,7 @@ router.on("/TASKS.NOTIFY_RESULT", async (ctx, params) => {
   });
 
   // /TASK_RESULT 채널로 모든 클라이언트에게 전송 (MQ의 Publish 역할)
-  UserSocketHandler.send({ appId: "ari" }, "/TASK_RESULT", broadcastData);
+  notifyTaskResult(broadcastData);
 
   logger.info(`📡 MQ: Broadcaster finished for [${params.label || "unknown"}]`);
   ctx.send("/TASKS.NOTIFY_RESULT", { ok: true });

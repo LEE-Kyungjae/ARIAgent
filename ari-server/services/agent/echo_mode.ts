@@ -1,6 +1,7 @@
 import { PendingAgentResponse } from "../../models/agent_response.js";
 import { appendChatLog } from "../../repositories/chat_log_repository.js";
-import { UserSocketHandler } from "../../system/ws.js";
+import { pushApp } from "../../protocol/app.js";
+import { sendAgentRequest } from "../../protocol/agent.js";
 import { agentState } from "./bootstrap.js";
 
 /**
@@ -25,14 +26,12 @@ export function broadcastEchoResponse(
   pendingResponse: PendingAgentResponse,
 ): void {
   const responseText = buildEchoMessage(message);
-  UserSocketHandler.sendToOrigin(
-    pendingResponse.originUuid,
-    "/AGENT.REQUEST",
-    {
+  if (pendingResponse.originUuid) {
+    sendAgentRequest({ uuid: pendingResponse.originUuid }, {
       message: pendingResponse.originalMessage,
       requestId: pendingResponse.requestId,
-    },
-  );
+    });
+  }
   appendChatLog(pendingResponse.appId, agentId, {
     type: "chat",
     isUser: true,
@@ -45,12 +44,14 @@ export function broadcastEchoResponse(
     message: responseText,
     requestId: pendingResponse.requestId,
   });
-  UserSocketHandler.sendToOrigin(pendingResponse.originUuid, "/APP.PUSH", {
-    ok: true,
-    data: {
-      response: responseText,
-      requestId: pendingResponse.requestId,
-      appId: pendingResponse.appId,
-    },
-  });
+  if (pendingResponse.originUuid) {
+    pushApp({ uuid: pendingResponse.originUuid }, {
+      ok: true,
+      data: {
+        response: responseText,
+        requestId: pendingResponse.requestId,
+        appId: pendingResponse.appId,
+      },
+    });
+  }
 }

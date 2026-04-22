@@ -7,6 +7,7 @@ import {
   clearAgentInstance,
 } from "../services/agent/index.js";
 
+
 // UserSocket 인터페이스를 확장하여 명시적으로 사용
 export interface UserSocket extends WebSocket {
   isAlive: boolean;
@@ -179,41 +180,6 @@ export namespace UserSocketHandler {
   ): boolean => {
     if (!originUuid) return false;
     return send({ uuid: originUuid }, cmd, data);
-  };
-
-  export const commandApp = async (
-    appId: string,
-    command: string,
-    params: any = {},
-    timeoutMs = 10000,
-  ): Promise<any> => {
-    const target = clients.find((c) => c.appId === appId);
-    if (!target || target.readyState !== WebSocket.OPEN) {
-      throw new Error(`App '${appId}' is not connected.`);
-    }
-
-    const requestId = Math.random().toString(36).substring(7);
-
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        router.off(`/APP.COMMAND_RESPONSE:${requestId}`);
-        reject(
-          new Error(
-            `Command '${command}' to '${appId}' timed out (${timeoutMs}ms)`,
-          ),
-        );
-      }, timeoutMs);
-
-      router.once(`/APP.COMMAND_RESPONSE:${requestId}`, (ws, data) => {
-        clearTimeout(timeout);
-        resolve(data.result);
-      });
-
-      target.send("/APP.COMMAND", { appId, command, requestId, params });
-      logger.debug(
-        `[WS] Sent Command to ${appId}: ${command} (req:${requestId})`,
-      );
-    });
   };
 
   export const isAppConnected = (appId: string): boolean => {
