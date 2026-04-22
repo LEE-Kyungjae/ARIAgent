@@ -645,15 +645,27 @@ export class AgentSession {
     }
 
     this._isInRetryLoop = false;
-    agent.replaceMessages(baseMessages);
-    agent.state.error = undefined;
-    this.agentInfo.activeSkills = baseSkills;
-    this.resetTurnScopedSkills();
 
     const isAborted =
       !!lastError &&
       (lastError.name === "AbortError" ||
         lastError.message?.toLowerCase().includes("abort"));
+
+    // 취소돼도 유저 메시지는 in-memory 히스토리에 남겨야 다음 턴에서 기억됨.
+    // 정상 실패(프로바이더 전부 실패 등)는 기존처럼 baseMessages 로 롤백.
+    if (isAborted) {
+      const userMsg = {
+        role: "user",
+        content: [{ type: "text", text: userMessage }],
+        timestamp: Date.now(),
+      } as any;
+      agent.replaceMessages([...baseMessages, userMsg]);
+    } else {
+      agent.replaceMessages(baseMessages);
+    }
+    agent.state.error = undefined;
+    this.agentInfo.activeSkills = baseSkills;
+    this.resetTurnScopedSkills();
 
     // 모든 프로바이더가 실패했고 아직 request가 finalize되지 않은 경우 직접 에러를 브로드캐스트
     if (this.currentPendingResponse && !isAborted) {

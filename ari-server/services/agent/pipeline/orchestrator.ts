@@ -29,7 +29,7 @@ import {
   clearStaleRequests,
   decideQueueAction,
 } from "./request_queue.js";
-import { dropPendingResponse } from "../control.js";
+import { abortAgent, dropPendingResponse } from "../control.js";
 
 function getSessionForAgent(agentProfile: AgentInfo) {
   return getOrCreateSession(
@@ -138,9 +138,14 @@ export async function submitAgentRequest(
   session.ensureLifecycleAttached();
   session.enqueueRequest(pendingResponse);
 
+  // R1: 팔로업 큐잉 대신, 진행 중 추론이 있으면 즉시 취소 후 새 요청 실행.
   if (decideQueueAction(session) === "follow_up") {
-    applyFollowUp(session, message, agentId, pendingResponse);
-    return { status: "follow_up" };
+    logger.info(
+      `[Agent] Aborting in-flight request for ${agentId} (user re-entered)`,
+    );
+    abortAgent(agentId);
+    // abortAgent 가 큐를 비우므로 현재 요청을 재등록.
+    session.enqueueRequest(pendingResponse);
   }
 
   clearStaleRequests(session, pendingResponse.requestId, agentId);

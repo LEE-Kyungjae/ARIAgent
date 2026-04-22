@@ -187,12 +187,31 @@ class AriChatProvider extends ChangeNotifier {
       notifyListeners();
     });
 
-    _cancelSub = AriAgent.on('/AGENT.CANCEL', (_) {
-      _clearPendingSystemMessages();
-      _queuedFollowUps.clear();
-      _backgroundRequestIds.clear();
-      _inFlightRequestIds.clear();
-      _activeRequestId = null;
+    _cancelSub = AriAgent.on('/AGENT.CANCEL', (data) {
+      final payload = data['data'] is Map ? data['data'] as Map : data;
+      final cancelledRequestId = payload['requestId']?.toString() ?? '';
+
+      // 특정 requestId 만 취소된 경우 그 요청 관련 상태만 정리.
+      // (유저가 cancel 후 즉시 새 메시지를 보내면 서버의 늦은 취소 브로드캐스트가
+      //  새 _activeRequestId 를 잘못 비우는 레이스를 막기 위함.)
+      if (cancelledRequestId.isNotEmpty) {
+        _messages.removeWhere(
+          (m) => m.isSystem && m.requestId == cancelledRequestId,
+        );
+        _removeFollowUpByRequestId(cancelledRequestId);
+        _inFlightRequestIds.remove(cancelledRequestId);
+        _backgroundRequestIds.remove(cancelledRequestId);
+        if (_activeRequestId == cancelledRequestId) {
+          _activeRequestId = null;
+        }
+      } else {
+        // requestId 없는 취소 (레거시/광역) 는 전체 정리.
+        _clearPendingSystemMessages();
+        _queuedFollowUps.clear();
+        _backgroundRequestIds.clear();
+        _inFlightRequestIds.clear();
+        _activeRequestId = null;
+      }
       _syncLoadingState();
       notifyListeners();
     });

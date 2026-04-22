@@ -35,6 +35,20 @@ export const sendAgentFollowUp = (
 };
 
 /**
+ * 요청이 취소됐음을 요청 origin 소켓에 알림 (UI 시스템 메시지 정리용).
+ * 모든 abort 경로에서 통일해 발행된다.
+ */
+export const sendAgentCancel = (
+  originUuid: string | undefined,
+  payload: Record<string, any>,
+): void => {
+  UserSocketHandler.sendToOrigin(originUuid, "/AGENT.CANCEL", {
+    ok: true,
+    data: payload,
+  });
+};
+
+/**
  * 자연어 지시를 대상 앱의 에이전트에게 포워딩 (SARI sender-push 원칙).
  */
 export const forwardToAgent = (
