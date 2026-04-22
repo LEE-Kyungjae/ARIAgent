@@ -88,6 +88,7 @@ class AriChatProvider extends ChangeNotifier {
       final msgAgent = data['agentId']?.toString() ?? 'default';
       final from = data['from']?.toString() ?? '';
       final to = data['to']?.toString() ?? '';
+      final senderName = data['senderName']?.toString() ?? '';
       final isInterAgent = from.isNotEmpty && to.isNotEmpty && from != to;
 
       if (message.isEmpty) return;
@@ -96,7 +97,8 @@ class AriChatProvider extends ChangeNotifier {
           _messages.any((m) => m.isUser && m.requestId == requestId)) return;
 
       // 에이전트 간 호출로 들어온 메시지는 발신자 라벨을 붙여 채팅창에 표기.
-      final displayText = isInterAgent ? '[$from] $message' : message;
+      final label = senderName.isNotEmpty ? senderName : from;
+      final displayText = isInterAgent ? '[$label] $message' : message;
 
       _messages.add(AriChatMessage(
         text: displayText,
@@ -112,9 +114,17 @@ class AriChatProvider extends ChangeNotifier {
       final response = payload['response']?.toString() ?? '';
       final requestId = payload['requestId']?.toString() ?? '';
       final msgAgent = payload['agentId']?.toString() ?? 'default';
+      final from = payload['from']?.toString() ?? '';
+      final to = payload['to']?.toString() ?? '';
+      final senderName = payload['senderName']?.toString() ?? '';
+      final isInterAgent = from.isNotEmpty && to.isNotEmpty && from != to;
 
       if (response.isEmpty) return;
-      if (_filterAgentId != null && msgAgent != _filterAgentId) return;
+      // inter-agent push 는 발신측 agentId 가 다르므로 filter 우회.
+      // (서버는 to 가 내 채팅창인 경우만 보내므로 추가 검증 불필요.)
+      if (!isInterAgent &&
+          _filterAgentId != null &&
+          msgAgent != _filterAgentId) return;
 
       if (requestId.isNotEmpty) removeSystemMessage(requestId);
       final removedFollowUp = _removeFollowUpByRequestId(requestId);
@@ -127,8 +137,10 @@ class AriChatProvider extends ChangeNotifier {
         return;
       }
 
+      final label = senderName.isNotEmpty ? senderName : from;
+      final displayText = isInterAgent ? '[$label] $response' : response;
       _messages.add(AriChatMessage(
-        text: response,
+        text: displayText,
         isUser: false,
         createdAt: DateTime.now(),
         requestId: requestId,
@@ -145,9 +157,16 @@ class AriChatProvider extends ChangeNotifier {
       final progressMessage = payload['message']?.toString() ?? '';
       final requestId = payload['requestId']?.toString() ?? '';
       final msgAgent = payload['agentId']?.toString() ?? 'default';
+      final from = payload['from']?.toString() ?? '';
+      final to = payload['to']?.toString() ?? '';
+      final senderName = payload['senderName']?.toString() ?? '';
+      final isInterAgent = from.isNotEmpty && to.isNotEmpty && from != to;
 
       if (progressMessage.isEmpty) return;
-      if (_filterAgentId != null && msgAgent != _filterAgentId) return;
+      // inter-agent (ari 방 팬아웃 thinking 등) 은 발신측 agentId 가 다르므로 filter 우회.
+      if (!isInterAgent &&
+          _filterAgentId != null &&
+          msgAgent != _filterAgentId) return;
 
       if (requestId.isNotEmpty) {
         _inFlightRequestIds.add(requestId);
@@ -158,7 +177,11 @@ class AriChatProvider extends ChangeNotifier {
       _syncLoadingState();
       final removedFollowUp = _removeFollowUpByRequestId(requestId);
 
-      upsertSystemMessage(progressMessage, requestId);
+      // 발신자 라벨 prefix.
+      final label = senderName.isNotEmpty ? senderName : from;
+      final displayText = label.isNotEmpty ? '[$label] $progressMessage' : progressMessage;
+
+      upsertSystemMessage(displayText, requestId);
       if (removedFollowUp) {
         notifyListeners();
       }
@@ -374,7 +397,11 @@ class AriChatProvider extends ChangeNotifier {
         _activeRequestId != null && requestId == _activeRequestId;
     bool isBackgroundRequest =
         requestId.startsWith('report-') || requestId.startsWith('sys-');
-    if (!isMyRequest && !isBackgroundRequest) return;
+    // ari 방 팬아웃 sub-request (`${activeRequestId}-<appId>`) 도 같은 활성
+    // 대화의 일부이므로 시스템 메시지로 표시 (PM·SARI thinking 동시 표기).
+    bool isAriBroadcastSub = _activeRequestId != null &&
+        requestId.startsWith('${_activeRequestId}-');
+    if (!isMyRequest && !isBackgroundRequest && !isAriBroadcastSub) return;
 
     final idx = _messages.lastIndexWhere(
       (m) => m.isSystem && m.requestId == requestId,

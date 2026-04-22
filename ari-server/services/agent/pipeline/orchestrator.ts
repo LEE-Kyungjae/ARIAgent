@@ -30,6 +30,9 @@ import {
   decideQueueAction,
 } from "./request_queue.js";
 import { abortAgent, dropPendingResponse } from "../control.js";
+import { forwardToAgent } from "../../../protocol/agent.js";
+import { UserSocketHandler } from "../../../system/ws.js";
+import { appendChatLog } from "../../../repositories/chat_log_repository.js";
 
 function getSessionForAgent(agentProfile: AgentInfo) {
   return getOrCreateSession(
@@ -150,6 +153,36 @@ export async function submitAgentRequest(
 
   clearStaleRequests(session, pendingResponse.requestId, agentId);
   session.beginNextRequest();
+
+  // user 메시지를 진입 시점에 chat log 에 기록.
+  // - 응답 완료 시점에 적으면 ari-broadcast 응답이 PM 보다 빨리 도착 시 순서가 뒤바뀜.
+  // - ari-broadcast: PM 측에서 이미 자기 진입 시 append — SARI 진입 때는 skip.
+  if (
+    pendingResponse.dispatchMode !== "ari-broadcast" &&
+    pendingResponse.originUuid
+  ) {
+    appendChatLog(pendingResponse.appId, pendingResponse.agentId, {
+      type: "chat",
+      isUser: true,
+      message: pendingResponse.originalMessage,
+      requestId: pendingResponse.requestId,
+    });
+  }
+
+  // PM 실행과 병렬로 연결된 타 앱 (SARI 등) 에 포워딩.
+  // isInterAgent 재발행 요청은 이미 포워딩된 결과이므로 다시 팬아웃하지 않음 (무한 루프 방지).
+  if (!pendingResponse.isInterAgent && pendingResponse.appId === "ari") {
+    for (const appId of UserSocketHandler.getConnectedAppIds()) {
+      if (appId === "ari") continue;
+      forwardToAgent(appId, {
+        from: "ari",
+        to: appId,
+        message: pendingResponse.originalMessage,
+        requestId: `${pendingResponse.requestId}-${appId}`,
+        ttl: pendingResponse.ttl,
+      });
+    }
+  }
 
   const result = await chatWithAgent(message, agentProfile, onProgress, pendingResponse);
   if (result.aborted) {

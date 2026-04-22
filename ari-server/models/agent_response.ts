@@ -23,6 +23,8 @@ export interface PendingAgentResponse {
   agentId: string;
   originalMessage: string;
   appId?: string;
+  /** 발신 에이전트 표시명 (avatarName). 클라 UI 라벨링용 (`[name] message`). */
+  senderName?: string;
   /**
    * 이 요청을 발행한 원본 소켓의 uuid. 응답 라우팅의 기준.
    * task 등 소켓 외 기원이면 undefined — 이 경우 응답은 drop (sender-push 원칙).
@@ -37,6 +39,13 @@ export interface PendingAgentResponse {
   fromAppId?: string;
   toAppId?: string;
   isInterAgent?: boolean;
+  /**
+   * 응답 라우팅 모드. intake 에서 한 번 결정 후 모든 송신 분기가 이를 따름.
+   * - "user":          일반 사용자 요청 → originUuid 소켓에만 응답.
+   * - "inter":         control_app 등 PM-도메인 직접 위임 → originUuid + 대상 앱 소켓.
+   * - "ari-broadcast": ari 방 팬아웃 응답 → ari 소켓에만 표시 (대상 앱 1:1 채팅창은 깨끗).
+   */
+  dispatchMode?: "user" | "inter" | "ari-broadcast";
   /** 에이전트 간 잔여 TTL. 도구가 forward 시 decrement. */
   ttl?: number;
 }

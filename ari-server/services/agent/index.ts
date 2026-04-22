@@ -89,12 +89,29 @@ export async function executeAgentRequest(
     params.platform,
   );
 
+  // 응답 라우팅 모드 결정. ari 방 팬아웃은 orchestrator 가
+  // `${reqId}-${appId}` 접미 requestId 로 보냄.
+  const dispatchMode: "user" | "inter" | "ari-broadcast" = !isInterAgent
+    ? "user"
+    : !!resolved.toAppId && requestId.endsWith(`-${resolved.toAppId}`)
+    ? "ari-broadcast"
+    : "inter";
+
+  // ARI 방 그룹챗 컨텍스트면 room participants 노출.
+  // - PM (appId="ari"): 자기 방 참여자 누군지 알아야 fanout 인지 + 위임 판단.
+  // - ari-broadcast 도메인: 같은 방 다른 참여자 인지.
+  // - 1:1 도메인 호출 (sari-app 직접) 은 숨김 — 그룹 컨텍스트 아님.
+  const showRoomParticipants =
+    dispatchMode === "ari-broadcast" ||
+    (dispatchMode === "user" && resolvedAppId === "ari");
+
   const message = await composeUserMessage({
     message: originalMessage,
     agentId: currentAgentId,
     resolvedAppId,
     normalizedPlatform: params.platform,
     detailEntries: normalizeDetailEntries(params.details),
+    showRoomParticipants,
   });
 
   const agentProfile = new AgentInfo({
@@ -110,8 +127,10 @@ export async function executeAgentRequest(
     agentId: currentAgentId,
     appId: resolvedAppId,
     originUuid: params.originUuid,
-    isInterAgent,
     toAppId: resolved.toAppId,
+    fromAppId: resolved.fromAppId,
+    senderName: agentProfile.name,
+    dispatchMode,
   });
 
   const pendingResponse: PendingAgentResponse = {
@@ -119,12 +138,14 @@ export async function executeAgentRequest(
     agentId: currentAgentId,
     originalMessage,
     appId: resolvedAppId,
+    senderName: agentProfile.name,
     // 원본 소켓. 없으면 task (스케줄러) 기원 — 응답은 drop.
     originUuid: params.originUuid,
     // 에이전트 간 라우팅 메타. 응답 채널 분기에 사용.
     fromAppId: resolved.fromAppId,
     toAppId: resolved.toAppId,
     isInterAgent,
+    dispatchMode,
     ttl: effectiveTtl,
   };
 

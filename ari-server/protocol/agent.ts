@@ -35,14 +35,16 @@ export const sendAgentFollowUp = (
 };
 
 /**
- * 요청이 취소됐음을 요청 origin 소켓에 알림 (UI 시스템 메시지 정리용).
+ * 요청이 취소됐음을 알림 (UI 시스템 메시지 정리용).
  * 모든 abort 경로에서 통일해 발행된다.
+ * - target 으로 SendTarget 받음 ({uuid} 또는 {appId}).
+ *   ari 방 팬아웃 sub-agent 의 skip 등은 ari 소켓에 보내야 클라가 thinking 정리.
  */
 export const sendAgentCancel = (
-  originUuid: string | undefined,
+  target: UserSocketHandler.SendTarget,
   payload: Record<string, any>,
 ): void => {
-  UserSocketHandler.sendToOrigin(originUuid, "/AGENT.CANCEL", {
+  UserSocketHandler.send(target, "/AGENT.CANCEL", {
     ok: true,
     data: payload,
   });

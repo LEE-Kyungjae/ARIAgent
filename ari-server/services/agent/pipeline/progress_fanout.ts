@@ -1,33 +1,48 @@
 import { sendAgentProgress } from "../../../protocol/agent.js";
 
 /**
- * 진행 메시지 팬아웃 헬퍼.
- * - 호출자 소켓 (`originUuid`) 에 항상 송신.
- * - 에이전트 간 호출이면 대상 앱 소켓에도 추가 송신 (해당 앱이 자기 세션의
- *   "생각 중" 진행도를 볼 수 있도록).
+ * 진행 메시지 팬아웃 헬퍼. dispatchMode 에 따라 송신 대상이 결정된다.
+ * - "user":          originUuid 에만.
+ * - "inter":         originUuid + 대상 앱 소켓.
+ * - "ari-broadcast": ari 소켓에만 (from/to 메타 포함 → 발신자 라벨 표시).
+ *                    대상 앱 1:1 채팅창엔 표시 안 됨.
  */
 export function createProgressFanout(opts: {
   requestId: string;
   agentId: string;
   appId?: string;
   originUuid?: string;
-  isInterAgent: boolean;
   toAppId?: string;
+  fromAppId?: string;
+  /** 발신 에이전트 표시명 (avatarName). 클라 progress UI 라벨링용. */
+  senderName?: string;
+  dispatchMode: "user" | "inter" | "ari-broadcast";
 }): (progressMessage: string) => void {
   return (progressMessage: string) => {
-    const payload = {
-      ok: true as const,
-      data: {
-        requestId: opts.requestId,
-        agentId: opts.agentId,
-        appId: opts.appId,
-        message: progressMessage,
-      },
+    const baseData = {
+      requestId: opts.requestId,
+      agentId: opts.agentId,
+      appId: opts.appId,
+      message: progressMessage,
+      senderName: opts.senderName,
     };
+
+    if (opts.dispatchMode === "ari-broadcast") {
+      sendAgentProgress(
+        { appId: "ari" },
+        {
+          ok: true,
+          data: { ...baseData, from: opts.toAppId, to: "ari" },
+        },
+      );
+      return;
+    }
+
+    const payload = { ok: true as const, data: baseData };
     if (opts.originUuid) {
       sendAgentProgress({ uuid: opts.originUuid }, payload);
     }
-    if (opts.isInterAgent && opts.toAppId) {
+    if (opts.dispatchMode === "inter" && opts.toAppId) {
       sendAgentProgress({ appId: opts.toAppId }, payload);
     }
   };

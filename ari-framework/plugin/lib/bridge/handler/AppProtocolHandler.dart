@@ -136,14 +136,11 @@ class AppProtocolHandler {
         ? rawTtl
         : (rawTtl is num ? rawTtl.toInt() : null);
 
-    await AriAgent.emit('/AGENT', {
+    await AriAgent.emit('/AGENT.INTER', {
       'message': message,
       'requestId': requestId,
-      'agentId': appId,
-      'appId': appId,
       if (own != null) 'persona': own.systemPrompt,
       if (own != null) 'avatarName': own.name,
-      'platform': 'inter-agent',
       if (from.isNotEmpty) 'from': from,
       'to': appId,
       if (ttl != null) 'ttl': ttl,

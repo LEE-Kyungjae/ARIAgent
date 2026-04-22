@@ -5,7 +5,7 @@ import { PendingAgentResponse } from "../../../models/agent_response.js";
 import { appendChatLog } from "../../../repositories/chat_log_repository.js";
 import { appendUsageLog } from "../../../repositories/usage_repository.js";
 import { pushApp, errorApp } from "../../../protocol/app.js";
-import { sendAgentRequest } from "../../../protocol/agent.js";
+import { sendAgentRequest, sendAgentCancel } from "../../../protocol/agent.js";
 import {
   extractFinalResponseText,
   extractTextFromAgentMessage,
@@ -58,6 +58,8 @@ export class AgentSession {
   currentPendingResponse: PendingAgentResponse | null = null;
   currentResponseText = "";
   currentRequestAnnounced = false;
+  /** skip_turn 도구 호출됨 — 응답 송신·기록 모두 억제하고 thinking UI 만 정리. */
+  currentSkipped = false;
   hasResponseBridge = false;
   currentProvider = "";
   currentModel = "";
@@ -71,6 +73,42 @@ export class AgentSession {
 
   resetTurnScopedSkills(): void {
     this.agentInfo.resetTurnScopedSkills();
+  }
+
+  /** skip_turn 도구가 호출되면 set. agent_end 에서 handleSkipped 로 분기. */
+  markSkipped(): void {
+    this.currentSkipped = true;
+  }
+
+  private handleSkipped(): void {
+    const pending = this.currentPendingResponse;
+    this.currentPendingResponse = null;
+    this.currentRequestAnnounced = false;
+    this.currentResponseText = "";
+    this.currentSkipped = false;
+
+    if (!pending) return;
+
+    const idx = this.pendingResponses.findIndex(
+      (p) => p.requestId === pending.requestId,
+    );
+    if (idx !== -1) this.pendingResponses.splice(idx, 1);
+
+    // skip 응답은 빈 문자열로 waiter resolve (호출자가 timeout 으로 안 빠지게).
+    this.resolveRequestWaiter(pending.requestId, "");
+    resolveForwardIfPending(pending.requestId, "");
+    markAgentIdle(pending.agentId);
+
+    // chat log append X, push X. 클라 thinking 시스템 메시지만 정리.
+    const cancelPayload = {
+      agentId: pending.agentId,
+      requestId: pending.requestId,
+    };
+    if (pending.dispatchMode === "ari-broadcast") {
+      sendAgentCancel({ appId: "ari" }, cancelPayload);
+    } else if (pending.originUuid) {
+      sendAgentCancel({ uuid: pending.originUuid }, cancelPayload);
+    }
   }
 
   private shouldBroadcastPending(pending: PendingAgentResponse): boolean {
@@ -224,22 +262,31 @@ export class AgentSession {
     markAgentIdle(pending.agentId);
 
     if (this.shouldBroadcastPending(pending)) {
-      appendChatLog(pending.appId, pending.agentId, {
-        type: "chat",
-        isUser: true,
-        message: pending.originalMessage,
-        requestId: pending.requestId,
-      });
-
       const meta = this._pendingMeta;
       this._pendingMeta = null;
 
-      appendChatLog(pending.appId, pending.agentId, {
-        type: "chat",
-        isUser: false,
-        message: responseText,
-        requestId: pending.requestId,
-      });
+      // dispatchMode 별 assistant 응답 chat log 기록.
+      // (user 메시지는 orchestrator.submitAgentRequest 진입 시점에 이미 append 됨.)
+      // - ari-broadcast: SARI 자기 1:1 history 에는 안 적고, PM history (ari__default) 에만
+      //   어시스턴트 메시지로 append → ari 채팅창 재부팅 후에도 복원됨.
+      // - 그 외 (user/inter): 자기 (appId, agentId) chat log 에 assistant append.
+      if (pending.dispatchMode === "ari-broadcast") {
+        // TODO: PM agentId 가 "default" 가 아닌 환경 대응 시 forward payload 에
+        // caller 정보 (appId, agentId) 를 실어 보내 사용.
+        appendChatLog("ari", "default", {
+          type: "chat",
+          isUser: false,
+          message: `[${pending.toAppId}] ${responseText}`,
+          requestId: pending.requestId,
+        });
+      } else {
+        appendChatLog(pending.appId, pending.agentId, {
+          type: "chat",
+          isUser: false,
+          message: responseText,
+          requestId: pending.requestId,
+        });
+      }
 
       if (meta && (meta.usage?.totalTokens ?? 0) > 0) {
         appendUsageLog(pending.agentId, {
@@ -250,8 +297,7 @@ export class AgentSession {
         });
       }
 
-      // originUuid 소켓으로 전송. 끊겼으면 drop (sender-push 원칙).
-      // 에이전트 간 호출(isInterAgent)도 동일하게 `/APP.PUSH` 로 통합 (from/to 메타 포함).
+      // dispatchMode 별 응답 송신.
       if (isError) {
         if (pending.originUuid) {
           errorApp({ uuid: pending.originUuid }, {
@@ -261,6 +307,7 @@ export class AgentSession {
               requestId: pending.requestId,
               agentId: pending.agentId,
               appId: pending.appId,
+              senderName: pending.senderName,
             },
           });
         }
@@ -268,7 +315,23 @@ export class AgentSession {
           pending.requestId,
           new Error(responseText || "inter-agent error"),
         );
-      } else if (pending.isInterAgent) {
+      } else if (pending.dispatchMode === "ari-broadcast") {
+        // ari 방 팬아웃 응답: ari 채팅창에만 표시. sari 1:1 채팅창은 깨끗 유지.
+        pushApp({ appId: "ari" }, {
+          ok: true,
+          data: {
+            response: responseText,
+            requestId: pending.requestId,
+            agentId: pending.agentId,
+            appId: pending.appId,
+            from: pending.toAppId,
+            to: "ari",
+            senderName: pending.senderName,
+          },
+        });
+        resolveForwardIfPending(pending.requestId, responseText);
+      } else if (pending.dispatchMode === "inter") {
+        // PM↔도메인 직접 위임 (control_app 등): 양쪽 채팅창에 어시스턴트 버블 표시.
         if (pending.originUuid) {
           pushApp({ uuid: pending.originUuid }, {
             ok: true,
@@ -280,10 +343,10 @@ export class AgentSession {
               appId: pending.appId,
               from: pending.toAppId,
               to: pending.fromAppId,
+              senderName: pending.senderName,
             },
           });
         }
-        // 대상 앱 채팅창이 자기 에이전트의 최종 응답을 어시스턴트 버블로 볼 수 있게 팬아웃.
         if (pending.toAppId) {
           pushApp({ appId: pending.toAppId }, {
             ok: true,
@@ -294,12 +357,14 @@ export class AgentSession {
               appId: pending.appId,
               from: pending.toAppId,
               to: pending.fromAppId,
+              senderName: pending.senderName,
             },
           });
         }
         // control_app (`message` 모드) 에서 걸어둔 forward 대기를 해제한다.
         resolveForwardIfPending(pending.requestId, responseText);
       } else {
+        // "user": 일반 사용자 요청 — 호출자 소켓에만 응답.
         if (pending.originUuid) {
           pushApp({ uuid: pending.originUuid }, {
             ok: true,
@@ -308,6 +373,7 @@ export class AgentSession {
               requestId: pending.requestId,
               agentId: pending.agentId,
               appId: pending.appId,
+              senderName: pending.senderName,
             },
           });
         }
@@ -350,27 +416,33 @@ export class AgentSession {
             agentId: pending.agentId,
             requestId: pending.requestId,
           });
-          // originUuid 타겟팅. 소켓 origin 이 없는 task 는 drop.
+          // dispatchMode 별 /AGENT.REQUEST 에코.
+          // - "user":          originUuid 에만 (사용자 채팅창에 자기 입력 표시).
+          // - "inter":         originUuid + 대상 앱 소켓 (양쪽 채팅창에 표시).
+          // - "ari-broadcast": 에코 없음 (sari 1:1 깨끗 유지, ari 채팅창엔 이미 사용자 입력 표시됨).
           const requestPayload = {
             message: pending.originalMessage,
             requestId: pending.requestId,
             agentId: pending.agentId,
             appId: pending.appId,
+            senderName: pending.senderName,
           };
-          if (pending.originUuid) {
+          if (pending.dispatchMode === "user" && pending.originUuid) {
             sendAgentRequest({ uuid: pending.originUuid }, requestPayload);
-          }
-          // 에이전트 간 호출이면 대상(`toAppId`) 소켓에도 팬아웃하여
-          // 해당 앱의 채팅창이 "외부에서 들어온 요청"을 사용자 메시지처럼 표시할 수 있게 함.
-          if (pending.isInterAgent && pending.toAppId) {
-            sendAgentRequest(
-              { appId: pending.toAppId },
-              {
-                ...requestPayload,
-                from: pending.fromAppId,
-                to: pending.toAppId,
-              },
-            );
+          } else if (pending.dispatchMode === "inter") {
+            if (pending.originUuid) {
+              sendAgentRequest({ uuid: pending.originUuid }, requestPayload);
+            }
+            if (pending.toAppId) {
+              sendAgentRequest(
+                { appId: pending.toAppId },
+                {
+                  ...requestPayload,
+                  from: pending.fromAppId,
+                  to: pending.toAppId,
+                },
+              );
+            }
           }
           this.currentRequestAnnounced = true;
         }
@@ -427,6 +499,11 @@ export class AgentSession {
 
       if (event.type === "agent_end" && this.currentPendingResponse != null) {
         const errorMessage = this.agent.state.error;
+        // skip_turn 도구 호출로 인한 abort — chat log/push 억제 + thinking 정리.
+        if (this.currentSkipped) {
+          this.handleSkipped();
+          return;
+        }
         if (errorMessage && errorMessage.toLowerCase().includes("abort")) {
           markAgentIdle(this.currentPendingResponse.agentId);
           this.removeRequest(this.currentPendingResponse.requestId);

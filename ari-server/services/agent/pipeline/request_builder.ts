@@ -44,6 +44,7 @@ export async function resolveAppIdFromPlatform(
 
 /**
  * 사용자 메시지에 앱/시각/최근 로그 등 컨텍스트를 입혀 LLM 입력 메시지를 만든다.
+ * (loadedSkills 는 message history 의 read_skill tool_result 가 보존되므로 별도 inject 안 함.)
  */
 export async function composeUserMessage(opts: {
   message: string;
@@ -51,6 +52,8 @@ export async function composeUserMessage(opts: {
   resolvedAppId?: string;
   normalizedPlatform: string;
   detailEntries: Array<{ key: string; value: string }>;
+  /** ARI 방 그룹챗 컨텍스트면 room participants 노출. 1:1 모드에선 숨김. */
+  showRoomParticipants?: boolean;
 }): Promise<string> {
   const connectedAppIds = UserSocketHandler.getConnectedAppIds();
   const recentDailyLogs = readRecentDailyLogs(opts.agentId);
@@ -62,11 +65,10 @@ export async function composeUserMessage(opts: {
 
   return Prompt.load("app_user_context.hbs", {
     now_str: new Date().toISOString(),
-    currentAppId: opts.resolvedAppId,
     platform: opts.normalizedPlatform,
     details: opts.detailEntries,
     connectedAppIds:
-      !opts.resolvedAppId && connectedAppIds.length > 0
+      opts.showRoomParticipants && connectedAppIds.length > 0
         ? connectedAppIds
         : undefined,
     recentDailyLogs: recentDailyLogs || undefined,

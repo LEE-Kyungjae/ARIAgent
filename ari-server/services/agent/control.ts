@@ -66,7 +66,7 @@ export function abortAgent(agentId: string): void {
 
   // 모든 abort 경로 일원화: origin 에 /AGENT.CANCEL 이벤트 발행.
   if (originUuid) {
-    sendAgentCancel(originUuid, { agentId, requestId });
+    sendAgentCancel({ uuid: originUuid }, { agentId, requestId });
   }
 }
 

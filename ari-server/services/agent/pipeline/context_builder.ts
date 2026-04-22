@@ -8,6 +8,7 @@ import { getSettings } from "../../../repositories/setting_repository.js";
 import { Settings } from "../../../models/settings.js";
 import { getEmbeddingStatus } from "../../../infra/embedding.js";
 import { ARI_CLOUD_PROVIDER } from "../provider/selector.js";
+import { getCurrentTools } from "../plugin_cache.js";
 
 export async function buildSystemPrompt(
   agentProfile: AgentInfo,
@@ -43,34 +44,38 @@ export async function buildSystemPrompt(
   }
   const avatarName = agentProfile.name.trim() || "ARI";
   const platform = agentProfile.platform?.trim() || process.platform;
-  const loadedSkills = agentProfile.toLoadedSkills(agentProfile.activeSkills);
 
   // 시스템 프롬프트에는 "핀된 앱"만 미리 소개한다. 호출 자체는
   // list_apps / control_app 을 통해 어떤 앱이든 가능.
+  // (loadedSkills 본문은 매 턴 user context 에 inject — 시스템 프롬프트는 정적 유지.)
   const apps = agentProfile.pinnedApps.map((s) => ({
     name: s.name,
     description: s.description,
   }));
 
+  // 메인툴 카탈로그 — 항상 사용 가능. 정적 (세션·턴 무관) 이라 시스템 프롬프트에 inject.
+  const mainTools = getCurrentTools().map((t: any) => ({
+    name: t.name,
+    description: t.description,
+  }));
+
   // 템플릿 라우팅.
-  //   - `ari` 세션: PM 역할 (`ari_pm_prompt.hbs`)
+  //   - `ari` / `default` / 미지정: PM 역할 (`ari_pm_prompt.hbs`)
   //   - 그 외 (써드파티 앱 페르소나): 도메인 전문가 역할 (`third_party_prompt.hbs`)
-  //   - 레거시 `default` 및 설정되지 않은 id: 기존 `system_prompt.hbs` 유지.
   const templateName =
-    agentId === "ari"
+    !agentId || agentId === "default" || agentId === "ari"
       ? "ari_pm_prompt.hbs"
-      : agentId && agentId !== "default"
-      ? "third_party_prompt.hbs"
-      : "system_prompt.hbs";
+      : "third_party_prompt.hbs";
 
   const systemPrompt = await Prompt.load(templateName, {
     avatarName,
     platform,
+    appId: agentProfile.appId || undefined,
     persona: agentProfile.persona,
     coreMemory,
     skills: agentProfile.promptSkills,
     apps: apps.length > 0 ? apps : undefined,
-    loadedSkills,
+    mainTools: mainTools.length > 0 ? mainTools : undefined,
   });
 
   // logger.debug(`[Agent] Built System Prompt:\n${systemPrompt}`);
@@ -88,7 +93,8 @@ export function pruneContext(
 
   // 도구 호출(assistant)과 그 결과(tool)가 서로 끊어지지 않도록,
   // 항상 'user' 메시지부터 시작하는 안전한 자르기 지점을 찾습니다.
-  let startIndex = messages.length - maxMessages;
+  const cutoff = messages.length - maxMessages;
+  let startIndex = cutoff;
   while (startIndex < messages.length - 1) {
     if (messages[startIndex].role === "user") {
       break;
@@ -99,8 +105,41 @@ export function pruneContext(
   // 윈도우 내에서 user 메시지를 찾지 못하면(매우 드문 경우),
   // 단순히 뒤에서부터 maxMessages 개만 취합니다.
   if (startIndex >= messages.length - 1) {
-    startIndex = messages.length - maxMessages;
+    startIndex = cutoff;
   }
 
-  return Promise.resolve(messages.slice(startIndex));
+  // 자르기 전 범위에서 read_skill 성공 tool_result 와 짝 assistant 메시지를 hoist.
+  // (스킬 본문이 장기 세션에서도 살아있게 — 재읽기 방지.)
+  const preserved: AgentMessage[] = [];
+  const seenSkillNames = new Set<string>();
+  for (let i = startIndex - 1; i >= 0; i--) {
+    const msg = messages[i] as any;
+    if (
+      msg?.role !== "toolResult" ||
+      msg?.toolName !== "read_skill" ||
+      msg?.isError
+    ) {
+      continue;
+    }
+    const skillName = msg?.details?.name;
+    if (typeof skillName !== "string" || seenSkillNames.has(skillName)) {
+      continue;
+    }
+    seenSkillNames.add(skillName);
+    const toolCallId = msg.toolCallId;
+    for (let j = i - 1; j >= 0; j--) {
+      const prev = messages[j] as any;
+      if (prev?.role === "assistant" && Array.isArray(prev.content)) {
+        const match = prev.content.some(
+          (c: any) => c?.type === "toolCall" && c?.id === toolCallId,
+        );
+        if (match) {
+          preserved.unshift(prev, msg);
+          break;
+        }
+      }
+    }
+  }
+
+  return Promise.resolve([...preserved, ...messages.slice(startIndex)]);
 }

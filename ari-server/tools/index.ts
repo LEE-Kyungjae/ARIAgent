@@ -14,6 +14,7 @@ import { TOOLS as WEB_BROWSER_TOOLS } from "./web_browser.js";
 import { TOOLS as WEB_FETCH_TOOLS } from "./web_fetch.js";
 import { TOOLS as UTILS_TOOLS } from "./utils.js";
 import { TOOLS as HA_TOOLS } from "./homeassistant.js";
+import { TOOLS as SKIP_TURN_TOOLS } from "./skip_turn.js";
 import { updateCoreMemoryTool } from "./core_memory_tool.js";
 import { appendDailyMemoryTool } from "./daily_memory_tool.js";
 import { searchMemoryTool } from "./search_memory_tool.js";
@@ -31,6 +32,7 @@ const BUILT_IN_TOOLS = [
   ...WEB_FETCH_TOOLS,
   ...UTILS_TOOLS,
   ...HA_TOOLS,
+  ...SKIP_TURN_TOOLS,
   updateCoreMemoryTool,
   appendDailyMemoryTool,
   searchMemoryTool,
@@ -93,6 +95,7 @@ export const MAIN_TOOL_NAMES = new Set<string>([
   "read_skill",
   "web_fetch",
   "control_app",
+  "skip_turn",
 ]);
 
 export async function loadMainTools(): Promise<AgentTool[]> {

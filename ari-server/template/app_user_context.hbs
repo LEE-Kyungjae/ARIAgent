@@ -1,16 +1,10 @@
 [Request Context]
 - time: {{now_str}}
-{{#if currentAppId}}
-- current app: {{currentAppId}}
-{{/if}}
-{{#if platform}}
-- platform: {{platform}}
-{{/if}}
 {{#each details}}
 - {{key}}: {{value}}
 {{/each}}
 {{#if connectedAppIds}}
-- connected apps: {{#each connectedAppIds}}{{#unless @first}}, {{/unless}}`{{this}}`{{/each}}
+- room participants: {{#each connectedAppIds}}{{#unless @first}}, {{/unless}}`{{this}}`{{/each}}
 {{/if}}
 
 {{#if recentDailyLogs}}
