@@ -11,6 +11,13 @@ export interface ChatWithAgentResult {
   aborted?: boolean;
 }
 
+export interface ExecuteAgentResult {
+  status: "follow_up" | "broadcasted" | "cancelled";
+  requestId: string;
+  agentId: string;
+  responseText?: string;
+}
+
 export interface PendingAgentResponse {
   requestId: string;
   agentId: string;

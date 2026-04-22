@@ -1,12 +1,12 @@
 import { Agent, AgentMessage } from "@mariozechner/pi-agent-core";
-import { AgentInfo } from "../../models/agent.js";
-import { AIProviders } from "../../models/settings.js";
+import { AgentInfo } from "../../../models/agent.js";
+import { AIProviders } from "../../../models/settings.js";
 import {
   createApiKeyResolver,
   findFirstUsableProvider,
   resolveModel,
-} from "./provider_selector.js";
-import { readChatLogs } from "../../repositories/chat_log_repository.js";
+} from "../provider/selector.js";
+import { readChatLogs } from "../../../repositories/chat_log_repository.js";
 import { AgentSession } from "./agent_session.js";
 
 const agentsMap = new Map<string, AgentSession>();

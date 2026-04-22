@@ -1,8 +1,8 @@
-import { PendingAgentResponse } from "../../models/agent_response.js";
-import { appendChatLog } from "../../repositories/chat_log_repository.js";
-import { pushApp } from "../../protocol/app.js";
-import { sendAgentRequest } from "../../protocol/agent.js";
-import { agentState } from "./bootstrap.js";
+import { PendingAgentResponse } from "../../../models/agent_response.js";
+import { appendChatLog } from "../../../repositories/chat_log_repository.js";
+import { pushApp } from "../../../protocol/app.js";
+import { sendAgentRequest } from "../../../protocol/agent.js";
+import { agentState } from "../provider/state.js";
 
 /**
  * 사용 가능한 LLM 프로바이더가 없으면 에코 모드.

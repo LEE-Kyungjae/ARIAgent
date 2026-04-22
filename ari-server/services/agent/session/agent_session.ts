@@ -1,36 +1,36 @@
 import { Agent } from "@mariozechner/pi-agent-core";
-import { AgentInfo } from "../../models/agent.js";
-import { AIProviders } from "../../models/settings.js";
-import { PendingAgentResponse } from "../../models/agent_response.js";
-import { appendChatLog } from "../../repositories/chat_log_repository.js";
-import { appendUsageLog } from "../../repositories/usage_repository.js";
-import { pushApp, errorApp } from "../../protocol/app.js";
-import { sendAgentRequest } from "../../protocol/agent.js";
+import { AgentInfo } from "../../../models/agent.js";
+import { AIProviders } from "../../../models/settings.js";
+import { PendingAgentResponse } from "../../../models/agent_response.js";
+import { appendChatLog } from "../../../repositories/chat_log_repository.js";
+import { appendUsageLog } from "../../../repositories/usage_repository.js";
+import { pushApp, errorApp } from "../../../protocol/app.js";
+import { sendAgentRequest } from "../../../protocol/agent.js";
 import {
   extractFinalResponseText,
   extractTextFromAgentMessage,
-} from "./response_parser.js";
+} from "../pipeline/response_parser.js";
 import {
   getAttemptOrder,
   isOAuthProvider,
   resolveApiKey,
   resolveModel,
-} from "./provider_selector.js";
+} from "../provider/selector.js";
 import { cloneActiveSkills, mergeActiveSkill } from "./active_skills.js";
-import { loadSkillsForPrompt } from "../../skills/index.js";
+import { loadSkillsForPrompt } from "../../../skills/index.js";
 import {
   buildSessionTools,
   buildSessionToolsSync,
-} from "./session_tools.js";
-import { logger } from "../../infra/logger.js";
-import { t } from "../../infra/i18n.js";
-import { getSettings } from "../../repositories/setting_repository.js";
-import { Settings } from "../../models/settings.js";
+} from "./runtime_tools.js";
+import { logger } from "../../../infra/logger.js";
+import { t } from "../../../infra/i18n.js";
+import { getSettings } from "../../../repositories/setting_repository.js";
+import { Settings } from "../../../models/settings.js";
 import {
   resolveForwardIfPending,
   rejectForwardIfPending,
-} from "./forward_registry.js";
-import { markAgentIdle, markAgentWorking } from "./runtime_state.js";
+} from "../pipeline/inter_agent.js";
+import { markAgentIdle, markAgentWorking } from "./activity_state.js";
 
 function parseProviderErrorMessage(raw: string): string {
   if (!raw) return "";

@@ -9,6 +9,7 @@ import {
 import { logger } from "../infra/logger.js";
 import { getAgentsConfig } from "../repositories/agent_repository.js";
 import { AgentsConfig } from "../models/agent.js";
+import { ExecuteAgentRequestParams } from "../models/agent_request.js";
 
 function resolveAgentId(agentId?: string): string {
   return agentId || getAgentsConfig(new AgentsConfig()).selected || "default";
@@ -22,26 +23,28 @@ router.on("/AGENT", async (ctx, params) => {
   let resolvedAgentId: string | undefined;
 
   try {
-    const result = await executeAgentRequest({
-      message: params.message as string,
-      requestId,
-      persona: (params.persona as string | undefined) || "",
-      avatarName: (params.avatarName as string | undefined) || "",
-      platform: (params.platform as string | undefined) || "",
-      agentId: params.agentId as string | undefined,
-      appId: params.appId as string | undefined,
-      socketAppId: ctx.appId,
-      // 원본 소켓 uuid. 응답 라우팅 타겟.
-      originUuid: ctx.uuid,
-      // 에이전트 간 라우팅 raw 입력 (서비스 내부에서 해석).
-      from: params.from as string | undefined,
-      to: params.to as string | undefined,
-      ttl,
-      details:
-        params.details && typeof params.details === "object" && !Array.isArray(params.details)
-          ? (params.details as Record<string, unknown>)
-          : undefined,
-    });
+    const result = await executeAgentRequest(
+      new ExecuteAgentRequestParams({
+        message: params.message as string,
+        requestId,
+        persona: params.persona as string | undefined,
+        avatarName: params.avatarName as string | undefined,
+        platform: params.platform as string | undefined,
+        agentId: params.agentId as string | undefined,
+        appId: params.appId as string | undefined,
+        socketAppId: ctx.appId,
+        // 원본 소켓 uuid. 응답 라우팅 타겟.
+        originUuid: ctx.uuid,
+        // 에이전트 간 라우팅 raw 입력 (서비스 내부에서 해석).
+        from: params.from as string | undefined,
+        to: params.to as string | undefined,
+        ttl,
+        details:
+          params.details && typeof params.details === "object" && !Array.isArray(params.details)
+            ? (params.details as Record<string, unknown>)
+            : undefined,
+      }),
+    );
 
     resolvedAgentId = result.agentId;
 

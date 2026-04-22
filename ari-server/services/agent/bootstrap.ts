@@ -2,50 +2,30 @@ import { logger } from "../../infra/logger.js";
 import {
   AIProviderConfig,
   AIProviders,
-  AvailablePlugins,
   Settings,
 } from "../../models/settings.js";
 import { getSettings } from "../../repositories/setting_repository.js";
 import { getOAuthStatus } from "../oauth/index.js";
-import {
-  loadAllApps,
-  loadAllSkills,
-  loadSkillsForPrompt,
-} from "../../skills/index.js";
+import { loadSkillsForPrompt } from "../../skills/index.js";
 import { loadMainTools } from "../../tools/index.js";
-import { ARI_CLOUD_PROVIDER, isOAuthProvider } from "./provider_selector.js";
-import { clearAllAgentSessions } from "./session_manager.js";
+import { ARI_CLOUD_PROVIDER, isOAuthProvider } from "./provider/selector.js";
+import { clearAllAgentSessions } from "./session/session_manager.js";
+import { agentState } from "./provider/state.js";
+import { setCurrentSkills, setCurrentTools } from "./plugin_cache.js";
 
-type ToolsList = Awaited<ReturnType<typeof loadMainTools>>;
-type SkillsList = Awaited<ReturnType<typeof loadAllSkills>>;
-
-export const agentState = new AIProviders();
-
-let currentTools: ToolsList = [];
-let currentSkills: SkillsList = [];
-
-export function getCurrentTools(): ToolsList {
-  return currentTools;
-}
-
-export function setCurrentTools(tools: ToolsList): void {
-  currentTools = tools;
-}
-
-export function getCurrentSkills(): SkillsList {
-  return currentSkills;
-}
-
-export function setCurrentSkills(skills: SkillsList): void {
-  currentSkills = skills;
-}
-
+/**
+ * 에이전트 런타임 초기화.
+ * - 도구/스킬 캐시(plugin_cache) 채움
+ * - 설정·OAuth 상태로 availableProviders 확정 (provider/state)
+ * - 활성 세션 전량 리셋
+ * - 프로바이더가 하나도 없으면 ARICloud 세팅-가이드 모드로 전환
+ */
 export async function initAgent(providersConfig?: AIProviders): Promise<void> {
   const globalSettings = getSettings(new Settings()) || {};
   const state = agentState;
 
-  currentTools = await loadMainTools();
-  currentSkills = await loadSkillsForPrompt();
+  setCurrentTools(await loadMainTools());
+  setCurrentSkills(await loadSkillsForPrompt());
 
   if (providersConfig && providersConfig.providers.length > 0) {
     state.setProviders(providersConfig.providers);
@@ -107,20 +87,4 @@ export async function initAgent(providersConfig?: AIProviders): Promise<void> {
   logger.info(
     `✅ Agent initialized. (${state.availableProviders.length} providers loaded, current: ${state.currentProvider}/${state.currentModel})`,
   );
-}
-
-export function getCurrentState() {
-  return agentState;
-}
-
-export async function getPluginsInfo(): Promise<AvailablePlugins> {
-  getSettings(new Settings());
-  if (currentTools.length === 0) {
-    currentTools = await loadMainTools();
-  }
-  const [skills, apps] = await Promise.all([
-    loadAllSkills(),
-    loadAllApps(),
-  ]);
-  return { tools: currentTools, skills, apps };
 }

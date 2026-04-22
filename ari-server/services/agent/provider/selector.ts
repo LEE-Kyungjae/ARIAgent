@@ -1,6 +1,6 @@
 import { getModel } from "@mariozechner/pi-ai";
-import { AIProviderConfig, AIProviders } from "../../models/settings.js";
-import { getOAuthApiKeyForAccount } from "../oauth/index.js";
+import { AIProviderConfig, AIProviders } from "../../../models/settings.js";
+import { getOAuthApiKeyForAccount } from "../../oauth/index.js";
 
 // 이제 서버는 별도의 매핑 테이블을 관리하지 않습니다.
 // 모든 ID 제어는 클라이언트(ari-app)의 provider_meta.dart에서 수행합니다.

@@ -1,13 +1,13 @@
 import { AgentMessage } from "@mariozechner/pi-agent-core";
-import { AgentInfo } from "../../models/agent.js";
-import { AIProviders } from "../../models/settings.js";
-import { Prompt } from "../../infra/prompt.js";
-import { logger } from "../../infra/logger.js";
-import { readCoreMemory, searchRelevantMemories } from "../memory/index.js";
-import { getSettings } from "../../repositories/setting_repository.js";
-import { Settings } from "../../models/settings.js";
-import { getEmbeddingStatus } from "../../infra/embedding.js";
-import { ARI_CLOUD_PROVIDER } from "./provider_selector.js";
+import { AgentInfo } from "../../../models/agent.js";
+import { AIProviders } from "../../../models/settings.js";
+import { Prompt } from "../../../infra/prompt.js";
+import { logger } from "../../../infra/logger.js";
+import { readCoreMemory, searchRelevantMemories } from "../../memory/index.js";
+import { getSettings } from "../../../repositories/setting_repository.js";
+import { Settings } from "../../../models/settings.js";
+import { getEmbeddingStatus } from "../../../infra/embedding.js";
+import { ARI_CLOUD_PROVIDER } from "../provider/selector.js";
 
 export async function buildSystemPrompt(
   agentProfile: AgentInfo,

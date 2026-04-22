@@ -1,9 +1,17 @@
+/**
+ * 세션 제어 (수명/취소/권한).
+ * - abortAgent / clearAgentInstance: 실행 중 추론 중단, 세션 인스턴스 폐기
+ * - dropPendingResponse: 응답 큐에서 특정 requestId 제거
+ * - abortAgentsForOrigin: 소켓 종료 시 해당 소켓이 발행한 진행 요청 일괄 중단
+ * - canCancelAgent: 취소 요청자의 소유권 확인 (originUuid 일치 또는 ari 앱)
+ */
+
 import { logger } from "../../infra/logger.js";
 import {
   clearAgentSession,
   getSession,
   listAgentSessions,
-} from "./session_manager.js";
+} from "./session/session_manager.js";
 
 export function dropPendingResponse(agentId: string, requestId: string): void {
   const session = getSession(agentId);

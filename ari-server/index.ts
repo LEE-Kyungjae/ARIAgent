@@ -1,7 +1,7 @@
 import { setMaxListeners } from "events";
 import { WebSocketServer } from "ws";
 import { getPluginsInfo, initAgent, getCurrentState } from "./services/agent/index.js";
-import { ARI_CLOUD_PROVIDER } from "./services/agent/provider_selector.js";
+import { ARI_CLOUD_PROVIDER } from "./services/agent/provider/selector.js";
 import { getSettings } from "./repositories/setting_repository.js";
 import { getAgentsConfig } from "./repositories/agent_repository.js";
 import { AgentsConfig } from "./models/agent.js";

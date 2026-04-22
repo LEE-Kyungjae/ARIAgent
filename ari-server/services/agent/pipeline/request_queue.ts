@@ -1,8 +1,8 @@
 import { AgentMessage } from "@mariozechner/pi-agent-core";
-import { logger } from "../../infra/logger.js";
-import { PendingAgentResponse } from "../../models/agent_response.js";
-import { sendAgentFollowUp } from "../../protocol/agent.js";
-import { AgentSession } from "./agent_session.js";
+import { logger } from "../../../infra/logger.js";
+import { PendingAgentResponse } from "../../../models/agent_response.js";
+import { sendAgentFollowUp } from "../../../protocol/agent.js";
+import { AgentSession } from "../session/agent_session.js";
 
 /**
  * 큐 분기 결정.

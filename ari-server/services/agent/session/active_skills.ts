@@ -1,4 +1,4 @@
-import { SkillDefinition } from "../../skills/index.js";
+import { SkillDefinition } from "../../../skills/index.js";
 
 /**
  * 에이전트 세션이 들고 다니는 활성 스킬 표현 + 변형 헬퍼.

@@ -12,7 +12,7 @@ import { logger } from "../infra/logger.js";
 import { findAppExecutable } from "../infra/runtime_paths.js";
 import { DATA_DIR } from "../infra/data.js";
 import { getExecutionContext } from "../services/agent/execution_context.js";
-import { registerForwardWaiter } from "../services/agent/forward_registry.js";
+import { registerForwardWaiter } from "../services/agent/pipeline/inter_agent.js";
 
 export const LAUNCH_WAIT_TIMEOUT_MS = 15_000;
 const LAUNCH_POLL_INTERVAL_MS = 300;

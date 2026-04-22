@@ -1,4 +1,4 @@
-import { sendAgentProgress } from "../../protocol/agent.js";
+import { sendAgentProgress } from "../../../protocol/agent.js";
 
 /**
  * 진행 메시지 팬아웃 헬퍼.

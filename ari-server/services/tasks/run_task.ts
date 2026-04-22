@@ -1,6 +1,7 @@
 import { Task } from "../../models/task.js";
 import { getTasks, saveTasks } from "../../repositories/task_repository.js";
 import { executeAgentRequest } from "../agent/index.js";
+import { ExecuteAgentRequestParams } from "../../models/agent_request.js";
 import { notifyAppNotice } from "../../protocol/app.js";
 import { notifyTaskResult } from "../../protocol/task.js";
 import { appendChatLog } from "../../repositories/chat_log_repository.js";
@@ -78,15 +79,17 @@ export async function runScheduledTask(
     );
 
     const result = await Promise.race([
-      executeAgentRequest({
-        message: task.prompt,
-        requestId: runRequestId,
-        agentId,
-        appId: task.appId,
-        persona: task.persona,
-        avatarName: task.avatarName,
-        waitForCompletion: true,
-      }),
+      executeAgentRequest(
+        new ExecuteAgentRequestParams({
+          message: task.prompt,
+          requestId: runRequestId,
+          agentId,
+          appId: task.appId,
+          persona: task.persona,
+          avatarName: task.avatarName,
+          waitForCompletion: true,
+        }),
+      ),
       timeoutPromise,
     ]);
 

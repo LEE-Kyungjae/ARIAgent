@@ -1,6 +1,6 @@
-export type AgentRuntimeStatus = "idle" | "working";
+type AgentRuntimeStatus = "idle" | "working";
 
-export type AgentRuntimeState = {
+type AgentRuntimeState = {
   agentId: string;
   status: AgentRuntimeStatus;
   requestId?: string;
@@ -31,8 +31,4 @@ export function markAgentIdle(agentId: string): AgentRuntimeState {
   };
   runtimeStates.set(agentId, next);
   return next;
-}
-
-export function getAllAgentRuntimeStates(): AgentRuntimeState[] {
-  return Array.from(runtimeStates.values());
 }

@@ -1,5 +1,5 @@
 import { AgentTool } from "@mariozechner/pi-agent-core";
-import { MAIN_TOOL_NAMES, loadAllTools } from "../../tools/index.js";
+import { MAIN_TOOL_NAMES, loadAllTools } from "../../../tools/index.js";
 
 let cachedAllTools: AgentTool[] = [];
 let cachedMainTools: AgentTool[] = [];
