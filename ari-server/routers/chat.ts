@@ -8,11 +8,11 @@ import {
  * /CHAT.GET_HISTORY {agentId, index, size}
  * 특정 에이전트의 대화 이력을 조회합니다.
  */
-router.on("/CHAT.GET_HISTORY", async (ws, params) => {
+router.on("/CHAT.GET_HISTORY", async (ctx, params) => {
   const { appId, agentId, index = 0, size = 20 } = params;
 
   if (!agentId) {
-    return ws.send("/CHAT.GET_HISTORY", {
+    return ctx.send("/CHAT.GET_HISTORY", {
       ok: false,
       message: "agentId required",
     });
@@ -25,9 +25,9 @@ router.on("/CHAT.GET_HISTORY", async (ws, params) => {
       Number(index),
       Number(size),
     );
-    ws.send("/CHAT.GET_HISTORY", { ok: true, data: { logs, total } });
+    ctx.send("/CHAT.GET_HISTORY", { ok: true, data: { logs, total } });
   } catch (err: any) {
-    ws.send("/CHAT.GET_HISTORY", { ok: false, message: err.message });
+    ctx.send("/CHAT.GET_HISTORY", { ok: false, message: err.message });
   }
 });
 
@@ -35,17 +35,17 @@ router.on("/CHAT.GET_HISTORY", async (ws, params) => {
  * /CHAT.CLEAR {appId, agentId}
  * 특정 (appId, agentId) 쌍의 대화 이력을 삭제합니다.
  */
-router.on("/CHAT.CLEAR", async (ws, params) => {
+router.on("/CHAT.CLEAR", async (ctx, params) => {
   const { appId, agentId } = params;
 
   if (!agentId) {
-    return ws.send("/CHAT.CLEAR", { ok: false, message: "agentId required" });
+    return ctx.send("/CHAT.CLEAR", { ok: false, message: "agentId required" });
   }
 
   try {
     clearChatLogs(appId as string | undefined, agentId as string);
-    ws.send("/CHAT.CLEAR", { ok: true, data: { appId, agentId } });
+    ctx.send("/CHAT.CLEAR", { ok: true, data: { appId, agentId } });
   } catch (err: any) {
-    ws.send("/CHAT.CLEAR", { ok: false, message: err.message });
+    ctx.send("/CHAT.CLEAR", { ok: false, message: err.message });
   }
 });

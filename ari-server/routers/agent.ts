@@ -15,7 +15,7 @@ function resolveAgentId(agentId?: string): string {
 }
 
 // /AGENT
-router.on("/AGENT", async (ws, params) => {
+router.on("/AGENT", async (ctx, params) => {
   const requestId = (params.requestId as string | undefined) || "";
   const rawTtl = Number(params.ttl);
   const ttl = Number.isFinite(rawTtl) ? Math.floor(rawTtl) : undefined;
@@ -29,9 +29,9 @@ router.on("/AGENT", async (ws, params) => {
       avatarName: (params.avatarName as string | undefined) || "",
       platform: (params.platform as string | undefined) || "",
       appId: params.appId as string | undefined,
-      socketAppId: ws.appId,
+      socketAppId: ctx.appId,
       // 원본 소켓 uuid. 응답 라우팅 타겟.
-      originUuid: ws.uuid,
+      originUuid: ctx.uuid,
       // 에이전트 간 라우팅 raw 입력 (서비스 내부에서 해석).
       from: params.from as string | undefined,
       to: params.to as string | undefined,
@@ -47,28 +47,28 @@ router.on("/AGENT", async (ws, params) => {
     if (result.status === "cancelled") {
       dropPendingResponse(result.agentId, requestId);
       logger.info(`[/AGENT] Request cancelled by user: ${requestId}`);
-      ws.send("/AGENT", { ok: true, data: { status: "cancelled", requestId } });
+      ctx.send("/AGENT", { ok: true, data: { status: "cancelled", requestId } });
       return;
     }
 
-    ws.send("/AGENT", { ok: true, data: { status: result.status, requestId } });
+    ctx.send("/AGENT", { ok: true, data: { status: result.status, requestId } });
   } catch (err: any) {
     if (resolvedAgentId) {
       dropPendingResponse(resolvedAgentId, requestId);
     }
-    ws.send("/AGENT", { ok: false, message: err.message });
+    ctx.send("/AGENT", { ok: false, message: err.message });
   }
 });
 
 // /AGENT.CANCEL  (소유권 검증 + 요청 소켓에만 응답)
-router.on("/AGENT.CANCEL", async (ws, params) => {
+router.on("/AGENT.CANCEL", async (ctx, params) => {
   const agentId = resolveAgentId(params.agentId as string | undefined);
 
-  if (!canCancelAgent(agentId, ws.uuid, ws.appId)) {
+  if (!canCancelAgent(agentId, ctx.uuid, ctx.appId)) {
     logger.warn(
-      `[/AGENT.CANCEL] Rejected: uuid=${ws.uuid} appId=${ws.appId} is not owner of agent=${agentId}`,
+      `[/AGENT.CANCEL] Rejected: uuid=${ctx.uuid} appId=${ctx.appId} is not owner of agent=${agentId}`,
     );
-    ws.send("/AGENT.CANCEL", {
+    ctx.send("/AGENT.CANCEL", {
       ok: false,
       message: "Not owner of agent session.",
     });
@@ -76,13 +76,13 @@ router.on("/AGENT.CANCEL", async (ws, params) => {
   }
 
   abortAgent(agentId);
-  ws.send("/AGENT.CANCEL", { ok: true, data: { agentId } });
+  ctx.send("/AGENT.CANCEL", { ok: true, data: { agentId } });
 });
 
 // /AGENT.RESET
-router.on("/AGENT.RESET", async (ws, params) => {
+router.on("/AGENT.RESET", async (ctx, params) => {
   const agentId = resolveAgentId(params.agentId as string | undefined);
 
   clearAgentInstance(agentId);
-  ws.send("/AGENT.RESET", { ok: true, data: { agentId } });
+  ctx.send("/AGENT.RESET", { ok: true, data: { agentId } });
 });

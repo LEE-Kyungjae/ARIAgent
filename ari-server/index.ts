@@ -1,4 +1,3 @@
-import http from "http";
 import { setMaxListeners } from "events";
 import { WebSocketServer } from "ws";
 import { getPluginsInfo, initAgent, getCurrentState } from "./services/agent/index.js";
@@ -90,31 +89,18 @@ async function initState(config: any): Promise<void> {
 }
 
 /**
- * HTTP 서버 생성
+ * WebSocket 서버 생성 및 listen
  */
-function createHttpServer(): http.Server {
-  return http.createServer((req, res) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    if (req.method === "OPTIONS") {
-      res.writeHead(204);
-      res.end();
-    } else {
-      res.writeHead(404);
-      res.end();
-    }
-  });
-}
-
-/**
- * WebSocket 서버 설정
- */
-function setupWebSocket(server: http.Server): void {
-  const wss = new WebSocketServer({ server });
+function startWebSocketServer(
+  port: number,
+  onListening: () => void,
+): WebSocketServer {
+  const wss = new WebSocketServer({ port, host: "127.0.0.1" });
   wss.on("connection", (ws, req) => {
     UserSocketHandler.onConnect(ws, req);
   });
+  wss.on("listening", onListening);
+  return wss;
 }
 
 async function bootstrapTaskScheduler(): Promise<void> {
@@ -196,10 +182,7 @@ async function main() {
   logger.info(`╚═══════════════════════════════════════╝\n`);
 
   // 4. 서버 시작
-  const server = createHttpServer();
-  setupWebSocket(server);
-
-  server.listen(port, "127.0.0.1", () => {
+  startWebSocketServer(port, () => {
     logger.info(`🛰️ Server listening on 127.0.0.1:${port}`);
     void bootstrapTaskScheduler().catch((err) => {
       logger.error("[LocalTaskScheduler] Bootstrap failed:", err);

@@ -6,8 +6,8 @@ import { getEmbeddingStatus, initEmbeddingModel } from "../services/embedding.js
 import { getAgentsConfig } from "../repositories/agent_repository.js";
 import { AgentsConfig } from "../models/agent.js";
 
-router.on("/SETTINGS", async (ws, params) => {
-  logger.info(`[Settings] Update requested by ${ws.uuid}`);
+router.on("/SETTINGS", async (ctx, params) => {
+  logger.info(`[Settings] Update requested by ${ctx.uuid}`);
   const state = getCurrentState();
   if (params.providers) {
     logger.info(`[Settings] Updating providers: ${params.providers.length} items`);
@@ -28,7 +28,7 @@ router.on("/SETTINGS", async (ws, params) => {
     state.setProviders(nextProviders);
     saveSettings({ PROVIDERS: state.providers as any });
     await initAgent(state);
-    return ws.send("/SETTINGS", { ok: true, data: { success: true, providers: state.providers } });
+    return ctx.send("/SETTINGS", { ok: true, data: { success: true, providers: state.providers } });
   }
 
   if (params.apiKey) {
@@ -88,18 +88,18 @@ router.on("/SETTINGS", async (ws, params) => {
     await initAgent();
   }
 
-  ws.send("/SETTINGS", { ok: true, data: { success: true, model: state.currentModel, provider: state.currentProvider } });
+  ctx.send("/SETTINGS", { ok: true, data: { success: true, model: state.currentModel, provider: state.currentProvider } });
 });
 
-router.on("/PLUGINS.SKILLS", async (ws, _params) => {
-  logger.info(`[Plugins] Skills requested from ${ws.uuid}`);
+router.on("/PLUGINS.SKILLS", async (ctx, _params) => {
+  logger.info(`[Plugins] Skills requested from ${ctx.uuid}`);
   const { skills } = await getPluginsInfo();
-  ws.send("/PLUGINS.SKILLS", { ok: true, data: { skills } });
+  ctx.send("/PLUGINS.SKILLS", { ok: true, data: { skills } });
 });
 
-router.on("/PLUGINS.APPS", async (ws, params) => {
+router.on("/PLUGINS.APPS", async (ctx, params) => {
   const agentId = params?.agentId as string | undefined;
-  logger.info(`[Plugins] Apps requested from ${ws.uuid} (agentId: ${agentId ?? "all"})`);
+  logger.info(`[Plugins] Apps requested from ${ctx.uuid} (agentId: ${agentId ?? "all"})`);
   const { apps } = await getPluginsInfo();
 
   // agentId가 전달된 경우, 해당 에이전트의 appIds 기준으로 필터링
@@ -108,17 +108,17 @@ router.on("/PLUGINS.APPS", async (ws, params) => {
     const agent = config.agents.find((a) => a.id === agentId);
     if (agent) {
       const filtered = agent.filterVisibleSkills(apps);
-      return ws.send("/PLUGINS.APPS", { ok: true, data: { apps: filtered } });
+      return ctx.send("/PLUGINS.APPS", { ok: true, data: { apps: filtered } });
     }
   }
 
-  ws.send("/PLUGINS.APPS", { ok: true, data: { apps } });
+  ctx.send("/PLUGINS.APPS", { ok: true, data: { apps } });
 });
 
-router.on("/PLUGINS.TOOLS", async (ws, _params) => {
-  logger.info(`[Plugins] Tools requested from ${ws.uuid}`);
+router.on("/PLUGINS.TOOLS", async (ctx, _params) => {
+  logger.info(`[Plugins] Tools requested from ${ctx.uuid}`);
   const { tools } = await getPluginsInfo();
-  ws.send("/PLUGINS.TOOLS", {
+  ctx.send("/PLUGINS.TOOLS", {
     ok: true,
     data: { tools: tools.map((t) => ({ name: t.name, description: t.description })) },
   });

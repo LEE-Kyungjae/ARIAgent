@@ -18,9 +18,9 @@ import { logger } from "../infra/logger.js";
 const activeLoginIds = new Map<string, string>();
 
 // ─── 저장된 OAuth 계정 목록 조회 ───────────────────────────
-router.on("/OAUTH_PROVIDERS", async (ws, _params) => {
+router.on("/OAUTH_PROVIDERS", async (ctx, _params) => {
   const accounts = getAllOAuthAccounts();
-  ws.send("/OAUTH_PROVIDERS", {
+  ctx.send("/OAUTH_PROVIDERS", {
     ok: true,
     data: { accounts },
   });
@@ -28,11 +28,11 @@ router.on("/OAUTH_PROVIDERS", async (ws, _params) => {
 
 // ─── 로그인 플로우 시작 ──────────────────────────────────────
 // 로그인 진행 이벤트는 별도의 push 메시지(/OAUTH_EVENT)로 앱에 전송
-router.on("/OAUTH_LOGIN", async (ws, params) => {
+router.on("/OAUTH_LOGIN", async (ctx, params) => {
   const accountId = params.accountId as string;
   const provider = params.provider as OAuthProvider;
   if (!accountId || !provider) {
-    return ws.send("/OAUTH_LOGIN", { ok: false, message: "accountId and provider are required" });
+    return ctx.send("/OAUTH_LOGIN", { ok: false, message: "accountId and provider are required" });
   }
 
   // 이전 attempt(같은 accountId)를 먼저 취소하고 정리 완료까지 대기.
@@ -44,7 +44,7 @@ router.on("/OAUTH_LOGIN", async (ws, params) => {
 
   logger.info(`[OAuthRouter] Starting OAuth login: ${provider} (${accountId}) loginId=${loginId}`);
 
-  ws.send("/OAUTH_LOGIN", {
+  ctx.send("/OAUTH_LOGIN", {
     ok: true,
     data: { started: true, accountId, provider, loginId },
   });
@@ -60,12 +60,12 @@ router.on("/OAUTH_LOGIN", async (ws, params) => {
     if (event.type === "done" || event.type === "error") {
       activeLoginIds.delete(accountId);
     }
-    ws.send("/OAUTH_EVENT", { accountId, provider, loginId, ...event });
+    ctx.send("/OAUTH_EVENT", { accountId, provider, loginId, ...event });
   }).catch((err) => {
     if (activeLoginIds.get(accountId) !== loginId) return;
     activeLoginIds.delete(accountId);
     logger.error(`[OAuthRouter] Unexpected error in login flow for ${provider} (${accountId}):`, err);
-    ws.send("/OAUTH_EVENT", {
+    ctx.send("/OAUTH_EVENT", {
       accountId,
       provider,
       loginId,
@@ -76,41 +76,41 @@ router.on("/OAUTH_LOGIN", async (ws, params) => {
 });
 
 // ─── 진행 중인 로그인 취소 ──────────────────────────────────
-router.on("/OAUTH_CANCEL", async (ws, params) => {
+router.on("/OAUTH_CANCEL", async (ctx, params) => {
   const accountId = params.accountId as string;
   if (!accountId) {
-    return ws.send("/OAUTH_CANCEL", { ok: false, message: "accountId is required" });
+    return ctx.send("/OAUTH_CANCEL", { ok: false, message: "accountId is required" });
   }
 
   // loginId를 먼저 비워서 이후 들어올 콜백을 모두 stale로 처리.
   activeLoginIds.delete(accountId);
   const cancelled = await cancelOAuthLogin(accountId);
   logger.info(`[OAuthRouter] Cancel requested for ${accountId}: ${cancelled ? "aborted" : "no active flow"}`);
-  ws.send("/OAUTH_CANCEL", { ok: true, data: { accountId, cancelled } });
+  ctx.send("/OAUTH_CANCEL", { ok: true, data: { accountId, cancelled } });
 });
 
 // ─── 사용자 입력(코드) 전달 ──────────────────────────────────
-router.on("/OAUTH_PROMPT", async (ws, params) => {
+router.on("/OAUTH_PROMPT", async (ctx, params) => {
   const accountId = params.accountId as string;
   const value = params.value as string;
 
   if (!accountId || value === undefined) {
-    return ws.send("/OAUTH_PROMPT", { ok: false, message: "accountId and value are required" });
+    return ctx.send("/OAUTH_PROMPT", { ok: false, message: "accountId and value are required" });
   }
 
   const resolved = resolveOAuthPrompt(accountId, value);
-  ws.send("/OAUTH_PROMPT", { ok: true, data: { resolved } });
+  ctx.send("/OAUTH_PROMPT", { ok: true, data: { resolved } });
 });
 
 // ─── 특정 계정 로그인 상태 조회 ─────────────────────
-router.on("/OAUTH_STATUS", async (ws, params) => {
+router.on("/OAUTH_STATUS", async (ctx, params) => {
   const accountId = params.accountId as string;
   if (!accountId) {
-    return ws.send("/OAUTH_STATUS", { ok: false, message: "accountId is required" });
+    return ctx.send("/OAUTH_STATUS", { ok: false, message: "accountId is required" });
   }
 
   const status = getOAuthStatus(accountId);
-  ws.send("/OAUTH_STATUS", {
+  ctx.send("/OAUTH_STATUS", {
     ok: true,
     data: {
       accountId: status.accountId,
@@ -122,12 +122,12 @@ router.on("/OAUTH_STATUS", async (ws, params) => {
 });
 
 // ─── 로그아웃 ──────────────────────────────────────────────
-router.on("/OAUTH_LOGOUT", async (ws, params) => {
+router.on("/OAUTH_LOGOUT", async (ctx, params) => {
   const accountId = params.accountId as string;
   if (!accountId) {
-    return ws.send("/OAUTH_LOGOUT", { ok: false, message: "accountId is required" });
+    return ctx.send("/OAUTH_LOGOUT", { ok: false, message: "accountId is required" });
   }
 
   logoutOAuth(accountId);
-  ws.send("/OAUTH_LOGOUT", { ok: true, data: { accountId, loggedOut: true } });
+  ctx.send("/OAUTH_LOGOUT", { ok: true, data: { accountId, loggedOut: true } });
 });

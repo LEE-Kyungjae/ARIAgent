@@ -12,7 +12,7 @@ import {
  * /CHANNEL.GET {type: "telegram"}
  * 채널 설정을 조회합니다.
  */
-router.on("/CHANNEL.GET", async (ws, params) => {
+router.on("/CHANNEL.GET", async (ctx, params) => {
   const { type } = params;
 
   if (type === "telegram") {
@@ -21,7 +21,7 @@ router.on("/CHANNEL.GET", async (ws, params) => {
     const masked = config.botToken
       ? config.botToken.replace(/:.+/, ":***")
       : "";
-    ws.send("/CHANNEL.GET", {
+    ctx.send("/CHANNEL.GET", {
       ok: true,
       data: {
         ...config,
@@ -32,14 +32,14 @@ router.on("/CHANNEL.GET", async (ws, params) => {
     return;
   }
 
-  ws.send("/CHANNEL.GET", { ok: false, message: `Unknown channel type: ${type}` });
+  ctx.send("/CHANNEL.GET", { ok: false, message: `Unknown channel type: ${type}` });
 });
 
 /**
  * /CHANNEL.SAVE {type: "telegram", botToken, allowedChatIds, agentId}
  * 채널 설정을 저장하고 polling을 재시작합니다.
  */
-router.on("/CHANNEL.SAVE", async (ws, params) => {
+router.on("/CHANNEL.SAVE", async (ctx, params) => {
   const { type } = params;
 
   if (type === "telegram") {
@@ -66,25 +66,25 @@ router.on("/CHANNEL.SAVE", async (ws, params) => {
       restartTelegramPolling();
     }
 
-    ws.send("/CHANNEL.SAVE", { ok: true, data: { type: "telegram" } });
+    ctx.send("/CHANNEL.SAVE", { ok: true, data: { type: "telegram" } });
     return;
   }
 
-  ws.send("/CHANNEL.SAVE", { ok: false, message: `Unknown channel type: ${type}` });
+  ctx.send("/CHANNEL.SAVE", { ok: false, message: `Unknown channel type: ${type}` });
 });
 
 /**
  * /CHANNEL.TOGGLE {type: "telegram", enabled: boolean}
  * 채널을 활성화/비활성화합니다.
  */
-router.on("/CHANNEL.TOGGLE", async (ws, params) => {
+router.on("/CHANNEL.TOGGLE", async (ctx, params) => {
   const { type, enabled } = params;
 
   if (type === "telegram") {
     const config = getTelegramConfig();
 
     if (!config.botToken) {
-      ws.send("/CHANNEL.TOGGLE", {
+      ctx.send("/CHANNEL.TOGGLE", {
         ok: false,
         message: "Bot Token을 먼저 설정해 주세요.",
       });
@@ -100,21 +100,21 @@ router.on("/CHANNEL.TOGGLE", async (ws, params) => {
       stopTelegramPolling();
     }
 
-    ws.send("/CHANNEL.TOGGLE", {
+    ctx.send("/CHANNEL.TOGGLE", {
       ok: true,
       data: { type: "telegram", enabled: config.enabled, isPolling: isTelegramPollingActive() },
     });
     return;
   }
 
-  ws.send("/CHANNEL.TOGGLE", { ok: false, message: `Unknown channel type: ${type}` });
+  ctx.send("/CHANNEL.TOGGLE", { ok: false, message: `Unknown channel type: ${type}` });
 });
 
 /**
  * /CHANNEL.TEST {type: "telegram"}
  * 봇 토큰이 유효한지 확인합니다.
  */
-router.on("/CHANNEL.TEST", async (ws, params) => {
+router.on("/CHANNEL.TEST", async (ctx, params) => {
   const { type } = params;
 
   if (type === "telegram") {
@@ -130,12 +130,12 @@ router.on("/CHANNEL.TEST", async (ws, params) => {
     }
 
     if (!token) {
-      ws.send("/CHANNEL.TEST", { ok: false, message: "Bot Token이 없습니다." });
+      ctx.send("/CHANNEL.TEST", { ok: false, message: "Bot Token이 없습니다." });
       return;
     }
 
     const result = await testTelegramConnection(token);
-    ws.send("/CHANNEL.TEST", {
+    ctx.send("/CHANNEL.TEST", {
       ok: result.ok,
       data: result.ok ? { botName: result.botName } : undefined,
       message: result.ok ? undefined : result.message,
@@ -143,5 +143,5 @@ router.on("/CHANNEL.TEST", async (ws, params) => {
     return;
   }
 
-  ws.send("/CHANNEL.TEST", { ok: false, message: `Unknown channel type: ${type}` });
+  ctx.send("/CHANNEL.TEST", { ok: false, message: `Unknown channel type: ${type}` });
 });

@@ -16,17 +16,17 @@ import { loadAllApps } from "../skills/index.js";
  * /LAUNCH_APP
  * 특정 앱을 실행합니다.
  */
-router.on("/LAUNCH_APP", async (ws, params) => {
+router.on("/LAUNCH_APP", async (ctx, params) => {
   const { appId } = params as { appId: string };
-  logger.info(`[Apps] Launching app: ${appId} from ${ws.uuid}`);
+  logger.info(`[Apps] Launching app: ${appId} from ${ctx.uuid}`);
 
   if (!appId) {
-    return ws.send("/LAUNCH_APP", { ok: false, error: "appId is required" });
+    return ctx.send("/LAUNCH_APP", { ok: false, error: "appId is required" });
   }
 
   try {
     if (UserSocketHandler.isAppConnected(appId)) {
-      return ws.send("/LAUNCH_APP", {
+      return ctx.send("/LAUNCH_APP", {
         id: params.id,
         ok: true,
         data: { alreadyRunning: true, message: `'${appId}'가 이미 실행 중입니다.` },
@@ -84,14 +84,14 @@ router.on("/LAUNCH_APP", async (ws, params) => {
     });
     child.unref();
 
-    ws.send("/LAUNCH_APP", {
+    ctx.send("/LAUNCH_APP", {
       id: params.id,
       ok: true,
       data: { success: true, message: `'${appId}' 앱을 실행했습니다.` },
     });
   } catch (error: any) {
     logger.error(`[Apps] Failed to launch ${appId}: ${error.message}`);
-    ws.send("/LAUNCH_APP", {
+    ctx.send("/LAUNCH_APP", {
       id: params.id,
       ok: false,
       error: error.message,
@@ -109,7 +109,7 @@ router.on("/LAUNCH_APP", async (ws, params) => {
  *   appName          - 앱 이름 (로그용)
  *   appExecutablePath - 현재 실행 중인 앱의 실행 파일 경로 (Platform.resolvedExecutable)
  */
-router.on("/APP.UPDATE", async (ws, params) => {
+router.on("/APP.UPDATE", async (ctx, params) => {
   const { url, appName = "app", appExecutablePath } = params as {
     url: string;
     appName: string;
@@ -119,7 +119,7 @@ router.on("/APP.UPDATE", async (ws, params) => {
   logger.info(`[AppUpdate] Received update request for '${appName}' from ${url}`);
 
   if (!url || !appExecutablePath) {
-    return ws.send("/APP.UPDATE", { ok: false, error: "url and appExecutablePath are required" });
+    return ctx.send("/APP.UPDATE", { ok: false, error: "url and appExecutablePath are required" });
   }
 
   const tempDir = path.join(os.tmpdir(), `ari-host-update-${Date.now()}`);
@@ -132,12 +132,12 @@ router.on("/APP.UPDATE", async (ws, params) => {
     fs.mkdirSync(extractDir, { recursive: true });
 
     // 2. 다운로드
-    ws.send("/APP.UPDATE.PROGRESS", { stage: "downloading", message: "새 버전 다운로드 중..." });
+    ctx.send("/APP.UPDATE.PROGRESS", { stage: "downloading", message: "새 버전 다운로드 중..." });
     logger.info(`[AppUpdate] Downloading to ${zipPath}`);
     await execPromise(`curl -L "${url}" -o "${zipPath}"`);
 
     // 3. 압축 해제
-    ws.send("/APP.UPDATE.PROGRESS", { stage: "extracting", message: "압축 해제 중..." });
+    ctx.send("/APP.UPDATE.PROGRESS", { stage: "extracting", message: "압축 해제 중..." });
     logger.info(`[AppUpdate] Extracting to ${extractDir}`);
     if (process.platform === "win32") {
       await execPromise(`powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${extractDir}' -Force"`);
@@ -210,7 +210,7 @@ router.on("/APP.UPDATE", async (ws, params) => {
     }
 
     // 6. 교체 스크립트 생성 후 detached 실행 (서버·앱이 종료돼도 안전)
-    ws.send("/APP.UPDATE.PROGRESS", { stage: "installing", message: "업데이트 설치 중..." });
+    ctx.send("/APP.UPDATE.PROGRESS", { stage: "installing", message: "업데이트 설치 중..." });
 
     if (process.platform === "darwin") {
       const scriptPath = path.join(tempDir, "apply_update.sh");
@@ -245,21 +245,21 @@ router.on("/APP.UPDATE", async (ws, params) => {
     }
 
     // 7. 클라이언트에 완료 알림 → 클라이언트가 exit(0) 호출
-    ws.send("/APP.UPDATE", { ok: true, data: { message: "업데이트 준비 완료. 앱을 재시작합니다." } });
+    ctx.send("/APP.UPDATE", { ok: true, data: { message: "업데이트 준비 완료. 앱을 재시작합니다." } });
     logger.info(`[AppUpdate] Update script launched. Waiting for client to close.`);
 
   } catch (error: any) {
     logger.error(`[AppUpdate] Failed: ${error.message}`);
     if (fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true, force: true });
-    ws.send("/APP.UPDATE", { ok: false, error: error.message });
+    ctx.send("/APP.UPDATE", { ok: false, error: error.message });
   }
 });
 
-router.on("/DELETE_SKILL", async (ws, params) => {
+router.on("/DELETE_SKILL", async (ctx, params) => {
   const { name } = params;
   logger.info(`[Skills] Deleting skill: ${name}`);
   if (!name) {
-    return ws.send("/DELETE_SKILL", { ok: false, error: "Name is required" });
+    return ctx.send("/DELETE_SKILL", { ok: false, error: "Name is required" });
   }
 
   try {
@@ -269,25 +269,25 @@ router.on("/DELETE_SKILL", async (ws, params) => {
       rmDirSyncSafe(skillDir);
       await initAgent();
       logger.info(`[Skills] Skill ${name} deleted and agent re-initialized`);
-      ws.send("/DELETE_SKILL", { ok: true, data: { success: true } });
+      ctx.send("/DELETE_SKILL", { ok: true, data: { success: true } });
     } else {
       logger.warn(`[Skills] Skill ${name} not found`);
-      ws.send("/DELETE_SKILL", {
+      ctx.send("/DELETE_SKILL", {
         ok: false,
         error: "Skill not found in user skills",
       });
     }
   } catch (e) {
     logger.error(`[Skills] Error deleting skill ${name}: ${e}`);
-    ws.send("/DELETE_SKILL", { ok: false, error: String(e) });
+    ctx.send("/DELETE_SKILL", { ok: false, error: String(e) });
   }
 });
 
-router.on("/DELETE_APP", async (ws, params) => {
+router.on("/DELETE_APP", async (ctx, params) => {
   const { name, agentId } = params as { name: string; agentId?: string };
   logger.info(`[Apps] Deleting app: ${name} (agentId: ${agentId ?? "none"})`);
   if (!name) {
-    return ws.send("/DELETE_APP", { ok: false, error: "Name is required" });
+    return ctx.send("/DELETE_APP", { ok: false, error: "Name is required" });
   }
 
   try {
@@ -319,10 +319,10 @@ router.on("/DELETE_APP", async (ws, params) => {
     }
 
     await initAgent();
-    ws.send("/DELETE_APP", { ok: true, data: { success: true } });
+    ctx.send("/DELETE_APP", { ok: true, data: { success: true } });
     UserSocketHandler.send({ appId: "ari" }, "/INSTALLED_APPS_CHANGED", { appId: name });
   } catch (e) {
     logger.error(`[Apps] Error deleting app ${name}: ${e}`);
-    ws.send("/DELETE_APP", { ok: false, error: String(e) });
+    ctx.send("/DELETE_APP", { ok: false, error: String(e) });
   }
 });

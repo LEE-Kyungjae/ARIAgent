@@ -15,11 +15,11 @@ import { readUsageSummary } from "../repositories/usage_repository.js";
  *   }
  * }
  */
-router.on("/USAGE.GET", async (ws, params) => {
+router.on("/USAGE.GET", async (ctx, params) => {
   const { agentId, startDate, endDate } = params;
 
   if (!agentId) {
-    return ws.send("/USAGE.GET", { ok: false, message: "agentId required" });
+    return ctx.send("/USAGE.GET", { ok: false, message: "agentId required" });
   }
 
   try {
@@ -28,8 +28,8 @@ router.on("/USAGE.GET", async (ws, params) => {
       startDate as string | undefined,
       endDate as string | undefined,
     );
-    ws.send("/USAGE.GET", { ok: true, data: summary });
+    ctx.send("/USAGE.GET", { ok: true, data: summary });
   } catch (err: any) {
-    ws.send("/USAGE.GET", { ok: false, message: err.message });
+    ctx.send("/USAGE.GET", { ok: false, message: err.message });
   }
 });

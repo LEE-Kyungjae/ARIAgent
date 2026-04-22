@@ -3,25 +3,25 @@ import { saveHACredentials, getHACredentials } from "../tools/homeassistant.js";
 import axios from "axios";
 import { logger } from "../infra/logger.js";
 
-router.on("/GET_HA_CREDENTIALS", async (ws, params) => {
-  logger.info(`[HA] Requesting credentials from ${ws.uuid}`);
+router.on("/GET_HA_CREDENTIALS", async (ctx, params) => {
+  logger.info(`[HA] Requesting credentials from ${ctx.uuid}`);
   try {
     const creds = await getHACredentials();
-    ws.send("/GET_HA_CREDENTIALS", {
+    ctx.send("/GET_HA_CREDENTIALS", {
       ok: true,
       data: creds,
     });
   } catch (error: any) {
     logger.error(`[HA] Failed to get credentials: ${error.message}`);
-    ws.send("/GET_HA_CREDENTIALS", {
+    ctx.send("/GET_HA_CREDENTIALS", {
       ok: false,
       error: error.message,
     });
   }
 });
 
-router.on("/GET_HA_DEVICES", async (ws, params) => {
-  logger.info(`[HA] Fetching devices for ${ws.uuid}`);
+router.on("/GET_HA_DEVICES", async (ctx, params) => {
+  logger.info(`[HA] Fetching devices for ${ctx.uuid}`);
   try {
     const creds = await getHACredentials();
     const response = await axios.get(`${creds.url}/api/states`, {
@@ -48,26 +48,26 @@ router.on("/GET_HA_DEVICES", async (ws, params) => {
       }));
 
     logger.info(`[HA] Found ${devices.length} devices`);
-    ws.send("/GET_HA_DEVICES", {
+    ctx.send("/GET_HA_DEVICES", {
       ok: true,
       data: { devices },
     });
   } catch (error: any) {
     logger.error(`[HA] Failed to get devices: ${error.message}`);
-    ws.send("/GET_HA_DEVICES", {
+    ctx.send("/GET_HA_DEVICES", {
       ok: false,
       error: error.message,
     });
   }
 });
 
-router.on("/SET_HA_CREDENTIALS", async (ws, params) => {
+router.on("/SET_HA_CREDENTIALS", async (ctx, params) => {
   const { url, token } = params as { url: string; token: string };
-  logger.info(`[HA] Setting new credentials for ${ws.uuid}: ${url}`);
+  logger.info(`[HA] Setting new credentials for ${ctx.uuid}: ${url}`);
 
   if (!url || !token) {
     logger.warn(`[HA] Missing URL or Token in set credentials request`);
-    return ws.send("/SET_HA_CREDENTIALS", {
+    return ctx.send("/SET_HA_CREDENTIALS", {
       ok: false,
       error: "URL and Token are required",
     });
@@ -85,7 +85,7 @@ router.on("/SET_HA_CREDENTIALS", async (ws, params) => {
       logger.info(`[HA] Connection verified for ${sanitizedUrl}`);
     } catch (netErr: any) {
       logger.error(`[HA] Connection verification failed: ${netErr.message}`);
-      return ws.send("/SET_HA_CREDENTIALS", {
+      return ctx.send("/SET_HA_CREDENTIALS", {
         ok: false,
         error: `서버 연결 실패: ${netErr.message}. URL과 토큰을 확인해 주세요.`,
       });
@@ -95,20 +95,20 @@ router.on("/SET_HA_CREDENTIALS", async (ws, params) => {
     await saveHACredentials(sanitizedUrl, token);
     logger.info(`[HA] Credentials saved successfully`);
 
-    ws.send("/SET_HA_CREDENTIALS", {
+    ctx.send("/SET_HA_CREDENTIALS", {
       ok: true,
       data: { success: true },
     });
   } catch (error: any) {
     logger.error(`[HA] Error during credentials save: ${error.message}`);
-    ws.send("/SET_HA_CREDENTIALS", {
+    ctx.send("/SET_HA_CREDENTIALS", {
       ok: false,
       error: `오류 발생: ${error.message}`,
     });
   }
 });
 
-router.on("/CONTROL_HA_DEVICE", async (ws, params) => {
+router.on("/CONTROL_HA_DEVICE", async (ctx, params) => {
   const { entity_id, service, domain = "homeassistant" } = params as {
     entity_id: string;
     service: string;
@@ -118,7 +118,7 @@ router.on("/CONTROL_HA_DEVICE", async (ws, params) => {
 
   if (!entity_id || !service) {
     logger.warn(`[HA] Missing entity_id or service in control request`);
-    return ws.send("/CONTROL_HA_DEVICE", {
+    return ctx.send("/CONTROL_HA_DEVICE", {
       ok: false,
       error: "entity_id and service are required",
     });
@@ -135,13 +135,13 @@ router.on("/CONTROL_HA_DEVICE", async (ws, params) => {
     );
 
     logger.info(`[HA] ${domain}.${service} successful on ${entity_id}`);
-    ws.send("/CONTROL_HA_DEVICE", {
+    ctx.send("/CONTROL_HA_DEVICE", {
       ok: true,
       data: { success: true },
     });
   } catch (error: any) {
     logger.error(`[HA] Control failed for ${entity_id}: ${error.message}`);
-    ws.send("/CONTROL_HA_DEVICE", {
+    ctx.send("/CONTROL_HA_DEVICE", {
       ok: false,
       error: error.message,
     });

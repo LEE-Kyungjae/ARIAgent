@@ -1,8 +1,8 @@
-import { UserSocket } from "./ws.js";
+import { RouterContext } from "./router_context.js";
 import { log } from "../infra/logger.js";
 import { validator } from "./validator.js";
 
-type Listener = (ws: UserSocket, value: any) => void | Promise<void>;
+type Listener = (ctx: RouterContext, value: any) => void | Promise<void>;
 
 class Router {
   private events: { [key: string]: Listener[] } = {};
@@ -42,10 +42,10 @@ class Router {
     }
   }
 
-  public emit(type: string, ws: UserSocket, value: any): boolean {
+  public emit(type: string, ctx: RouterContext, value: any): boolean {
     if (this.events[type] && this.events[type].length > 0) {
       this.events[type].forEach((listener) => {
-        Promise.resolve(listener(ws, value)).catch((err) => {
+        Promise.resolve(listener(ctx, value)).catch((err) => {
           log.error(`router listener error [${type}]: ${err}`);
         });
       });
@@ -54,7 +54,7 @@ class Router {
     return false;
   }
 
-  public async parse(ws: UserSocket, request: string): Promise<void> {
+  public async parse(ctx: RouterContext, request: string): Promise<void> {
     // \r\n 을 \n으로 통일
     request = request.replace(/\r\n/g, "\n");
     const lines = request.split("\n");
@@ -79,22 +79,22 @@ class Router {
         param.cmd = cmd; // 추가 정보
         const fullType = param.requestId ? `${cmd.toUpperCase()}:${param.requestId}` : cmd.toUpperCase();
 
-        handled = this.emit(fullType, ws, param);
+        handled = this.emit(fullType, ctx, param);
 
         if (param.requestId) {
           // requestId가 있으면 기본 타입으로도 emit (호환성)
-          const baseHandled = this.emit(cmd.toUpperCase(), ws, param);
+          const baseHandled = this.emit(cmd.toUpperCase(), ctx, param);
           handled = handled || baseHandled;
         }
       } else {
         const values = item.split(" ");
         values.shift(); // 첫번째 요소(cmd) 제거
-        handled = this.emit(cmd.toUpperCase(), ws, values);
+        handled = this.emit(cmd.toUpperCase(), ctx, values);
       }
 
       if (!handled && cmd.startsWith("/")) {
-        log.warn(`[Router] Unhandled command: ${cmd} from ${ws.uuid} (${ws.appId || "unknown"})`);
-        ws.send(cmd, { ok: false, code: 0, message: "no cmd", data: {} });
+        log.warn(`[Router] Unhandled command: ${cmd} from ${ctx.uuid} (${ctx.appId || "unknown"})`);
+        ctx.send(cmd, { ok: false, code: 0, message: "no cmd", data: {} });
       }
     }
   }

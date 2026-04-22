@@ -5,46 +5,46 @@ import { logger } from "../infra/logger.js";
 import { appendChatLog } from "../repositories/chat_log_repository.js";
 import { getTasks } from "../repositories/task_repository.js";
 
-router.on("/TASKS", async (ws, params) => {
+router.on("/TASKS", async (ctx, params) => {
   const data = await handleGetTasksWs();
-  ws.send("/TASKS", { ok: true, data: data });
+  ctx.send("/TASKS", { ok: true, data: data });
 });
 
-router.on("/TASKS.SYNC", async (ws, params) => {
+router.on("/TASKS.SYNC", async (ctx, params) => {
   await handleTasksSyncWs(params);
-  ws.send("/TASKS.SYNC", { ok: true, data: { success: true } });
+  ctx.send("/TASKS.SYNC", { ok: true, data: { success: true } });
 });
 
-router.on("/TASKS.CRONTAB", async (ws, params) => {
+router.on("/TASKS.CRONTAB", async (ctx, params) => {
   await handleTasksCrontabWs(params);
-  ws.send("/TASKS.CRONTAB", { ok: true, data: { success: true } });
+  ctx.send("/TASKS.CRONTAB", { ok: true, data: { success: true } });
 });
 
 // ── 개별 CRUD API ──
 
-router.on("/TASKS.ADD", async (ws, params) => {
+router.on("/TASKS.ADD", async (ctx, params) => {
   const data = await handleAddTaskWs(params);
-  ws.send("/TASKS.ADD", { ok: true, data });
+  ctx.send("/TASKS.ADD", { ok: true, data });
 });
 
-router.on("/TASKS.DELETE", async (ws, params) => {
+router.on("/TASKS.DELETE", async (ctx, params) => {
   const data = await handleDeleteTaskWs(params);
-  ws.send("/TASKS.DELETE", { ok: true, data });
+  ctx.send("/TASKS.DELETE", { ok: true, data });
 });
 
-router.on("/TASKS.TOGGLE", async (ws, params) => {
+router.on("/TASKS.TOGGLE", async (ctx, params) => {
   const data = await handleToggleTaskWs(params);
-  ws.send("/TASKS.TOGGLE", { ok: true, data });
+  ctx.send("/TASKS.TOGGLE", { ok: true, data });
 });
 
-router.on("/TASKS.RUN", async (ws, params) => {
+router.on("/TASKS.RUN", async (ctx, params) => {
   const data = await handleRunTaskWs(params);
-  ws.send("/TASKS.RUN", { ok: true, data });
+  ctx.send("/TASKS.RUN", { ok: true, data });
 });
 
 // 크론 작업(run_task.ts)으로부터 결과를 받아 모든 클라이언트에게 브로드캐스트
-router.on("/TASKS.NOTIFY_RESULT", async (ws, params) => {
-  logger.info(`📡 Inbound: /TASKS.NOTIFY_RESULT from client [${ws.uuid}] for [${params.label || "unknown"}]`);
+router.on("/TASKS.NOTIFY_RESULT", async (ctx, params) => {
+  logger.info(`📡 Inbound: /TASKS.NOTIFY_RESULT from client [${ctx.uuid}] for [${params.label || "unknown"}]`);
 
   const taskId = params.taskId as string | undefined;
   const matchedTask = taskId
@@ -79,5 +79,5 @@ router.on("/TASKS.NOTIFY_RESULT", async (ws, params) => {
   UserSocketHandler.send({ appId: "ari" }, "/TASK_RESULT", broadcastData);
 
   logger.info(`📡 MQ: Broadcaster finished for [${params.label || "unknown"}]`);
-  ws.send("/TASKS.NOTIFY_RESULT", { ok: true });
+  ctx.send("/TASKS.NOTIFY_RESULT", { ok: true });
 });

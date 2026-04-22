@@ -17,13 +17,13 @@ function broadcastConnectedApps(): void {
 
 UserSocketHandler.setOnAppConnectionChanged(broadcastConnectedApps);
 
-router.on("/HEALTH", async (ws) => {
-  logger.info(`[Health] Check from ${ws.uuid}`);
+router.on("/HEALTH", async (ctx) => {
+  logger.info(`[Health] Check from ${ctx.uuid}`);
   const state = getCurrentState();
   const plugins = await getPluginsInfo();
   const settings = getSettings(new Settings());
   const embStatus = getEmbeddingStatus();
-  ws.send("/HEALTH", {
+  ctx.send("/HEALTH", {
     ok: true,
     data: {
       status: "ok",
@@ -52,9 +52,9 @@ router.on("/HEALTH", async (ws) => {
  * /GET_CONNECTED_APPS
  * 현재 서버에 활성 상태로 연결된 앱 ID 목록을 반환합니다.
  */
-router.on("/GET_CONNECTED_APPS", async (ws, params) => {
+router.on("/GET_CONNECTED_APPS", async (ctx, params) => {
   const connectedIds = UserSocketHandler.getConnectedAppIds();
-  ws.send("/GET_CONNECTED_APPS", {
+  ctx.send("/GET_CONNECTED_APPS", {
     id: params.id,
     ok: true,
     data: { connectedIds },
@@ -70,20 +70,20 @@ router.on("/GET_CONNECTED_APPS", async (ws, params) => {
  * - 살아있음 → 새 등록 거부 (중복 인스턴스 차단).
  * - 죽음 → 기존 정리 후 새 소켓 수락 (재접속 시나리오).
  */
-router.on("/APP.REGISTER", (ws, params) => {
+router.on("/APP.REGISTER", (ctx, params) => {
   const { appId } = params;
   if (!appId) {
-    return ws.send("/APP.REGISTER", { ok: false, message: "appId required" });
+    return ctx.send("/APP.REGISTER", { ok: false, message: "appId required" });
   }
 
   // 자기 자신이 재등록하는 경우(같은 소켓에서 다시 /APP.REGISTER) 는 통과
   const existing = UserSocketHandler.findSocketByAppId(appId);
-  if (existing && existing.uuid !== ws.uuid) {
+  if (existing && existing.uuid !== ctx.uuid) {
     if (UserSocketHandler.isSocketAlive(existing)) {
       logger.warn(
         `[AppSync] Rejected duplicate register for '${appId}' (existing uuid=${existing.uuid} alive)`,
       );
-      return ws.send("/APP.REGISTER", {
+      return ctx.send("/APP.REGISTER", {
         ok: false,
         message: `App '${appId}' is already connected.`,
       });
@@ -97,14 +97,14 @@ router.on("/APP.REGISTER", (ws, params) => {
 
   // 소켓에 appId만 식별용으로 바인딩 (Pull 방식을 위해).
   // 페르소나는 소켓 수명 동안 서버에 저장하지 않는다 — 매 /AGENT 호출 시 페이로드로 동봉.
-  ws.appId = appId;
+  ctx.appId = appId;
   logger.info(`[AppSync] App registered: ${appId}`);
 
   // 연결된 앱 목록 브로드캐스트
   broadcastConnectedApps();
 
   // 성공 응답
-  ws.send("/APP.REGISTER", { ok: true, data: { appId } });
+  ctx.send("/APP.REGISTER", { ok: true, data: { appId } });
 });
 
 /**
@@ -112,11 +112,11 @@ router.on("/APP.REGISTER", (ws, params) => {
  * 외부 클라이언트(debug tool 등)가 특정 앱에 명령을 직접 호출할 때 사용.
  * commandApp()을 호출하고 결과를 요청자에게 돌려줍니다.
  */
-router.on("/APP.CALL", async (ws, params) => {
+router.on("/APP.CALL", async (ctx, params) => {
   const { appId, command, params: cmdParams = {}, requestId } = params;
 
   if (!appId || !command) {
-    return ws.send("/APP.CALL", {
+    return ctx.send("/APP.CALL", {
       requestId,
       ok: false,
       message: "appId and command are required",
@@ -125,9 +125,9 @@ router.on("/APP.CALL", async (ws, params) => {
 
   try {
     const result = await UserSocketHandler.commandApp(appId, command, cmdParams);
-    ws.send("/APP.CALL", { requestId, ok: true, result });
+    ctx.send("/APP.CALL", { requestId, ok: true, result });
   } catch (err: any) {
-    ws.send("/APP.CALL", { requestId, ok: false, message: err.message });
+    ctx.send("/APP.CALL", { requestId, ok: false, message: err.message });
   }
 });
 
@@ -135,9 +135,9 @@ router.on("/APP.CALL", async (ws, params) => {
  * /APP.COMMAND_RESPONSE
  * 명령 실행 후 앱으로부터 결과를 받을 때 (동기식 commandApp 호출의 응답)
  */
-router.on("/APP.COMMAND_RESPONSE", (ws, params) => {
+router.on("/APP.COMMAND_RESPONSE", (ctx, params) => {
   const { requestId, result } = params;
-  const appId = ws.appId || "unknown";
+  const appId = ctx.appId || "unknown";
   
   // 결과 내부에 에러 정보가 있는지 확인
   const isError = result?.status === "error" || result?.ok === false;
