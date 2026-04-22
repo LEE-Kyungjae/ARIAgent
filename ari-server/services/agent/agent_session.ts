@@ -16,15 +16,12 @@ import {
   resolveApiKey,
   resolveModel,
 } from "./provider_selector.js";
-import {
-  cloneActiveSkills,
-  loadSkillsForPrompt,
-  mergeActiveSkill,
-} from "../tools/skill_registry.js";
+import { cloneActiveSkills, mergeActiveSkill } from "./active_skills.js";
+import { loadSkillsForPrompt } from "../../skills/index.js";
 import {
   buildSessionTools,
   buildSessionToolsSync,
-} from "../tools/tool_registry.js";
+} from "./session_tools.js";
 import { logger } from "../../infra/logger.js";
 import { t } from "../../infra/i18n.js";
 import { getSettings } from "../../repositories/setting_repository.js";
@@ -32,7 +29,7 @@ import { Settings } from "../../models/settings.js";
 import {
   resolveForwardIfPending,
   rejectForwardIfPending,
-} from "../../tools/app_control.js";
+} from "./forward_registry.js";
 import { markAgentIdle, markAgentWorking } from "./runtime_state.js";
 
 function parseProviderErrorMessage(raw: string): string {

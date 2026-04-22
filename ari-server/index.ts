@@ -23,12 +23,12 @@ import "./routers/usage.js";
 import "./routers/homeassistant.js";
 import "./routers/channel.js";
 import { logger } from "./infra/logger.js";
-import { initEmbeddingModel } from "./services/embedding.js";
-import { runScheduledTask } from "./services/jobs/run_task.js";
+import { initEmbeddingModel } from "./infra/embedding.js";
+import { runScheduledTask } from "./services/tasks/run_task.js";
 import {
   initializeTaskScheduler,
   restoreTaskScheduler,
-} from "./services/scheduler/runtime.js";
+} from "./services/tasks/scheduler/runtime.js";
 
 let parentWatchTimer: NodeJS.Timeout | undefined;
 

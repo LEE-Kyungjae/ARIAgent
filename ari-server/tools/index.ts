@@ -84,3 +84,18 @@ export async function loadAllTools(): Promise<AgentTool[]> {
 
   return Array.from(toolMap.values());
 }
+
+export const MAIN_TOOL_NAMES = new Set<string>([
+  "execute_bash",
+  "sleep",
+  "update_core_memory",
+  "append_daily_memory",
+  "read_skill",
+  "web_fetch",
+  "control_app",
+]);
+
+export async function loadMainTools(): Promise<AgentTool[]> {
+  const allTools = await loadAllTools();
+  return allTools.filter((tool) => MAIN_TOOL_NAMES.has(tool.name));
+}

@@ -3,10 +3,10 @@ import { AgentInfo } from "../../models/agent.js";
 import { AIProviders } from "../../models/settings.js";
 import { Prompt } from "../../infra/prompt.js";
 import { logger } from "../../infra/logger.js";
-import { readCoreMemory, searchRelevantMemories } from "../memory.js";
+import { readCoreMemory, searchRelevantMemories } from "../memory/index.js";
 import { getSettings } from "../../repositories/setting_repository.js";
 import { Settings } from "../../models/settings.js";
-import { getEmbeddingStatus } from "../embedding.js";
+import { getEmbeddingStatus } from "../../infra/embedding.js";
 import { ARI_CLOUD_PROVIDER } from "./provider_selector.js";
 
 export async function buildSystemPrompt(

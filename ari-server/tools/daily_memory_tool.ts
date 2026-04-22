@@ -1,6 +1,6 @@
 import { Type, Static } from "@sinclair/typebox";
 import { AgentTool } from "@mariozechner/pi-agent-core";
-import { appendDailyMemory } from "../services/memory.js";
+import { appendDailyMemory } from "../services/memory/index.js";
 
 const entitySchema = Type.Object({
   name: Type.String({ description: "엔티티 이름 (예: TypeScript, 홍길동, VSCode)" }),

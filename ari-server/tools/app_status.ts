@@ -2,7 +2,6 @@ import { AgentTool } from "@mariozechner/pi-agent-core";
 import { Type } from "@mariozechner/pi-ai";
 import fs from "fs";
 import path from "path";
-import { appStateService } from "../services/app_state_service.js";
 import { UserSocketHandler } from "../system/ws.js";
 import { commandApp } from "../protocol/app.js";
 import { logger } from "../infra/logger.js";
@@ -41,31 +40,15 @@ export const readAppStateTool: AgentTool = {
         details: { state: result },
       };
     } catch (error: any) {
-      logger.warn(
-        `[read_app_state] Failed to query '${appId}': ${error.message}. Falling back to cache.`,
-      );
-
-      const state = appStateService.getState(appId);
-      if (!state) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `❌ '${appId}' 앱과의 실시간 동기화에 실패했으며 캐시된 정보도 없습니다: ${error.message}`,
-            },
-          ],
-          details: { appId, success: false, error: error.message },
-        };
-      }
-
+      logger.warn(`[read_app_state] Failed to query '${appId}': ${error.message}`);
       return {
         content: [
           {
             type: "text" as const,
-            text: `⚠️ '${appId}' 앱 실시간 조회 실패(캐시 데이터 반환):\n${JSON.stringify(state.state, null, 2)}`,
+            text: `❌ '${appId}' 앱과의 실시간 동기화에 실패했습니다: ${error.message}`,
           },
         ],
-        details: { state: state.state, cached: true },
+        details: { appId, success: false, error: error.message },
       };
     }
   },

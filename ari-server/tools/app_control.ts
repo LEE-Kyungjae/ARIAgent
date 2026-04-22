@@ -12,46 +12,12 @@ import { logger } from "../infra/logger.js";
 import { findAppExecutable } from "../infra/runtime_paths.js";
 import { DATA_DIR } from "../infra/data.js";
 import { getExecutionContext } from "../services/agent/execution_context.js";
+import { registerForwardWaiter } from "../services/agent/forward_registry.js";
 
 export const LAUNCH_WAIT_TIMEOUT_MS = 15_000;
 const LAUNCH_POLL_INTERVAL_MS = 300;
 const SHUTDOWN_COMMAND = "SHUTDOWN";
 const FORWARD_WAIT_TIMEOUT_MS = 5 * 60 * 1000;
-
-// Sender-push persona 원칙: ARI 가 SARI 에게 자연어 지시를 보내려면
-// SARI 소켓으로 요청을 포워드하고, SARI 가 자기 쪽에서 /AGENT 를 재발행하도록 한다.
-// 그렇게 재발행된 세션이 끝나면 /APP.PUSH 가 발생하는데, 그 시점에 아래 맵을
-// 조회해 ARI 도구 호출의 대기 Promise 를 해제한다.
-interface ForwardWaiter {
-  resolve: (text: string) => void;
-  reject: (error: Error) => void;
-  timer: NodeJS.Timeout;
-}
-const pendingForwards = new Map<string, ForwardWaiter>();
-
-export function resolveForwardIfPending(
-  requestId: string,
-  responseText: string,
-): boolean {
-  const w = pendingForwards.get(requestId);
-  if (!w) return false;
-  pendingForwards.delete(requestId);
-  clearTimeout(w.timer);
-  w.resolve(responseText);
-  return true;
-}
-
-export function rejectForwardIfPending(
-  requestId: string,
-  error: Error,
-): boolean {
-  const w = pendingForwards.get(requestId);
-  if (!w) return false;
-  pendingForwards.delete(requestId);
-  clearTimeout(w.timer);
-  w.reject(error);
-  return true;
-}
 
 function resolveAppExecutable(appName: string): string {
   const executable = findAppExecutable(appName);
@@ -268,17 +234,9 @@ async function runMessageMode(app: string, message: string) {
   const requestId = crypto.randomUUID();
 
   // 응답 대기 Promise 를 먼저 등록한다 (targeted /AGENT.FORWARD 직후 바로 해제될 수 있음).
-  const waiterPromise = new Promise<string>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      if (pendingForwards.delete(requestId)) {
-        reject(
-          new Error(
-            `'${app}' 에이전트 응답 대기 타임아웃 (${FORWARD_WAIT_TIMEOUT_MS / 1000}s)`,
-          ),
-        );
-      }
-    }, FORWARD_WAIT_TIMEOUT_MS);
-    pendingForwards.set(requestId, { resolve, reject, timer });
+  const waiterPromise = registerForwardWaiter(requestId, {
+    timeoutMs: FORWARD_WAIT_TIMEOUT_MS,
+    timeoutMessage: `'${app}' 에이전트 응답 대기 타임아웃 (${FORWARD_WAIT_TIMEOUT_MS / 1000}s)`,
   });
 
   forwardToAgent(app, {

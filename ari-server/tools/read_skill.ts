@@ -1,6 +1,6 @@
 import { AgentTool } from "@mariozechner/pi-agent-core";
 import { Type } from "@mariozechner/pi-ai";
-import { loadSkillsForPrompt } from "../services/tools/skill_registry.js";
+import { loadSkillsForPrompt } from "../skills/index.js";
 
 export const readSkillTool: AgentTool = {
   name: "read_skill",

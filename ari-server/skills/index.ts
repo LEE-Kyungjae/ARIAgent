@@ -185,3 +185,9 @@ export async function loadAllApps(): Promise<AppDefinition[]> {
   result.sort((a, b) => a.name.localeCompare(b.name));
   return result;
 }
+
+/** 프롬프트용: 스킬 + 앱을 합쳐서 반환. */
+export async function loadSkillsForPrompt(): Promise<SkillDefinition[]> {
+  const [skills, apps] = await Promise.all([loadAllSkills(), loadAllApps()]);
+  return [...skills, ...apps];
+}

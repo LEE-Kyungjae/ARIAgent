@@ -2,7 +2,7 @@ import { router } from "../system/router.js";
 import { saveSettings } from "../repositories/setting_repository.js";
 import { initAgent, getPluginsInfo, getCurrentState } from "../services/agent/index.js";
 import { logger } from "../infra/logger.js";
-import { getEmbeddingStatus, initEmbeddingModel } from "../services/embedding.js";
+import { getEmbeddingStatus, initEmbeddingModel } from "../infra/embedding.js";
 import { getAgentsConfig } from "../repositories/agent_repository.js";
 import { AgentsConfig } from "../models/agent.js";
 

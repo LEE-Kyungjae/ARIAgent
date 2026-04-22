@@ -1,9 +1,9 @@
 import { Type, Static } from "@sinclair/typebox";
 import { AgentTool } from "@mariozechner/pi-agent-core";
-import { searchDailyLogs, searchRelevantMemories } from "../services/memory.js";
+import { searchDailyLogs, searchRelevantMemories } from "../services/memory/index.js";
 import { getSettings } from "../repositories/setting_repository.js";
 import { Settings } from "../models/settings.js";
-import { getEmbeddingStatus } from "../services/embedding.js";
+import { getEmbeddingStatus } from "../infra/embedding.js";
 
 function isAdvancedMemoryReady(): boolean {
   const settings = getSettings(new Settings());

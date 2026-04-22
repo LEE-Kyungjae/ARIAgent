@@ -8,17 +8,16 @@ import {
 import { getSettings } from "../../repositories/setting_repository.js";
 import { getOAuthStatus } from "../oauth/index.js";
 import {
-  clearSkillCache,
-  loadAvailableApps,
-  loadAvailableSkills,
+  loadAllApps,
+  loadAllSkills,
   loadSkillsForPrompt,
-} from "../tools/skill_registry.js";
-import { clearToolCache, loadMainTools } from "../tools/tool_registry.js";
+} from "../../skills/index.js";
+import { loadMainTools } from "../../tools/index.js";
 import { ARI_CLOUD_PROVIDER, isOAuthProvider } from "./provider_selector.js";
 import { clearAllAgentSessions } from "./session_manager.js";
 
 type ToolsList = Awaited<ReturnType<typeof loadMainTools>>;
-type SkillsList = Awaited<ReturnType<typeof loadAvailableSkills>>;
+type SkillsList = Awaited<ReturnType<typeof loadAllSkills>>;
 
 export const agentState = new AIProviders();
 
@@ -45,8 +44,6 @@ export async function initAgent(providersConfig?: AIProviders): Promise<void> {
   const globalSettings = getSettings(new Settings()) || {};
   const state = agentState;
 
-  clearToolCache();
-  clearSkillCache();
   currentTools = await loadMainTools();
   currentSkills = await loadSkillsForPrompt();
 
@@ -122,8 +119,8 @@ export async function getPluginsInfo(): Promise<AvailablePlugins> {
     currentTools = await loadMainTools();
   }
   const [skills, apps] = await Promise.all([
-    loadAvailableSkills(),
-    loadAvailableApps(),
+    loadAllSkills(),
+    loadAllApps(),
   ]);
   return { tools: currentTools, skills, apps };
 }

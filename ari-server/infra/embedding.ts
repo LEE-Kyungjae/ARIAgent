@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
-import { DATA_DIR, ensureDirSync } from "../infra/data.js";
-import { logger } from "../infra/logger.js";
+import { DATA_DIR, ensureDirSync } from "./data.js";
+import { logger } from "./logger.js";
 
 const MODEL_CACHE_DIR = path.join(DATA_DIR, "models");
 const MODEL_NAME = "Xenova/multilingual-e5-small";

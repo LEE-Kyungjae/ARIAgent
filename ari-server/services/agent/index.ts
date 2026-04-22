@@ -9,8 +9,8 @@ import { buildSystemPrompt, pruneContext } from "./context_builder.js";
 import { extractFinalResponseText } from "./response_parser.js";
 import { runWithExecutionContext } from "./execution_context.js";
 import { getOrCreateSession } from "./session_manager.js";
-import { loadAvailableSkills } from "../tools/skill_registry.js";
-import { loadMainTools } from "../tools/tool_registry.js";
+import { loadAllSkills } from "../../skills/index.js";
+import { loadMainTools } from "../../tools/index.js";
 
 import {
   DEFAULT_INTER_AGENT_TTL,
@@ -111,7 +111,7 @@ export async function chatWithAgent(
     setCurrentTools(await loadMainTools());
   }
 
-  setCurrentSkills(await loadAvailableSkills());
+  setCurrentSkills(await loadAllSkills());
 
   const session = getSessionForAgent(currentAgentProfile);
   session.agentInfo.availableSkills = getCurrentSkills();

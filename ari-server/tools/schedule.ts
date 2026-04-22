@@ -1,6 +1,6 @@
 import { AgentTool } from "@mariozechner/pi-agent-core";
 import { Type } from "@mariozechner/pi-ai";
-import { handleDeleteTaskWs, registerScheduledTask } from "../services/task.js";
+import { removeScheduledTask, addScheduledTask } from "../services/tasks/index.js";
 import { getExecutionContext } from "../services/agent/execution_context.js";
 import { logger } from "../infra/logger.js";
 import { t } from "../infra/i18n.js";
@@ -95,7 +95,7 @@ export const registerScheduleTool: AgentTool = {
         };
       }
       logger.info(`📅 Tool[schedule/once]: ${label} → ${startAt} [Agent: ${agentId}]`);
-      await registerScheduledTask({
+      await addScheduledTask({
         prompt, label, agentId, appId,
         isOneOff: true,
         startAt: runAt.toISOString(),
@@ -137,7 +137,7 @@ export const registerScheduleTool: AgentTool = {
 
     const specLabel = scheduleSpecToLabel(spec);
     logger.info(`📅 Tool[schedule]: ${label} (${specLabel}) [Agent: ${agentId}, startAt: ${startAt ?? "즉시"}, endAt: ${endAt ?? "무한"}]`);
-    await registerScheduledTask({ scheduleSpec: spec, prompt, label, agentId, appId, isOneOff: false, startAt, endAt });
+    await addScheduledTask({ scheduleSpec: spec, prompt, label, agentId, appId, isOneOff: false, startAt, endAt });
     return {
       content: [{ type: "text" as const, text: t("tool.schedule.registered", { label, schedule: specLabel }) }],
       details: {},
@@ -284,7 +284,7 @@ export const deleteScheduleTool: AgentTool = {
     logger.info(
       `🗑️ Tool[delete_schedule]: taskId=${targetTaskId} [Agent: ${activeAgentId}]`,
     );
-    const result = await handleDeleteTaskWs({ taskId: targetTaskId });
+    const result = await removeScheduledTask({ taskId: targetTaskId });
 
     return {
       content: [

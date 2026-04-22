@@ -4,7 +4,7 @@ import { logger } from "../infra/logger.js";
 import { getCurrentState, getPluginsInfo } from "../services/agent/index.js";
 import { getSettings } from "../repositories/setting_repository.js";
 import { Settings } from "../models/settings.js";
-import { getEmbeddingStatus } from "../services/embedding.js";
+import { getEmbeddingStatus } from "../infra/embedding.js";
 import { commandApp, notifyConnectedAppsChanged } from "../protocol/app.js";
 
 /**
