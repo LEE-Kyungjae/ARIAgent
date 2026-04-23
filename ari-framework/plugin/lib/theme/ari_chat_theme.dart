@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 /// ARI 채팅 위젯의 색상/스타일 커스터마이징 설정.
 ///
-/// 기본값은 ARIStock 디자인 시스템 기준이며, 앱마다 오버라이드 가능.
 class AriChatTheme {
   final Color primaryColor;
   final Color surfaceColor;

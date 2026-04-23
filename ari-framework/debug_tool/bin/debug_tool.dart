@@ -280,8 +280,8 @@ Bitnari 예시:
   dart run bin/debug_tool.dart -cmd CALCULATE_INDICATOR -params \'{"symbol":"KRW-BTC","type":"rsi","timeframe":"1h","limit":120}\'
   dart run bin/debug_tool.dart -cmd GET_TRADING_RECORDS -params \'{"symbol":"KRW-BTC","limit":5}\'
 
-ARIStock 예시:
-  dart run bin/debug_tool.dart -app aristock -cmd GET_ANALYSIS -params \'{"symbol":"005930"}\'
-  dart run bin/debug_tool.dart -app aristock -cmd GET_ACCOUNT_INFO
+STARI 예시:
+  dart run bin/debug_tool.dart -app stari -cmd GET_ANALYSIS -params \'{"symbol":"005930"}\'
+  dart run bin/debug_tool.dart -app stari -cmd GET_ACCOUNT_INFO
 ''');
 }

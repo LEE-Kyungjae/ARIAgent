@@ -8,7 +8,7 @@ import '../theme/ari_chat_theme.dart';
 ///
 /// **기본 모드** (`messages` 미제공):
 ///   내부 [AriChatProvider]를 생성하고 `/AGENT` 경로로 메시지를 전송합니다.
-///   ARIStock처럼 단순한 사용 사례에 적합합니다.
+///   단순한 사용 사례에 적합합니다.
 ///
 /// **외부 모드** (`messages` 제공):
 ///   외부에서 메시지 목록과 콜백을 주입합니다. 별도 Provider를 사용하거나
@@ -22,7 +22,7 @@ import '../theme/ari_chat_theme.dart';
 ///
 /// 사용 예시 (기본):
 /// ```dart
-/// AriChatPanel(appId: 'aristock', contextLabel: '종목분석')
+/// AriChatPanel(appId: 'stari', contextLabel: '종목분석')
 /// ```
 ///
 /// 사용 예시 (외부 모드):

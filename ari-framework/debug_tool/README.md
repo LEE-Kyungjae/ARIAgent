@@ -36,7 +36,7 @@ dart run bin/debug_tool.dart -cmd GET_APP_STATUS
 
 dart run bin/debug_tool.dart -cmd GET_STRATEGY -params '{"symbol":"KRW-BTC"}'
 
-dart run bin/debug_tool.dart -app aristock -cmd GET_ANALYSIS -params '{"symbol":"005930"}'
+dart run bin/debug_tool.dart -app stari -cmd GET_ANALYSIS -params '{"symbol":"005930"}'
 ```
 
 ---
