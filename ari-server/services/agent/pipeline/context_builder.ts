@@ -14,6 +14,7 @@ export async function buildSystemPrompt(
   agentProfile: AgentInfo,
   providers?: AIProviders,
   userQuery?: string,
+  isRoomContext?: boolean,
 ): Promise<string> {
   // setup 모드: 아직 프로바이더가 설정되지 않아 ARICloud 프록시를 사용 중인 경우
   // 일반 system_prompt 대신 setup 가이드 전용 프롬프트를 사용한다
@@ -59,11 +60,12 @@ export async function buildSystemPrompt(
     description: t.description,
   }));
 
-  // 템플릿 라우팅.
-  //   - `ari` / `default` / 미지정: PM 역할 (`ari_pm_prompt.hbs`)
-  //   - 그 외 (써드파티 앱 페르소나): 도메인 전문가 역할 (`third_party_prompt.hbs`)
+  // 템플릿 라우팅. agentId 가 공용 `default` 여도 appId 가 도메인이면 도메인 역할로 실행.
+  //   - appId 미지정 / "ari": PM 역할 (`ari_pm_prompt.hbs`)
+  //   - 그 외 (SARI 등 도메인 앱): 도메인 전문가 역할 (`third_party_prompt.hbs`)
+  const currentAppId = agentProfile.appId;
   const templateName =
-    !agentId || agentId === "default" || agentId === "ari"
+    !currentAppId || currentAppId === "ari"
       ? "ari_pm_prompt.hbs"
       : "third_party_prompt.hbs";
 
@@ -76,6 +78,7 @@ export async function buildSystemPrompt(
     skills: agentProfile.promptSkills,
     apps: apps.length > 0 ? apps : undefined,
     mainTools: mainTools.length > 0 ? mainTools : undefined,
+    isRoomContext: !!isRoomContext,
   });
 
   // logger.debug(`[Agent] Built System Prompt:\n${systemPrompt}`);

@@ -80,7 +80,18 @@ async function chatWithAgent(
     session.enqueueRequest(pendingResponse);
   }
 
-  const systemPrompt = await buildSystemPrompt(session.agentInfo, agentState, message);
+  // 룸 컨텍스트 = ari-broadcast (PM 방 팬아웃) 또는 PM 자신이 유저와 직접 대화 중.
+  // 1:1 도메인(예: 유저→SARI 직접)은 룸 아님 — skip_turn 가이드를 걸어야 혼란스럽지 않다.
+  const dispatchMode = pendingResponse?.dispatchMode;
+  const isRoomContext =
+    dispatchMode === "ari-broadcast" ||
+    (dispatchMode === "user" && currentAgentProfile.appId === "ari");
+  const systemPrompt = await buildSystemPrompt(
+    session.agentInfo,
+    agentState,
+    message,
+    isRoomContext,
+  );
   const result = await runWithExecutionContext(
     {
       agentId: currentAgentId,
