@@ -13,10 +13,10 @@ import '../providers/server_provider.dart';
 import '../services/app_update_service.dart';
 import 'avatar/avatar_tab.dart';
 import 'chat/chat_tab.dart';
+import 'chat/views/server_stopped_view.dart';
 import 'home/home_constants.dart';
 import 'home/home_drag_handle.dart';
 import 'agents/agents_tab.dart';
-import 'home/home_server_required_overlay.dart';
 import 'home/home_tab_bar.dart';
 import 'home/home_update_banner.dart';
 import 'place/place_tab.dart';
@@ -213,11 +213,11 @@ class _HomeScreenState extends State<HomeScreen> {
       index: _currentTab,
       children: [
         const ChatTab(),
-        isSpaceUnified
-            ? _withServerGuard(
-                PlaceTab(onOpenChat: () => setState(() => _currentTab = 0)),
-              )
-            : AgentsTab(onOpenChat: () => setState(() => _currentTab = 0)),
+        _withServerGuard(
+          isSpaceUnified
+              ? PlaceTab(onOpenChat: () => setState(() => _currentTab = 0))
+              : AgentsTab(onOpenChat: () => setState(() => _currentTab = 0)),
+        ),
         _withServerGuard(const AvatarTab()),
         const SettingsTab(),
       ],
@@ -227,11 +227,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _withServerGuard(Widget child) {
     return ListenableBuilder(
       listenable: ServerProvider(),
-      builder: (context, _) => !ServerProvider().isRunning
-          ? HomeServerRequiredOverlay(
-              onGoToSettings: () => setState(() => _currentTab = 3),
-            )
-          : child,
+      builder: (context, _) =>
+          !ServerProvider().isRunning ? const ServerStoppedView() : child,
     );
   }
 }

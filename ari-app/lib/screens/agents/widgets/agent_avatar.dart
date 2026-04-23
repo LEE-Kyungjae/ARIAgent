@@ -1,7 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
+import 'agent_profile_icon.dart';
+
+/// 에이전트 리스트/타일용 48px 원형 프로필 래퍼.
+/// 실제 이미지 로드/폴백은 [AgentProfileIcon] 에 위임.
 class AgentAvatar extends StatelessWidget {
   final String imagePath;
 
@@ -9,40 +11,10 @@ class AgentAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final trimmed = imagePath.trim();
-    final isAsset = trimmed.startsWith('assets/');
-    final file = trimmed.isNotEmpty && !isAsset ? File(trimmed) : null;
-    final hasImage = isAsset || (file != null && file.existsSync());
-
     return CircleAvatar(
       radius: 24,
       backgroundColor: const Color(0xFF1A1A2E),
-      child: ClipOval(
-        child: hasImage
-            ? (isAsset
-                  ? Image.asset(
-                      trimmed,
-                      width: 48,
-                      height: 48,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _fallback(),
-                    )
-                  : Image.file(
-                      file!,
-                      width: 48,
-                      height: 48,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _fallback(),
-                    ))
-            : _fallback(),
-      ),
+      child: AgentProfileIcon(imagePath: imagePath, size: 48),
     );
   }
-
-  Widget _fallback() => Image.asset(
-    'assets/images/avatar.png',
-    width: 48,
-    height: 48,
-    fit: BoxFit.cover,
-  );
 }

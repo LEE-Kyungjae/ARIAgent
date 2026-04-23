@@ -1,7 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/place_avatar.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../agents/widgets/agent_profile_icon.dart';
 
 class AgentAvatar extends StatelessWidget {
   final PlaceAvatar item;
@@ -88,34 +88,9 @@ class AgentAvatar extends StatelessWidget {
   }
 
   Widget _buildAvatarImage(dynamic avatar) {
-    final imagePath = avatar.imagePath.toString().trim();
-    if (imagePath.startsWith('assets/')) {
-      return Image.asset(
-        imagePath,
-        width: 96,
-        height: 96,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Image.asset(
-          'assets/images/avatar.png',
-          width: 96,
-          height: 96,
-          fit: BoxFit.cover,
-        ),
-      );
-    }
-
-    if (imagePath.isNotEmpty) {
-      final file = File(imagePath);
-      if (file.existsSync()) {
-        return Image.file(file, width: 96, height: 96, fit: BoxFit.cover);
-      }
-    }
-
-    return Image.asset(
-      'assets/images/avatar.png',
-      width: 96,
-      height: 96,
-      fit: BoxFit.cover,
+    return AgentProfileIcon(
+      imagePath: avatar.imagePath.toString(),
+      size: 96,
     );
   }
 }

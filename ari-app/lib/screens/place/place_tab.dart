@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math';
 
 import 'package:ari_plugin/ari_plugin.dart';
@@ -7,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 
+import '../agents/widgets/agent_profile_icon.dart';
 import 'models/place_avatar.dart';
 import 'models/ha_device_item.dart';
 import 'providers/place_agent_status_provider.dart';
@@ -69,7 +69,6 @@ class _PlaceTabState extends State<PlaceTab> {
     BoxConstraints constraints,
   ) {
     final appId = app['name'] as String;
-    final iconName = app['icon'] as String?;
     final title = (app['title'] as String?) ?? appId;
     final pos = _appPositions[appId]!;
 
@@ -125,25 +124,7 @@ class _PlaceTabState extends State<PlaceTab> {
                           ),
                         ],
                       ),
-                      child: app['iconPath'] != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.file(
-                                File(app['iconPath'] as String),
-                                width: 53,
-                                height: 53,
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                          : Center(
-                              child: iconName != null
-                                  ? Text(iconName,
-                                      style: const TextStyle(fontSize: 24))
-                                  : Icon(Icons.extension_rounded,
-                                      size: 24,
-                                      color:
-                                          Colors.white.withValues(alpha: 0.7)),
-                            ),
+                      child: AgentProfileIcon.app(app: app, size: 53),
                     ),
                   ],
                 ),

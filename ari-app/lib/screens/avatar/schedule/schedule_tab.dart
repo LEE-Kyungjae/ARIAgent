@@ -27,7 +27,7 @@ class ScheduleTab extends StatefulWidget {
 
 class _ScheduleTabState extends State<ScheduleTab> {
   bool _isLoading = false;
-  List<AgentSchedule> _selectedTasks = [];
+  Set<String> _selectedIds = {};
   _ViewMode _viewMode = _ViewMode.day;
   DateTime _viewDate = DateTime.now(); // 하루보기 기준 날짜
   final _scrollController = ScrollController();
@@ -63,11 +63,52 @@ class _ScheduleTabState extends State<ScheduleTab> {
   }
 
   void _onSlotSelected(List<AgentSchedule> tasks) {
-    setState(() {
-      final newIds = tasks.map((t) => t.id).toSet();
-      final curIds = _selectedTasks.map((t) => t.id).toSet();
-      _selectedTasks = newIds == curIds ? [] : tasks;
-    });
+    if (tasks.isEmpty) return;
+    final newIds = tasks.map((t) => t.id).toSet();
+    setState(() => _selectedIds = newIds);
+    _openDetailSheet();
+  }
+
+  Future<void> _openDetailSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      isScrollControlled: true,
+      builder: (sheetCtx) {
+        return Consumer<AgentProvider>(
+          builder: (_, agent, __) {
+            return ListenableBuilder(
+              listenable: agent.currentAgent,
+              builder: (_, __) {
+                final tasks = agent.currentAgent.tasks
+                    .where((t) => _selectedIds.contains(t.id))
+                    .toList();
+                if (tasks.isEmpty) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (Navigator.of(sheetCtx).canPop()) {
+                      Navigator.of(sheetCtx).pop();
+                    }
+                  });
+                  return const SizedBox.shrink();
+                }
+                return _TaskDetailBar(
+                  tasks: tasks,
+                  onClose: () => Navigator.of(sheetCtx).pop(),
+                  onDelete: (task) async {
+                    await agent.deleteTask(task.id);
+                  },
+                  onToggle: (task) async {
+                    await agent.toggleTask(task.id);
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+    if (mounted) setState(() => _selectedIds = {});
   }
 
   @override
@@ -92,7 +133,7 @@ class _ScheduleTabState extends State<ScheduleTab> {
       _assignToDays(task, dayTaskLists);
     }
 
-    final selectedIds = _selectedTasks.map((t) => t.id).toList();
+    final selectedIds = _selectedIds.toList();
     final today = DateTime.now().weekday % 7;
 
     return Column(
@@ -122,21 +163,62 @@ class _ScheduleTabState extends State<ScheduleTab> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: Row(
             children: [
-              _ViewToggleBtn(
-                label: S.of(context).scheduleDayView,
-                active: _viewMode == _ViewMode.day,
-                onTap: () {
-                  setState(() => _viewMode = _ViewMode.day);
-                  WidgetsBinding.instance
-                      .addPostFrameCallback((_) => _scrollToNow());
-                },
+              Container(
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.15)),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: IntrinsicHeight(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _ViewToggleBtn(
+                        label: S.of(context).scheduleDayView,
+                        active: _viewMode == _ViewMode.day,
+                        onTap: () {
+                          setState(() => _viewMode = _ViewMode.day);
+                          WidgetsBinding.instance
+                              .addPostFrameCallback((_) => _scrollToNow());
+                        },
+                      ),
+                      Container(
+                        width: 1,
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
+                      _ViewToggleBtn(
+                        label: S.of(context).scheduleWeekView,
+                        active: _viewMode == _ViewMode.week,
+                        onTap: () =>
+                            setState(() => _viewMode = _ViewMode.week),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(width: 6),
-              _ViewToggleBtn(
-                label: S.of(context).scheduleWeekView,
-                active: _viewMode == _ViewMode.week,
-                onTap: () => setState(() => _viewMode = _ViewMode.week),
-              ),
+              const Spacer(),
+              if (_viewMode == _ViewMode.day)
+                _DayViewHeader(
+                  viewDate: _viewDate,
+                  onPrev: () => setState(() {
+                    _viewDate = _viewDate.subtract(const Duration(days: 1));
+                    _selectedIds = {};
+                  }),
+                  onNext: () => setState(() {
+                    _viewDate = _viewDate.add(const Duration(days: 1));
+                    _selectedIds = {};
+                  }),
+                  onToday: () => setState(() {
+                    _viewDate = DateTime.now();
+                    _selectedIds = {};
+                    WidgetsBinding.instance
+                        .addPostFrameCallback((_) => _scrollToNow());
+                  }),
+                )
+              else
+                const _WeekHeader(),
             ],
           ),
         ),
@@ -166,8 +248,6 @@ class _ScheduleTabState extends State<ScheduleTab> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _WeekHeader(width: _kWeekViewW),
-                                const SizedBox(height: 4),
                                 _DayHeader(today: today, leftWidth: _kWeekLabelW),
                                 Container(
                                   height: 1, width: _kWeekViewW,
@@ -198,40 +278,12 @@ class _ScheduleTabState extends State<ScheduleTab> {
                           controller: _scrollController,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _DayViewHeader(
-                                  viewDate: _viewDate,
-                                  colWidth: colW,
-                                  onPrev: () => setState(() {
-                                    _viewDate = _viewDate.subtract(const Duration(days: 1));
-                                    _selectedTasks = [];
-                                  }),
-                                  onNext: () => setState(() {
-                                    _viewDate = _viewDate.add(const Duration(days: 1));
-                                    _selectedTasks = [];
-                                  }),
-                                  onToday: () => setState(() {
-                                    _viewDate = DateTime.now();
-                                    _selectedTasks = [];
-                                    WidgetsBinding.instance
-                                        .addPostFrameCallback((_) => _scrollToNow());
-                                  }),
-                                ),
-                                Container(
-                                  height: 1,
-                                  width: _kTimeColW + colW,
-                                  color: Colors.white.withValues(alpha: 0.07),
-                                ),
-                                _DayViewGrid(
-                                  tasks: allTasks,
-                                  selectedTaskIds: selectedIds,
-                                  onSlotSelected: _onSlotSelected,
-                                  colWidth: colW,
-                                  displayDate: _viewDate,
-                                ),
-                              ],
+                            child: _DayViewGrid(
+                              tasks: allTasks,
+                              selectedTaskIds: selectedIds,
+                              onSlotSelected: _onSlotSelected,
+                              colWidth: colW,
+                              displayDate: _viewDate,
                             ),
                           ),
                         );
@@ -239,20 +291,6 @@ class _ScheduleTabState extends State<ScheduleTab> {
                     ),
         ),
 
-        // ── 선택 상세 ─────────────────────────────────────
-        if (_selectedTasks.isNotEmpty)
-          _TaskDetailBar(
-            tasks: _selectedTasks,
-            onClose: () => setState(() => _selectedTasks = []),
-            onDelete: (task) async {
-              await agent.deleteTask(task.id);
-              setState(() => _selectedTasks =
-                  _selectedTasks.where((t) => t.id != task.id).toList());
-            },
-            onToggle: (task) async {
-              await agent.toggleTask(task.id);
-            },
-          ),
       ],
     );
   }
@@ -334,8 +372,7 @@ class _DayHeader extends StatelessWidget {
 // ── 주간 헤더 ─────────────────────────────────────────────
 
 class _WeekHeader extends StatelessWidget {
-  final double width;
-  const _WeekHeader({required this.width});
+  const _WeekHeader();
 
   @override
   Widget build(BuildContext context) {
@@ -364,42 +401,36 @@ class _WeekHeader extends StatelessWidget {
         ? l10n.scheduleDateRangeSameMonth(sunday.month, sunday.day, saturday.day)
         : l10n.scheduleDateRangeDiffMonth(sunday.month, sunday.day, saturday.month, saturday.day);
 
-    return SizedBox(
-      width: width,
-      height: 28,
+    return Padding(
+      padding: const EdgeInsets.only(left: 8),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: _kAccent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              l10n.scheduleThisWeek,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-              ),
+          Text(
+            l10n.scheduleThisWeek,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.45),
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Text(
             l10n.scheduleMonthWeek(sunday.month, ordinal),
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Text(
             range,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.35),
-              fontSize: 11,
+              color: Colors.white.withValues(alpha: 0.3),
+              fontSize: 10,
             ),
           ),
         ],
@@ -422,16 +453,12 @@ class _ViewToggleBtn extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
+        alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-        decoration: BoxDecoration(
-          color: active ? _kAccent : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: active ? _kAccent : Colors.white.withValues(alpha: 0.15),
-          ),
-        ),
+        color: active ? _kAccent : Colors.transparent,
         child: Text(
           label,
           style: TextStyle(

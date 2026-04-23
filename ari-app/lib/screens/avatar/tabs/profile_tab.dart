@@ -1,9 +1,11 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:ari_plugin/ari_plugin.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../agents/widgets/agent_profile_icon.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
@@ -33,14 +35,6 @@ class _ProfileTabState extends State<ProfileTab> {
   @override
   Widget build(BuildContext context) {
     final avatar = context.watch<AgentProvider>();
-    final imagePath = avatar.imagePath.trim();
-    final isAssetImage = imagePath.startsWith('assets/');
-    final avatarImageFile = imagePath.isNotEmpty && !isAssetImage
-        ? File(imagePath)
-        : null;
-    final hasAvatarImage =
-        isAssetImage ||
-        (avatarImageFile != null && avatarImageFile.existsSync());
 
     // 에이전트가 완벽하게 전환되었을 때(ID가 달라졌을 때) 컨트롤러 텍스트 동기화
     if (_lastAvatarId != avatar.currentAvatarId) {
@@ -59,7 +53,18 @@ class _ProfileTabState extends State<ProfileTab> {
                 type: FileType.image,
               );
               if (result != null && result.files.single.path != null) {
-                avatar.updateImagePath(result.files.single.path!);
+                await avatar.updateImagePath(result.files.single.path!);
+                // 서버가 동일 경로에 덮어쓰는 경우 Flutter FileImage 캐시가
+                // 경로 기준으로 유지되어 예전 디코드 이미지가 그대로 표시됨.
+                // 새 파일 내용이 보이도록 캐시에서 evict.
+                final path = avatar.imagePath;
+                if (path.isNotEmpty && !path.startsWith('assets/')) {
+                  final file = File(path);
+                  if (file.existsSync()) {
+                    await FileImage(file).evict();
+                  }
+                }
+                if (mounted) setState(() {});
               }
             },
             child: Stack(
@@ -76,29 +81,9 @@ class _ProfileTabState extends State<ProfileTab> {
                       width: 2,
                     ),
                   ),
-                  child: ClipOval(
-                    child: hasAvatarImage
-                        ? (isAssetImage
-                              ? Image.asset(
-                                  imagePath,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Image.asset(
-                                    'assets/images/avatar.png',
-                                    fit: BoxFit.cover,
-                                  ),
-                                )
-                              : Image.file(
-                                  avatarImageFile!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Image.asset(
-                                    'assets/images/avatar.png',
-                                    fit: BoxFit.cover,
-                                  ),
-                                ))
-                        : Image.asset(
-                            'assets/images/avatar.png',
-                            fit: BoxFit.cover,
-                          ),
+                  child: AgentProfileIcon(
+                    imagePath: avatar.imagePath,
+                    size: 120,
                   ),
                 ),
                 Positioned(
@@ -114,6 +99,35 @@ class _ProfileTabState extends State<ProfileTab> {
                     ),
                   ),
                 ),
+                if (avatar.imagePath.trim().isNotEmpty)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () async {
+                        final prevPath = avatar.imagePath.trim();
+                        await avatar.updateImagePath('');
+                        if (prevPath.isNotEmpty &&
+                            !prevPath.startsWith('assets/')) {
+                          final file = File(prevPath);
+                          if (file.existsSync()) {
+                            await FileImage(file).evict();
+                          }
+                        }
+                        if (mounted) setState(() {});
+                      },
+                      child: const CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Color(0xFFEF4444),
+                        child: Icon(
+                          Icons.delete_outline,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

@@ -4,14 +4,12 @@ part of '../schedule_tab.dart';
 
 class _DayViewHeader extends StatelessWidget {
   final DateTime viewDate;
-  final double colWidth;
   final VoidCallback onPrev;
   final VoidCallback onNext;
   final VoidCallback onToday;
 
   const _DayViewHeader({
     required this.viewDate,
-    required this.colWidth,
     required this.onPrev,
     required this.onNext,
     required this.onToday,
@@ -40,65 +38,65 @@ class _DayViewHeader extends StatelessWidget {
       label = S.of(context).scheduleMonthDay(viewDate.month, viewDate.day);
     }
 
-    return SizedBox(
-      height: 36,
+    return Padding(
+      padding: const EdgeInsets.only(left: 8),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(width: _kTimeColW),
           // 이전 날
           GestureDetector(
             onTap: onPrev,
-            child: Icon(Icons.chevron_left,
-                size: 20, color: Colors.white.withValues(alpha: 0.4)),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+              child: Icon(Icons.chevron_left,
+                  size: 18, color: Colors.white.withValues(alpha: 0.45)),
+            ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 2),
           // 날짜 표시
           GestureDetector(
             onTap: isToday ? null : onToday,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 22, height: 22,
-                  decoration: BoxDecoration(
-                    color: isToday ? _kAccent : Colors.white.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
                     _dayNames(S.of(context))[dayIdx],
                     style: TextStyle(
-                      color: isToday ? Colors.white : dayColor,
-                      fontSize: 11, fontWeight: FontWeight.w800),
+                      color: dayColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.3,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: isToday ? 0.85 : 0.5),
-                    fontSize: 12, fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (!isToday) ...[
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 6),
                   Text(
-                    S.of(context).scheduleTapForToday,
+                    label,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      fontSize: 9,
+                      color: isToday
+                          ? _kAccent
+                          : Colors.white.withValues(alpha: 0.7),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
-              ],
+              ),
             ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 2),
           // 다음 날
           GestureDetector(
             onTap: onNext,
-            child: Icon(Icons.chevron_right,
-                size: 20, color: Colors.white.withValues(alpha: 0.4)),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+              child: Icon(Icons.chevron_right,
+                  size: 18, color: Colors.white.withValues(alpha: 0.45)),
+            ),
           ),
         ],
       ),

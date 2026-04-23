@@ -276,8 +276,11 @@ export class AgentSession {
         appendChatLog("ari", "default", {
           type: "chat",
           isUser: false,
-          message: `[${pending.toAppId}] ${responseText}`,
+          message: responseText,
           requestId: pending.requestId,
+          from: pending.toAppId,
+          to: "ari",
+          senderName: pending.senderName,
         });
       } else {
         appendChatLog(pending.appId, pending.agentId, {
@@ -285,6 +288,13 @@ export class AgentSession {
           isUser: false,
           message: responseText,
           requestId: pending.requestId,
+          ...(pending.dispatchMode === "inter"
+            ? {
+                from: pending.toAppId,
+                to: pending.fromAppId,
+                senderName: pending.senderName,
+              }
+            : {}),
         });
       }
 

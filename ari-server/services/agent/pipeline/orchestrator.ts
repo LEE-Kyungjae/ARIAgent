@@ -179,6 +179,13 @@ export async function submitAgentRequest(
       isUser: true,
       message: pendingResponse.originalMessage,
       requestId: pendingResponse.requestId,
+      ...(pendingResponse.isInterAgent
+        ? {
+            from: pendingResponse.fromAppId,
+            to: pendingResponse.appId,
+            senderName: pendingResponse.senderName,
+          }
+        : {}),
     });
   }
 

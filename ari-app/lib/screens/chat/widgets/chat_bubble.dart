@@ -10,6 +10,7 @@ class ChatBubble extends StatelessWidget {
   final bool isError;
   final bool isSystem;
   final bool isNotice;
+  final Widget? leading;
 
   const ChatBubble({
     super.key,
@@ -18,6 +19,7 @@ class ChatBubble extends StatelessWidget {
     this.isError = false,
     this.isSystem = false,
     this.isNotice = false,
+    this.leading,
   });
 
   @override
@@ -146,16 +148,27 @@ class ChatBubble extends StatelessWidget {
       ),
     );
 
+    final body = showCopyButton
+        ? _BubbleWithCopy(bubble: bubble, message: message)
+        : Row(mainAxisSize: MainAxisSize.min, children: [bubble]);
+
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
-        child: showCopyButton
-            ? _BubbleWithCopy(bubble: bubble, message: message)
-            : Row(
+        child: isAssistant && leading != null
+            ? Row(
                 mainAxisSize: MainAxisSize.min,
-                children: [bubble],
-              ),
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 2, right: 6),
+                    child: leading!,
+                  ),
+                  Flexible(child: body),
+                ],
+              )
+            : body,
       ),
     );
   }

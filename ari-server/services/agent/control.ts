@@ -55,6 +55,13 @@ export function abortAgent(agentId: string): void {
         isUser: true,
         message: pending.originalMessage,
         requestId: pending.requestId,
+        ...(pending.isInterAgent
+          ? {
+              from: pending.fromAppId,
+              to: pending.appId,
+              senderName: pending.senderName,
+            }
+          : {}),
       });
     }
   }

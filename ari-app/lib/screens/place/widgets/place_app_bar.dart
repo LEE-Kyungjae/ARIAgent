@@ -1,10 +1,10 @@
-import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ari_plugin/ari_plugin.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../agents/widgets/agent_profile_icon.dart';
 
 class PlaceAgentAppsBar extends StatelessWidget {
   final List<AgentModel> allProfiles;
@@ -87,29 +87,11 @@ class _AgentAppsRow extends StatelessWidget {
     required this.connectedAppIds,
   });
 
-  Widget _buildAvatarIcon() {
-    if (profile.imagePath.isNotEmpty) {
-      final file = File(profile.imagePath);
-      if (file.existsSync()) {
-        return ClipOval(
-          child: Image.file(file, width: 24, height: 24, fit: BoxFit.cover),
-        );
-      }
-    }
-    return Container(
-      width: 24,
-      height: 24,
-      decoration: BoxDecoration(
-        color: const Color(0xFF6C63FF).withValues(alpha: 0.3),
-        shape: BoxShape.circle,
-      ),
-      child: const Icon(Icons.person_rounded, size: 14, color: Colors.white70),
-    );
-  }
+  Widget _buildAvatarIcon() =>
+      AgentProfileIcon(imagePath: profile.imagePath, size: 24);
 
   Widget _buildAppIcon(BuildContext context, Map<String, dynamic> app) {
     final appId = app['name'] as String;
-    final iconName = app['icon'] as String?;
     final isConnected = connectedAppIds.contains(appId);
     final title = (app['title'] ?? appId) as String;
 
@@ -137,25 +119,12 @@ class _AgentAppsRow extends StatelessWidget {
                     width: isConnected ? 1.5 : 1.0,
                   ),
                 ),
-                child: app['iconPath'] != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(7),
-                        child: Image.file(
-                          File(app['iconPath'] as String),
-                          width: 32,
-                          height: 32,
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                    : Center(
-                        child: iconName != null
-                            ? Text(iconName, style: const TextStyle(fontSize: 16))
-                            : Icon(
-                                Icons.extension_rounded,
-                                size: 16,
-                                color: Colors.white.withValues(alpha: 0.7),
-                              ),
-                      ),
+                child: AgentProfileIcon(
+                  imagePath: '',
+                  installedApps: [app],
+                  appId: appId,
+                  size: 32,
+                ),
               ),
               if (isConnected)
                 Positioned(

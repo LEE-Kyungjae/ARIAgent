@@ -27,12 +27,17 @@ class ChatRepository {
 
     for (final log in logs.reversed) {
       if (log['type'] == 'chat') {
+        final from = log['from']?.toString();
+        final to = log['to']?.toString();
+        final isInterAgent =
+            from != null && from.isNotEmpty && to != null && from != to;
         history.add(AriChatMessage(
           text: log['message']?.toString() ?? '',
           isUser: log['isUser'] == true,
           isError: log['isError'] == true,
           createdAt: DateTime.now(),
           requestId: log['requestId']?.toString(),
+          appId: isInterAgent ? from : null,
         ));
       } else if (log['type'] == 'notice') {
         history.add(AriChatMessage(

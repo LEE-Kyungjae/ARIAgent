@@ -1,11 +1,10 @@
-import 'dart:io';
-
 import 'package:ari_plugin/ari_plugin.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../l10n/app_localizations.dart';
 import 'agent_action_icon.dart';
+import 'agent_profile_icon.dart';
 
 class DomainAgentTile extends StatefulWidget {
   final Map<String, dynamic> app;
@@ -24,36 +23,8 @@ class DomainAgentTile extends StatefulWidget {
 class _DomainAgentTileState extends State<DomainAgentTile> {
   bool _hover = false;
 
-  Widget _buildIcon() {
-    final iconPath = widget.app['iconPath'] as String?;
-    final iconName = widget.app['icon'] as String?;
-    if (iconPath != null) {
-      final file = File(iconPath);
-      if (file.existsSync()) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Image.file(file, width: 44, height: 44, fit: BoxFit.cover),
-        );
-      }
-    }
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: const Color(0xFF6C63FF).withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Center(
-        child: iconName != null
-            ? Text(iconName, style: const TextStyle(fontSize: 20))
-            : Icon(
-                Icons.extension_rounded,
-                size: 20,
-                color: const Color(0xFF6C63FF).withValues(alpha: 0.7),
-              ),
-      ),
-    );
-  }
+  Widget _buildIcon() =>
+      AgentProfileIcon.app(app: widget.app, size: 44);
 
   Future<void> _confirmDelete(BuildContext context, String appId) async {
     final title = (widget.app['title'] as String?) ?? appId;

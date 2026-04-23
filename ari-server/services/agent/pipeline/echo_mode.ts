@@ -32,17 +32,32 @@ export function broadcastEchoResponse(
       requestId: pendingResponse.requestId,
     });
   }
+  const interMeta = pendingResponse.isInterAgent
+    ? {
+        from: pendingResponse.fromAppId,
+        to: pendingResponse.appId,
+        senderName: pendingResponse.senderName,
+      }
+    : {};
   appendChatLog(pendingResponse.appId, agentId, {
     type: "chat",
     isUser: true,
     message: pendingResponse.originalMessage,
     requestId: pendingResponse.requestId,
+    ...interMeta,
   });
   appendChatLog(pendingResponse.appId, agentId, {
     type: "chat",
     isUser: false,
     message: responseText,
     requestId: pendingResponse.requestId,
+    ...(pendingResponse.isInterAgent
+      ? {
+          from: pendingResponse.toAppId,
+          to: pendingResponse.fromAppId,
+          senderName: pendingResponse.senderName,
+        }
+      : {}),
   });
   if (pendingResponse.originUuid) {
     pushApp({ uuid: pendingResponse.originUuid }, {

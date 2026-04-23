@@ -89,6 +89,7 @@ class _AgentsTabState extends State<AgentsTab> {
           AgentsHeader(
             title: S.of(context).pmAgentSection,
             count: pmAgents.length,
+            trailing: const AddAgentTile(compact: true),
           ),
           _buildPmList(pmAgents, currentId, statusProv),
           ListenableBuilder(
@@ -108,6 +109,7 @@ class _AgentsTabState extends State<AgentsTab> {
         AgentsHeader(
           title: S.of(context).domainAgentSection,
           count: apps.length,
+          trailing: const AddDomainAgentTile(compact: true),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -120,8 +122,6 @@ class _AgentsTabState extends State<AgentsTab> {
                   isConnected:
                       connectedIds.contains(app['name'] as String),
                 ),
-              const SizedBox(height: 8),
-              const AddDomainAgentTile(),
             ],
           ),
         ),
@@ -182,8 +182,6 @@ class _AgentsTabState extends State<AgentsTab> {
         ),
       );
     }
-    children.add(const SizedBox(height: 8));
-    children.add(const AddAgentTile());
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(children: children),

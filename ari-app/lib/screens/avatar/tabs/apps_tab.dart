@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:ari_plugin/ari_plugin.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../agents/widgets/agent_profile_icon.dart';
 import '../widgets/tab_section_header.dart';
 
 class AppsTab extends StatelessWidget {
@@ -47,36 +46,7 @@ class _AppPinRow extends StatelessWidget {
 
   const _AppPinRow({required this.app, required this.isPinned});
 
-  Widget _buildIcon() {
-    final iconPath = app['iconPath'] as String?;
-    final iconName = app['icon'] as String?;
-    if (iconPath != null) {
-      final file = File(iconPath);
-      if (file.existsSync()) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Image.file(file, width: 44, height: 44, fit: BoxFit.cover),
-        );
-      }
-    }
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: const Color(0xFF6C63FF).withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Center(
-        child: iconName != null
-            ? Text(iconName, style: const TextStyle(fontSize: 20))
-            : Icon(
-                Icons.extension_rounded,
-                size: 20,
-                color: const Color(0xFF6C63FF).withValues(alpha: 0.7),
-              ),
-      ),
-    );
-  }
+  Widget _buildIcon() => AgentProfileIcon.app(app: app, size: 44);
 
   @override
   Widget build(BuildContext context) {

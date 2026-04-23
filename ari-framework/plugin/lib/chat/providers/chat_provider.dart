@@ -96,15 +96,13 @@ class AriChatProvider extends ChangeNotifier {
       if (requestId.isNotEmpty &&
           _messages.any((m) => m.isUser && m.requestId == requestId)) return;
 
-      // 에이전트 간 호출로 들어온 메시지는 발신자 라벨을 붙여 채팅창에 표기.
-      final label = senderName.isNotEmpty ? senderName : from;
-      final displayText = isInterAgent ? '[$label] $message' : message;
-
       _messages.add(AriChatMessage(
-        text: displayText,
+        text: message,
         isUser: true,
         createdAt: DateTime.now(),
         requestId: requestId,
+        appId: isInterAgent ? from : null,
+        senderName: senderName.isNotEmpty ? senderName : null,
       ));
       notifyListeners();
     });
@@ -137,13 +135,13 @@ class AriChatProvider extends ChangeNotifier {
         return;
       }
 
-      final label = senderName.isNotEmpty ? senderName : from;
-      final displayText = isInterAgent ? '[$label] $response' : response;
       _messages.add(AriChatMessage(
-        text: displayText,
+        text: response,
         isUser: false,
         createdAt: DateTime.now(),
         requestId: requestId,
+        appId: isInterAgent ? from : null,
+        senderName: senderName.isNotEmpty ? senderName : null,
       ));
 
       notifyListeners();

@@ -1,8 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:ari_plugin/ari_plugin.dart';
 import '../../../providers/config_provider.dart';
+import '../../agents/widgets/agent_profile_icon.dart';
 
 /// 메인 아바타 위젯 - 이미지와 상태 표시등을 포함.
 class AvatarWidget extends StatefulWidget {
@@ -113,44 +113,14 @@ class _AvatarWidgetState extends State<AvatarWidget>
               ),
             ),
             // 아바타 이미지
-            ClipOval(
-              child: Builder(
-                builder: (context) {
-                  final avatar = context.watch<AgentProvider>();
-                  final imagePath = avatar.imagePath.trim();
-                  if (imagePath.startsWith('assets/')) {
-                    return Image.asset(
-                      imagePath,
-                      width: imageSize,
-                      height: imageSize,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Image.asset(
-                        'assets/images/avatar.png',
-                        width: imageSize,
-                        height: imageSize,
-                        fit: BoxFit.cover,
-                      ),
-                    );
-                  }
-                  if (imagePath.isNotEmpty) {
-                    final file = File(imagePath);
-                    if (file.existsSync()) {
-                      return Image.file(
-                        file,
-                        width: imageSize,
-                        height: imageSize,
-                        fit: BoxFit.cover,
-                      );
-                    }
-                  }
-                  return Image.asset(
-                    'assets/images/avatar.png',
-                    width: imageSize,
-                    height: imageSize,
-                    fit: BoxFit.cover,
-                  );
-                },
-              ),
+            Builder(
+              builder: (context) {
+                final avatar = context.watch<AgentProvider>();
+                return AgentProfileIcon(
+                  imagePath: avatar.imagePath,
+                  size: imageSize,
+                );
+              },
             ),
             // 연결 상태 표시등
             if (widget.showStatusIndicator)

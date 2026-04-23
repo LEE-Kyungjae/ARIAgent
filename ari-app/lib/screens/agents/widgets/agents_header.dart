@@ -3,8 +3,14 @@ import 'package:flutter/material.dart';
 class AgentsHeader extends StatelessWidget {
   final String title;
   final int count;
+  final Widget? trailing;
 
-  const AgentsHeader({super.key, required this.title, required this.count});
+  const AgentsHeader({
+    super.key,
+    required this.title,
+    required this.count,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -16,27 +22,34 @@ class AgentsHeader extends StatelessWidget {
         ),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 2),
-            child: Text(
-              '$count',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
-                fontSize: 11,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.4),
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ],
           ),
+          const Spacer(),
+          if (trailing != null) trailing!,
         ],
       ),
     );

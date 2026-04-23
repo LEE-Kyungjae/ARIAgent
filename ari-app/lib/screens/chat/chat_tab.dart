@@ -5,6 +5,7 @@ import 'package:ari_plugin/ari_plugin.dart';
 import '../../providers/server_provider.dart';
 import '../../providers/config_provider.dart';
 import '../../l10n/app_localizations.dart';
+import '../agents/widgets/agent_profile_icon.dart';
 import '../settings/model/providers_notifier.dart';
 
 import 'views/chat_header.dart';
@@ -117,13 +118,23 @@ class _ChatTabState extends State<ChatTab> {
           const SizedBox(height: 8),
         ],
       ),
-      messageBubbleBuilder: (msg) => ChatBubble(
-        message: msg.text,
-        isUser: msg.isUser,
-        isError: msg.isError,
-        isSystem: msg.isSystem,
-        isNotice: msg.isNotice,
-      ),
+      messageBubbleBuilder: (msg) {
+        final leading =
+            (!msg.isUser && !msg.isSystem && !msg.isNotice && !msg.isError)
+                ? AgentProfileIcon.fromAgent(
+                    agent: avatar.currentAgent,
+                    appId: msg.appId,
+                  )
+                : null;
+        return ChatBubble(
+          message: msg.text,
+          isUser: msg.isUser,
+          isError: msg.isError,
+          isSystem: msg.isSystem,
+          isNotice: msg.isNotice,
+          leading: leading,
+        );
+      },
       inputAreaBuilder: (onSend, onCancel, isLoading) {
         if (!isServerRunning) return const SizedBox.shrink();
         return Padding(
