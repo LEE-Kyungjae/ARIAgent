@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-class FriendActionIcon extends StatefulWidget {
+class AgentActionIcon extends StatefulWidget {
   final IconData icon;
   final String tooltip;
   final bool danger;
   final VoidCallback onTap;
 
-  const FriendActionIcon({
+  const AgentActionIcon({
     super.key,
     required this.icon,
     required this.tooltip,
@@ -15,10 +15,10 @@ class FriendActionIcon extends StatefulWidget {
   });
 
   @override
-  State<FriendActionIcon> createState() => _FriendActionIconState();
+  State<AgentActionIcon> createState() => _AgentActionIconState();
 }
 
-class _FriendActionIconState extends State<FriendActionIcon> {
+class _AgentActionIconState extends State<AgentActionIcon> {
   bool _hover = false;
 
   @override

@@ -12,6 +12,7 @@ import { initAgent } from "../services/agent/index.js";
 import { execPromise } from "../tools/bash.js";
 import { sweepPinnedAppFromAllAgents } from "../repositories/agent_repository.js";
 import { loadAllApps } from "../skills/index.js";
+import { installAppFromUrl } from "../services/app_installer.js";
 
 /**
  * /LAUNCH_APP
@@ -256,6 +257,53 @@ router.on("/APP.UPDATE", async (ctx, params) => {
   }
 });
 
+/**
+ * /APP.INSTALL
+ * 에이전트 스토어의 .zip URL 로부터 앱을 다운로드/설치 (Flutter 직접 호출).
+ *
+ * params:
+ *   url    - 설치할 .zip 다운로드 주소
+ *   appId  - 앱 식별자 (생략 시 파일명에서 추출)
+ *   force  - 버전이 같거나 낮아도 강제 설치
+ *
+ * 진행 단계는 /APP.INSTALL.PROGRESS 로 stream.
+ */
+router.on("/APP.INSTALL", async (ctx, params) => {
+  const { url, appId, force } = params as {
+    url: string;
+    appId?: string;
+    force?: boolean;
+  };
+
+  if (!url) {
+    return ctx.send("/APP.INSTALL", {
+      id: params.id,
+      ok: false,
+      error: "url is required",
+    });
+  }
+
+  const result = await installAppFromUrl({
+    url,
+    appId,
+    force,
+    onProgress: (stage, message) => {
+      ctx.send("/APP.INSTALL.PROGRESS", { appId, stage, message });
+    },
+  });
+
+  if (result.success) {
+    ctx.send("/APP.INSTALL", { id: params.id, ok: true, data: result });
+  } else {
+    ctx.send("/APP.INSTALL", {
+      id: params.id,
+      ok: false,
+      error: result.error,
+      data: result,
+    });
+  }
+});
+
 router.on("/DELETE_SKILL", async (ctx, params) => {
   const { name } = params;
   logger.info(`[Skills] Deleting skill: ${name}`);
@@ -295,19 +343,24 @@ router.on("/DELETE_APP", async (ctx, params) => {
     // 앱은 top-level 엔티티 — 모든 에이전트의 핀 목록에서 청소하고 폴더 삭제
     sweepPinnedAppFromAllAgents(name);
 
-    const appsDir = path.join(DATA_DIR, "apps", name);
-    const legacyDir = path.join(DATA_DIR, "skills", name);
-    const targetDir = fs.existsSync(appsDir)
-      ? appsDir
-      : fs.existsSync(legacyDir)
-        ? legacyDir
-        : null;
+    // SKILL.md frontmatter의 name 과 실제 폴더명이 다를 수 있으므로
+    // (예: folder=youtube_player, name=youtube-player)
+    // loadAllApps 로 실제 filePath 를 찾아 해당 폴더를 제거한다.
+    const apps = await loadAllApps();
+    const target = apps.find((a) => a.name === name);
+    const targetDir = target ? path.dirname(target.filePath) : null;
 
-    if (targetDir) {
+    if (targetDir && fs.existsSync(targetDir)) {
       rmDirSyncSafe(targetDir);
-      logger.info(`[Apps] App folder '${name}' removed`);
+      logger.info(`[Apps] App folder '${name}' removed (${targetDir})`);
     } else {
-      logger.warn(`[Apps] App folder '${name}' not found on disk`);
+      logger.warn(
+        `[Apps] App '${name}' not resolvable to a folder (targetDir=${targetDir ?? "null"})`,
+      );
+      return ctx.send("/DELETE_APP", {
+        ok: false,
+        error: `app '${name}' not found on disk`,
+      });
     }
 
     await initAgent();

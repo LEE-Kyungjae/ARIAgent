@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
-import 'friend_action_icon.dart';
-import 'friend_avatar.dart';
-import 'friend_status_row.dart';
+import 'agent_action_icon.dart';
+import 'agent_avatar.dart';
+import 'agent_status_row.dart';
 
-class FriendTile extends StatefulWidget {
+class AgentTile extends StatefulWidget {
   final dynamic agent;
   final bool isActive;
   final bool isSelected;
@@ -16,7 +16,7 @@ class FriendTile extends StatefulWidget {
   final VoidCallback onOpenChat;
   final VoidCallback onDelete;
 
-  const FriendTile({
+  const AgentTile({
     super.key,
     required this.agent,
     required this.isActive,
@@ -30,10 +30,10 @@ class FriendTile extends StatefulWidget {
   });
 
   @override
-  State<FriendTile> createState() => _FriendTileState();
+  State<AgentTile> createState() => _AgentTileState();
 }
 
-class _FriendTileState extends State<FriendTile> {
+class _AgentTileState extends State<AgentTile> {
   bool _hover = false;
 
   @override
@@ -62,7 +62,7 @@ class _FriendTileState extends State<FriendTile> {
           ),
           child: Row(
             children: [
-              FriendAvatar(
+              AgentAvatar(
                 imagePath: widget.agent.imagePath?.toString() ?? '',
               ),
               const SizedBox(width: 14),
@@ -108,7 +108,7 @@ class _FriendTileState extends State<FriendTile> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    FriendStatusRow(
+                    AgentStatusRow(
                       status: widget.status,
                       scheduleCount: widget.scheduleCount,
                       nextRunAt: widget.nextRunAt,
@@ -118,14 +118,14 @@ class _FriendTileState extends State<FriendTile> {
               ),
               if (widget.isSelected) ...[
                 const SizedBox(width: 8),
-                FriendActionIcon(
+                AgentActionIcon(
                   icon: Icons.chat_bubble_rounded,
                   tooltip: S.of(context).tabChat,
                   onTap: widget.onOpenChat,
                 ),
                 const SizedBox(width: 4),
                 if (widget.agent.id != 'default')
-                  FriendActionIcon(
+                  AgentActionIcon(
                     icon: Icons.delete_outline_rounded,
                     tooltip: S.of(context).delete,
                     danger: true,

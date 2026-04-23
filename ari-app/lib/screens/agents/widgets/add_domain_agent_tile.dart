@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../l10n/app_localizations.dart';
+import 'agent_store_sheet.dart';
 
 class AddDomainAgentTile extends StatefulWidget {
   const AddDomainAgentTile({super.key});
@@ -13,11 +13,13 @@ class AddDomainAgentTile extends StatefulWidget {
 class _AddDomainAgentTileState extends State<AddDomainAgentTile> {
   bool _hover = false;
 
-  Future<void> _openStore() async {
-    final uri = Uri.parse('https://ariwith.me/store');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
+  void _openStore() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const AgentStoreSheet(),
+    );
   }
 
   @override

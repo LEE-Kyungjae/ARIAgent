@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-class FriendsHeader extends StatelessWidget {
+class AgentsHeader extends StatelessWidget {
   final String title;
   final int count;
 
-  const FriendsHeader({super.key, required this.title, required this.count});
+  const AgentsHeader({super.key, required this.title, required this.count});
 
   @override
   Widget build(BuildContext context) {

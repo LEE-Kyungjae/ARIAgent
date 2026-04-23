@@ -4,23 +4,23 @@ import 'package:provider/provider.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../place/providers/place_agent_status_provider.dart';
-import 'friends_schedule.dart';
+import 'agents_schedule.dart';
 import 'widgets/add_domain_agent_tile.dart';
-import 'widgets/add_friend_tile.dart';
+import 'widgets/add_agent_tile.dart';
 import 'widgets/domain_agent_tile.dart';
-import 'widgets/friend_tile.dart';
-import 'widgets/friends_header.dart';
+import 'widgets/agent_tile.dart';
+import 'widgets/agents_header.dart';
 
-class FriendsTab extends StatefulWidget {
+class AgentsTab extends StatefulWidget {
   final VoidCallback onOpenChat;
 
-  const FriendsTab({super.key, required this.onOpenChat});
+  const AgentsTab({super.key, required this.onOpenChat});
 
   @override
-  State<FriendsTab> createState() => _FriendsTabState();
+  State<AgentsTab> createState() => _AgentsTabState();
 }
 
-class _FriendsTabState extends State<FriendsTab> {
+class _AgentsTabState extends State<AgentsTab> {
   String? _selectedId;
 
   @override
@@ -86,7 +86,7 @@ class _FriendsTabState extends State<FriendsTab> {
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         children: [
-          FriendsHeader(
+          AgentsHeader(
             title: S.of(context).pmAgentSection,
             count: pmAgents.length,
           ),
@@ -105,7 +105,7 @@ class _FriendsTabState extends State<FriendsTab> {
     final connectedIds = agent.connectedAppIds;
     return Column(
       children: [
-        FriendsHeader(
+        AgentsHeader(
           title: S.of(context).domainAgentSection,
           count: apps.length,
         ),
@@ -162,7 +162,7 @@ class _FriendsTabState extends State<FriendsTab> {
             (a, b) => a == null || b.isBefore(a) ? b : a,
           );
       children.add(
-        FriendTile(
+        AgentTile(
           agent: agent,
           isActive: isActive,
           isSelected: isSelected,
@@ -183,7 +183,7 @@ class _FriendsTabState extends State<FriendsTab> {
       );
     }
     children.add(const SizedBox(height: 8));
-    children.add(const AddFriendTile());
+    children.add(const AddAgentTile());
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(children: children),

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../l10n/app_localizations.dart';
-import 'friend_action_icon.dart';
+import 'agent_action_icon.dart';
 
 class DomainAgentTile extends StatefulWidget {
   final Map<String, dynamic> app;
@@ -182,14 +182,14 @@ class _DomainAgentTileState extends State<DomainAgentTile> {
             if (_hover) ...[
               const SizedBox(width: 8),
               if (!widget.isConnected)
-                FriendActionIcon(
+                AgentActionIcon(
                   icon: Icons.play_circle_outline_rounded,
                   tooltip: S.of(context).appsOffline,
                   onTap: () =>
                       context.read<AgentProvider>().launchApp(appId),
                 ),
               if (!widget.isConnected) const SizedBox(width: 4),
-              FriendActionIcon(
+              AgentActionIcon(
                 icon: Icons.delete_outline_rounded,
                 tooltip: S.of(context).delete,
                 danger: true,

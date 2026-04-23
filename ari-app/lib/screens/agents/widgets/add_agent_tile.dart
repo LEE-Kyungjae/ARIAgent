@@ -4,14 +4,14 @@ import 'package:provider/provider.dart';
 
 import '../../../l10n/app_localizations.dart';
 
-class AddFriendTile extends StatefulWidget {
-  const AddFriendTile({super.key});
+class AddAgentTile extends StatefulWidget {
+  const AddAgentTile({super.key});
 
   @override
-  State<AddFriendTile> createState() => _AddFriendTileState();
+  State<AddAgentTile> createState() => _AddAgentTileState();
 }
 
-class _AddFriendTileState extends State<AddFriendTile> {
+class _AddAgentTileState extends State<AddAgentTile> {
   bool _hover = false;
 
   @override

@@ -291,6 +291,24 @@ class AgentProvider extends ChangeNotifier {
     }
   }
 
+  Future<Map<String, dynamic>> installApp({
+    required String url,
+    String? appId,
+    bool force = false,
+  }) async {
+    try {
+      final res = await AriAgent.call('/APP.INSTALL', {
+        'url': url,
+        if (appId != null) 'appId': appId,
+        if (force) 'force': true,
+      });
+      return {'ok': true, 'data': res};
+    } catch (e) {
+      debugPrint('[AgentProvider] installApp failed: $e');
+      return {'ok': false, 'error': e.toString()};
+    }
+  }
+
   Future<bool> pinApp(String appId) async {
     final agent = currentAgent;
     final wasPinned = agent.isAppPinned(appId);

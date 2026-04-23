@@ -15,7 +15,7 @@ import 'avatar/avatar_tab.dart';
 import 'chat/chat_tab.dart';
 import 'home/home_constants.dart';
 import 'home/home_drag_handle.dart';
-import 'friends/friends_tab.dart';
+import 'agents/agents_tab.dart';
 import 'home/home_server_required_overlay.dart';
 import 'home/home_tab_bar.dart';
 import 'home/home_update_banner.dart';
@@ -217,7 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ? _withServerGuard(
                 PlaceTab(onOpenChat: () => setState(() => _currentTab = 0)),
               )
-            : FriendsTab(onOpenChat: () => setState(() => _currentTab = 0)),
+            : AgentsTab(onOpenChat: () => setState(() => _currentTab = 0)),
         _withServerGuard(const AvatarTab()),
         const SettingsTab(),
       ],

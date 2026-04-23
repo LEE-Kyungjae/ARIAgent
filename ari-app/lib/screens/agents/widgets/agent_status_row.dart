@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../friends_schedule.dart';
+import '../agents_schedule.dart';
 
-class FriendStatusRow extends StatelessWidget {
+class AgentStatusRow extends StatelessWidget {
   final String status;
   final int scheduleCount;
   final DateTime? nextRunAt;
 
-  const FriendStatusRow({
+  const AgentStatusRow({
     super.key,
     required this.status,
     required this.scheduleCount,

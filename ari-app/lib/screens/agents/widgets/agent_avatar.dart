@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-class FriendAvatar extends StatelessWidget {
+class AgentAvatar extends StatelessWidget {
   final String imagePath;
 
-  const FriendAvatar({super.key, required this.imagePath});
+  const AgentAvatar({super.key, required this.imagePath});
 
   @override
   Widget build(BuildContext context) {

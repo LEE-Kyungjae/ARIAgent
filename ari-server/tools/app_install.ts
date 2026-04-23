@@ -1,13 +1,8 @@
 import { AgentTool } from "@mariozechner/pi-agent-core";
 import { Type } from "@mariozechner/pi-ai";
 import axios from "axios";
-import fs from "fs";
-import path from "path";
 import { logger } from "../infra/logger.js";
-import { DATA_DIR } from "../infra/data.js";
-import { notifyInstalledAppsChanged } from "../protocol/app.js";
-import { loadAllApps } from "../skills/index.js";
-import { execPromise } from "./bash.js";
+import { installAppFromUrl } from "../services/app_installer.js";
 
 interface AppInfo {
   app_id: string;
@@ -115,128 +110,45 @@ export const installAppTool: AgentTool = {
     ),
   }),
   execute: async (_id, params) => {
-    const {
-      url,
-      appId: providedAppId,
-      force,
-    } = params as { url: string; appId?: string; force?: boolean };
+    const { url, appId, force } = params as {
+      url: string;
+      appId?: string;
+      force?: boolean;
+    };
 
-    let appId = providedAppId;
-    if (!appId) {
-      const urlParts = url.split("/");
-      const fileName = urlParts[urlParts.length - 1];
-      appId = fileName.split("-")[0].replace(".zip", "");
-    }
+    const result = await installAppFromUrl({ url, appId, force });
 
-    logger.info(`[AppInstall] Starting installation for ${appId} from ${url}`);
-
-    const tempDir = path.join(DATA_DIR, "tmp_install", appId);
-    const appInstallDir = path.join(DATA_DIR, "apps", appId);
-
-    try {
-      if (fs.existsSync(tempDir))
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      fs.mkdirSync(tempDir, { recursive: true });
-
-      const zipPath = path.join(tempDir, "app.zip");
-      logger.info(`[AppInstall] Downloading to ${zipPath}`);
-      await execPromise(`curl -L "${url}" -o "${zipPath}"`);
-
-      const extractDir = path.join(tempDir, "extracted");
-      fs.mkdirSync(extractDir, { recursive: true });
-      logger.info(`[AppInstall] Extracting to ${extractDir}`);
-
-      if (process.platform === "win32") {
-        await execPromise(
-          `powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${extractDir}' -Force"`,
-        );
-      } else {
-        await execPromise(`unzip -o "${zipPath}" -d "${extractDir}"`);
-      }
-
-      let sourceDir = extractDir;
-      const items = fs
-        .readdirSync(extractDir)
-        .filter((f) => !f.startsWith(".") && f !== "__MACOSX");
-
-      if (
-        items.length === 1 &&
-        fs.statSync(path.join(extractDir, items[0])).isDirectory()
-      ) {
-        sourceDir = path.join(extractDir, items[0]);
-      }
-
-      const newInfoPath = path.join(sourceDir, "app_info.json");
-      const oldInfoPath = path.join(appInstallDir, "app_info.json");
-
-      if (fs.existsSync(newInfoPath) && fs.existsSync(oldInfoPath)) {
-        try {
-          const newInfo = JSON.parse(fs.readFileSync(newInfoPath, "utf-8"));
-          const oldInfo = JSON.parse(fs.readFileSync(oldInfoPath, "utf-8"));
-
-          const newVer = newInfo.version_code ?? newInfo.version;
-          const oldVer = oldInfo.version_code ?? oldInfo.version;
-
-          if (newVer <= oldVer && !force) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `ℹ️ 이미 최신 버전(${oldInfo.version})이 설치되어 있습니다.`,
-                },
-              ],
-              details: {
-                appId,
-                success: true,
-                updated: false,
-                currentVersion: oldInfo.version,
-              },
-            };
-          }
-        } catch (err: any) {
-          logger.warn(
-            `[AppInstall] Version check comparison failed: ${err.message}`,
-          );
-        }
-      }
-
-      if (fs.existsSync(appInstallDir)) {
-        logger.info(`[AppInstall] Removing existing app at ${appInstallDir}`);
-        fs.rmSync(appInstallDir, { recursive: true, force: true });
-      }
-      fs.mkdirSync(path.dirname(appInstallDir), { recursive: true });
-
-      logger.info(`[AppInstall] Moving ${sourceDir} to ${appInstallDir}`);
-      fs.renameSync(sourceDir, appInstallDir);
-
-      await loadAllApps();
-
-      notifyInstalledAppsChanged(appId);
-
+    if (result.success && !result.updated) {
       return {
         content: [
           {
             type: "text",
-            text: `✅ '${appId}' 앱이 성공적으로 설치(업데이트)되었습니다.`,
+            text: `ℹ️ 이미 최신 버전(${result.currentVersion})이 설치되어 있습니다.`,
           },
         ],
-        details: { appId, success: true },
+        details: result,
       };
-    } catch (error: any) {
-      logger.error(`[AppInstall] Failed to install ${appId}: ${error.message}`);
+    }
+    if (result.success) {
       return {
         content: [
           {
             type: "text",
-            text: `❌ '${appId}' 앱 설치 중 오류 발생: ${error.message}`,
+            text: `✅ '${result.appId}' 앱이 성공적으로 설치(업데이트)되었습니다.`,
           },
         ],
-        details: { appId, success: false, error: error.message },
+        details: result,
       };
-    } finally {
-      if (fs.existsSync(tempDir))
-        fs.rmSync(tempDir, { recursive: true, force: true });
     }
+    return {
+      content: [
+        {
+          type: "text",
+          text: `❌ '${result.appId}' 앱 설치 중 오류 발생: ${result.error}`,
+        },
+      ],
+      details: result,
+    };
   },
 };
 
