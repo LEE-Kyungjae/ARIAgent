@@ -1,31 +1,43 @@
 import path from "path";
-import { DATA_DIR, fileExistsSync, readJsonSync, writeJsonSync } from "../infra/data.js";
-import { TelegramChannelConfig, ChannelType } from "../models/channel.js";
+import {
+  DATA_DIR,
+  fileExistsSync,
+  readDirSyncSafe,
+  readJsonSync,
+  writeJsonSync,
+} from "../infra/data.js";
+import { TelegramChannelConfig } from "../models/channel.js";
 
-const CHANNELS_DIR = path.join(DATA_DIR, "channels");
+const TELEGRAM_DIR = path.join(DATA_DIR, "channels", "telegram");
 
-function channelFilePath(type: ChannelType): string {
-  return path.join(CHANNELS_DIR, `${type}.json`);
+function telegramFilePath(agentId: string): string {
+  return path.join(TELEGRAM_DIR, `${agentId}.json`);
 }
 
-export function getTelegramConfig(): TelegramChannelConfig {
-  const filePath = channelFilePath("telegram");
+export function getTelegramConfig(agentId: string): TelegramChannelConfig {
+  const filePath = telegramFilePath(agentId);
   if (!fileExistsSync(filePath)) {
-    return defaultTelegramConfig();
+    return defaultTelegramConfig(agentId);
   }
   const data = readJsonSync<TelegramChannelConfig>(filePath);
-  return data ?? defaultTelegramConfig();
+  return data ? { ...data, agentId } : defaultTelegramConfig(agentId);
 }
 
 export function saveTelegramConfig(config: TelegramChannelConfig): void {
-  writeJsonSync(channelFilePath("telegram"), config);
+  writeJsonSync(telegramFilePath(config.agentId), config);
 }
 
-function defaultTelegramConfig(): TelegramChannelConfig {
+export function listTelegramConfigs(): TelegramChannelConfig[] {
+  return readDirSyncSafe(TELEGRAM_DIR)
+    .filter((name) => name.endsWith(".json"))
+    .map((name) => getTelegramConfig(name.slice(0, -".json".length)));
+}
+
+function defaultTelegramConfig(agentId: string): TelegramChannelConfig {
   return {
     type: "telegram",
     enabled: false,
     botToken: "",
-    agentId: undefined,
+    agentId,
   };
 }

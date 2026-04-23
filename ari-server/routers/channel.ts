@@ -2,21 +2,27 @@ import { router } from "../system/router.js";
 import { getTelegramConfig, saveTelegramConfig } from "../repositories/channel_repository.js";
 import {
   testTelegramConnection,
-  startTelegramPolling,
   stopTelegramPolling,
   restartTelegramPolling,
   isTelegramPollingActive,
 } from "../services/channels/telegram_service.js";
 
+function resolveAgentId(params: Record<string, any>): string {
+  const id = typeof params.agentId === "string" ? params.agentId.trim() : "";
+  if (!id) throw new Error("agentId required");
+  return id;
+}
+
 /**
- * /CHANNEL.GET {type: "telegram"}
+ * /CHANNEL.GET {type: "telegram", agentId}
  * 채널 설정을 조회합니다.
  */
 router.on("/CHANNEL.GET", async (ctx, params) => {
   const { type } = params;
 
   if (type === "telegram") {
-    const config = getTelegramConfig();
+    const agentId = resolveAgentId(params);
+    const config = getTelegramConfig(agentId);
     // botToken은 마스킹하여 반환
     const masked = config.botToken
       ? config.botToken.replace(/:.+/, ":***")
@@ -26,7 +32,7 @@ router.on("/CHANNEL.GET", async (ctx, params) => {
       data: {
         ...config,
         botToken: masked,
-        isPolling: isTelegramPollingActive(),
+        isPolling: isTelegramPollingActive(agentId),
       },
     });
     return;
@@ -36,24 +42,22 @@ router.on("/CHANNEL.GET", async (ctx, params) => {
 });
 
 /**
- * /CHANNEL.SAVE {type: "telegram", botToken, allowedChatIds, agentId}
+ * /CHANNEL.SAVE {type: "telegram", agentId, botToken}
  * 채널 설정을 저장하고 polling을 재시작합니다.
  */
 router.on("/CHANNEL.SAVE", async (ctx, params) => {
   const { type } = params;
 
   if (type === "telegram") {
-    const existing = getTelegramConfig();
+    const agentId = resolveAgentId(params);
+    const existing = getTelegramConfig(agentId);
 
     const botToken =
       typeof params.botToken === "string" && params.botToken && !params.botToken.includes("***")
         ? params.botToken.trim()
         : existing.botToken;
 
-    const agentId =
-      typeof params.agentId === "string" ? params.agentId || undefined : existing.agentId;
-
-    const updated = {
+    const updated: ReturnType<typeof getTelegramConfig> = {
       ...existing,
       botToken,
       agentId,
@@ -61,12 +65,11 @@ router.on("/CHANNEL.SAVE", async (ctx, params) => {
 
     saveTelegramConfig(updated);
 
-    // 활성화 상태이면 polling 재시작
     if (updated.enabled) {
-      restartTelegramPolling();
+      restartTelegramPolling(agentId);
     }
 
-    ctx.send("/CHANNEL.SAVE", { ok: true, data: { type: "telegram" } });
+    ctx.send("/CHANNEL.SAVE", { ok: true, data: { type: "telegram", agentId } });
     return;
   }
 
@@ -74,14 +77,15 @@ router.on("/CHANNEL.SAVE", async (ctx, params) => {
 });
 
 /**
- * /CHANNEL.TOGGLE {type: "telegram", enabled: boolean}
+ * /CHANNEL.TOGGLE {type: "telegram", agentId, enabled: boolean}
  * 채널을 활성화/비활성화합니다.
  */
 router.on("/CHANNEL.TOGGLE", async (ctx, params) => {
   const { type, enabled } = params;
 
   if (type === "telegram") {
-    const config = getTelegramConfig();
+    const agentId = resolveAgentId(params);
+    const config = getTelegramConfig(agentId);
 
     if (!config.botToken) {
       ctx.send("/CHANNEL.TOGGLE", {
@@ -95,14 +99,19 @@ router.on("/CHANNEL.TOGGLE", async (ctx, params) => {
     saveTelegramConfig(config);
 
     if (config.enabled) {
-      restartTelegramPolling();
+      restartTelegramPolling(agentId);
     } else {
-      stopTelegramPolling();
+      stopTelegramPolling(agentId);
     }
 
     ctx.send("/CHANNEL.TOGGLE", {
       ok: true,
-      data: { type: "telegram", enabled: config.enabled, isPolling: isTelegramPollingActive() },
+      data: {
+        type: "telegram",
+        agentId,
+        enabled: config.enabled,
+        isPolling: isTelegramPollingActive(agentId),
+      },
     });
     return;
   }
@@ -111,22 +120,21 @@ router.on("/CHANNEL.TOGGLE", async (ctx, params) => {
 });
 
 /**
- * /CHANNEL.TEST {type: "telegram"}
- * 봇 토큰이 유효한지 확인합니다.
+ * /CHANNEL.TEST {type: "telegram", botToken?, agentId?}
+ * 봇 토큰이 유효한지 확인합니다. botToken 미지정 시 agentId 의 저장본 사용.
  */
 router.on("/CHANNEL.TEST", async (ctx, params) => {
   const { type } = params;
 
   if (type === "telegram") {
-    // 파라미터로 전달된 토큰 우선, 없으면 저장된 토큰 사용
     let token =
       typeof params.botToken === "string" && !params.botToken.includes("***")
         ? params.botToken.trim()
         : "";
 
     if (!token) {
-      const config = getTelegramConfig();
-      token = config.botToken;
+      const agentId = resolveAgentId(params);
+      token = getTelegramConfig(agentId).botToken;
     }
 
     if (!token) {

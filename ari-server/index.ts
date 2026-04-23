@@ -24,6 +24,8 @@ import "./routers/homeassistant.js";
 import "./routers/channel.js";
 import { logger } from "./infra/logger.js";
 import { initEmbeddingModel } from "./infra/embedding.js";
+import { startTelegramPolling } from "./services/channels/telegram_service.js";
+import { listTelegramConfigs } from "./repositories/channel_repository.js";
 import { runScheduledTask } from "./services/tasks/run_task.js";
 import {
   initializeTaskScheduler,
@@ -191,6 +193,13 @@ async function main() {
 
   // 5. WebSocket keep-alive 시작
   UserSocketHandler.startKeepAlive();
+
+  // 6. 채널 시작 (enabled 된 PM 에이전트별 polling 기동)
+  for (const cfg of listTelegramConfigs()) {
+    if (cfg.enabled && cfg.botToken) {
+      startTelegramPolling(cfg.agentId);
+    }
+  }
 }
 
 main().catch((err) => {

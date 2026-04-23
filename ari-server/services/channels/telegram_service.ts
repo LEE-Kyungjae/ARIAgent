@@ -1,17 +1,30 @@
 import axios from "axios";
+import { randomUUID } from "crypto";
 import { logger } from "../../infra/logger.js";
 import { getTelegramConfig } from "../../repositories/channel_repository.js";
+import { getAgentsConfig } from "../../repositories/agent_repository.js";
+import { AgentsConfig } from "../../models/agent.js";
+import { ExecuteAgentRequestParams } from "../../models/agent_request.js";
+import { executeAgentRequest } from "../agent/index.js";
 
 const TELEGRAM_API = "https://api.telegram.org/bot";
 
-// Telegram 어댑터는 현재 비활성 상태입니다.
-// sender-push persona 모델 재정비 중이며, 재구현 전까지는 polling/웹훅을 기동하지 않습니다.
-// 파일은 재구현 시 참고용으로 남겨둡니다.
-const TELEGRAM_ADAPTER_DISABLED = true;
+interface PollingState {
+  active: boolean;
+  lastUpdateId: number;
+  restartTimer?: NodeJS.Timeout;
+}
 
-let pollingActive = false;
-let pollingTimer: NodeJS.Timeout | undefined;
-let lastUpdateId = 0;
+const pollingStates = new Map<string, PollingState>();
+
+function getOrCreateState(agentId: string): PollingState {
+  let state = pollingStates.get(agentId);
+  if (!state) {
+    state = { active: false, lastUpdateId: 0 };
+    pollingStates.set(agentId, state);
+  }
+  return state;
+}
 
 // ─────────────────────────────────────────────
 // Telegram API helpers
@@ -62,11 +75,12 @@ export async function testTelegramConnection(token: string): Promise<{ ok: boole
 // Long-polling loop
 // ─────────────────────────────────────────────
 
-async function pollOnce(token: string, agentId?: string): Promise<void> {
+async function pollOnce(agentId: string, token: string): Promise<void> {
+  const state = getOrCreateState(agentId);
   let updates: any[];
   try {
     const res = await telegramGet(token, "getUpdates", {
-      offset: lastUpdateId + 1,
+      offset: state.lastUpdateId + 1,
       timeout: 30,
       allowed_updates: ["message"],
     });
@@ -74,13 +88,13 @@ async function pollOnce(token: string, agentId?: string): Promise<void> {
     updates = res.result;
   } catch (err: any) {
     if (!err.message?.includes("ECONNRESET") && !err.code?.includes("ECONNABORTED")) {
-      logger.warn(`[Telegram] getUpdates 오류: ${err.message}`);
+      logger.warn(`[Telegram:${agentId}] getUpdates 오류: ${err.message}`);
     }
     return;
   }
 
   for (const update of updates) {
-    lastUpdateId = Math.max(lastUpdateId, update.update_id);
+    state.lastUpdateId = Math.max(state.lastUpdateId, update.update_id);
 
     const msg = update.message;
     if (!msg || !msg.text) continue;
@@ -89,72 +103,103 @@ async function pollOnce(token: string, agentId?: string): Promise<void> {
     const text: string = msg.text;
     const fromName: string = msg.from?.first_name || msg.from?.username || "Unknown";
 
-    logger.info(`[Telegram] 메세지 수신 from ${fromName} (chatId=${chatId}): ${text}`);
+    logger.info(`[Telegram:${agentId}] 메세지 수신 from ${fromName} (chatId=${chatId}): ${text}`);
 
-    // 어댑터 비활성 상태 — 수신만 로깅하고 응답은 보내지 않음.
-    void agentId;
-    void fromName;
-    void text;
+    // LLM 응답 대기 중 polling 이 막히지 않도록 fire-and-forget.
+    void handleIncomingMessage(token, agentId, chatId, text, fromName);
   }
 }
 
-async function pollingLoop(): Promise<void> {
-  while (pollingActive) {
-    const config = getTelegramConfig();
+async function handleIncomingMessage(
+  token: string,
+  agentId: string,
+  chatId: number,
+  text: string,
+  fromName: string,
+): Promise<void> {
+  const agentsConfig = getAgentsConfig(new AgentsConfig());
+  const profile = agentsConfig.agents.find((a) => a.id === agentId);
+
+  try {
+    const result = await executeAgentRequest(
+      new ExecuteAgentRequestParams({
+        message: text,
+        requestId: randomUUID(),
+        agentId,
+        appId: "ari",
+        platform: "telegram",
+        avatarName: profile?.name,
+        persona: profile?.persona,
+        details: { chatId: String(chatId), from: fromName },
+        waitForCompletion: true,
+      }),
+    );
+    const reply = result.responseText?.trim();
+    if (reply) {
+      await sendTelegramMessage(token, chatId, reply);
+    }
+  } catch (err: any) {
+    logger.error(`[Telegram:${agentId}] 에이전트 응답 실패 (chatId=${chatId}): ${err.message}`);
+    await sendTelegramMessage(token, chatId, "⚠️ 에이전트 응답을 가져오지 못했습니다.");
+  }
+}
+
+async function pollingLoop(agentId: string): Promise<void> {
+  const state = getOrCreateState(agentId);
+  while (state.active) {
+    const config = getTelegramConfig(agentId);
     if (!config.enabled || !config.botToken) {
-      // 설정이 비활성화되면 루프 종료
-      pollingActive = false;
+      state.active = false;
       break;
     }
-    await pollOnce(config.botToken, config.agentId);
+    await pollOnce(agentId, config.botToken);
   }
-  logger.info("[Telegram] Polling 종료");
+  logger.info(`[Telegram:${agentId}] Polling 종료`);
 }
 
 // ─────────────────────────────────────────────
 // Public lifecycle API
 // ─────────────────────────────────────────────
 
-export function startTelegramPolling(): void {
-  if (TELEGRAM_ADAPTER_DISABLED) {
-    logger.info("[Telegram] 어댑터 비활성 — polling skip");
-    return;
-  }
-  const config = getTelegramConfig();
+export function startTelegramPolling(agentId: string): void {
+  const config = getTelegramConfig(agentId);
   if (!config.enabled || !config.botToken) {
-    logger.info("[Telegram] 비활성화 상태 — polling 시작 안 함");
+    logger.info(`[Telegram:${agentId}] 비활성화 상태 — polling 시작 안 함`);
     return;
   }
-  if (pollingActive) {
-    logger.info("[Telegram] 이미 polling 중");
+  const state = getOrCreateState(agentId);
+  if (state.active) {
+    logger.info(`[Telegram:${agentId}] 이미 polling 중`);
     return;
   }
 
-  pollingActive = true;
-  lastUpdateId = 0;
-  logger.info("[Telegram] Polling 시작");
-  void pollingLoop();
+  state.active = true;
+  state.lastUpdateId = 0;
+  logger.info(`[Telegram:${agentId}] Polling 시작`);
+  void pollingLoop(agentId);
 }
 
-export function stopTelegramPolling(): void {
-  if (!pollingActive) return;
-  pollingActive = false;
-  if (pollingTimer) {
-    clearTimeout(pollingTimer);
-    pollingTimer = undefined;
+export function stopTelegramPolling(agentId: string): void {
+  const state = pollingStates.get(agentId);
+  if (!state || !state.active) return;
+  state.active = false;
+  if (state.restartTimer) {
+    clearTimeout(state.restartTimer);
+    state.restartTimer = undefined;
   }
-  logger.info("[Telegram] Polling 중지 요청");
+  logger.info(`[Telegram:${agentId}] Polling 중지 요청`);
 }
 
-export function restartTelegramPolling(): void {
-  stopTelegramPolling();
+export function restartTelegramPolling(agentId: string): void {
+  stopTelegramPolling(agentId);
+  const state = getOrCreateState(agentId);
   // 현재 진행 중인 getUpdates 요청이 끝날 때까지 잠깐 대기 후 재시작
-  pollingTimer = setTimeout(() => {
-    pollingTimer = undefined;
-    startTelegramPolling();
+  state.restartTimer = setTimeout(() => {
+    state.restartTimer = undefined;
+    startTelegramPolling(agentId);
   }, 1000);
 }
 
-export function isTelegramPollingActive(): boolean {
-  return pollingActive;
+export function isTelegramPollingActive(agentId: string): boolean {
+  return pollingStates.get(agentId)?.active ?? false;
 }
