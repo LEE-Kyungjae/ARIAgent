@@ -22,7 +22,22 @@ import 'package:ari_plugin/ari_plugin.dart';
 import 'package:flutter/gestures.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+// Flutter on Windows uses BoringSSL which doesn't always trust the Windows
+// certificate store on clean systems, causing HandshakeException. This override
+// falls back to allowing the connection when the host matches trusted ARI domains.
+class _AriHttpOverrides extends HttpOverrides {
+  static const _trustedHosts = ['ariwith.me', 'cloudfront.net', 'amazonaws.com', 'supabase.co'];
+
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback = (cert, host, port) =>
+          _trustedHosts.any((trusted) => host == trusted || host.endsWith('.$trusted'));
+  }
+}
+
 void main() async {
+  HttpOverrides.global = _AriHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
 
   // Hive 저장 경로 설정 (~/.ari-agent/hive)

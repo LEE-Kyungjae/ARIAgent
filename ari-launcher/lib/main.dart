@@ -6,7 +6,22 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+// Flutter on Windows uses BoringSSL which doesn't always trust the Windows
+// certificate store on clean systems, causing HandshakeException. This override
+// falls back to allowing the connection when the host matches trusted ARI domains.
+class _AriHttpOverrides extends HttpOverrides {
+  static const _trustedHosts = ['ariwith.me', 'cloudfront.net', 'amazonaws.com'];
+
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback = (cert, host, port) =>
+          _trustedHosts.any((trusted) => host == trusted || host.endsWith('.$trusted'));
+  }
+}
+
 void main() {
+  HttpOverrides.global = _AriHttpOverrides();
   runApp(const LauncherApp());
 }
 

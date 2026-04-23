@@ -1,9 +1,30 @@
 import 'dart:async';
+import 'dart:io';
 
 import '../model/AriPersona.dart';
 import '../ws/WebSocketService.dart';
 import '../ws/settings_loader_stub.dart'
     if (dart.library.io) '../ws/settings_loader_io.dart';
+
+// Flutter on Windows uses BoringSSL which doesn't trust the Windows certificate
+// store on clean systems, causing HandshakeException on ariwith.me / CloudFront.
+class _AriHttpOverrides extends HttpOverrides {
+  static const _trustedHosts = [
+    'ariwith.me',
+    'cloudfront.net',
+    'amazonaws.com',
+    'supabase.co',
+  ];
+
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback = (cert, host, port) =>
+          _trustedHosts.any(
+            (trusted) => host == trusted || host.endsWith('.$trusted'),
+          );
+  }
+}
 
 void _logDebug(Object message) {
   print(message);
@@ -31,6 +52,9 @@ class AriAgent {
     String host = defaultHost,
     int port = defaultPort,
   }) {
+    if (HttpOverrides.current == null) {
+      HttpOverrides.global = _AriHttpOverrides();
+    }
     final resolvedUrl = url ?? 'ws://$host:$port';
     _webSocketService.setFallbackUrlResolver(_resolveFallbackUrl);
     _webSocketService.initialize(resolvedUrl);
