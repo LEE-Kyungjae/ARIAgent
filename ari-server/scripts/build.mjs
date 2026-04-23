@@ -144,7 +144,11 @@ function copyNodeModuleTree(moduleName, targetRoot, visited = new Set()) {
 
   try {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-    for (const dependency of Object.keys(packageJson.dependencies ?? {})) {
+    const deps = {
+      ...(packageJson.dependencies ?? {}),
+      ...(packageJson.optionalDependencies ?? {}),
+    };
+    for (const dependency of Object.keys(deps)) {
       copyNodeModuleTree(dependency, targetRoot, visited);
     }
   } catch (error) {
