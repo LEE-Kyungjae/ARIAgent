@@ -12,6 +12,7 @@ class AriMarkdownEditor extends StatelessWidget {
     required this.onRejectAll,
     required this.onPartialUpdate,
     this.onBlockSelected,
+    this.onEditSave,
   });
 
   final String content;
@@ -22,6 +23,10 @@ class AriMarkdownEditor extends StatelessWidget {
   final VoidCallback onRejectAll;
   final Function(String updatedContent, String updatedPrevious) onPartialUpdate;
   final void Function(String? selectedBlock)? onBlockSelected;
+
+  /// 뷰 모드에서 더블클릭 인라인 편집 활성화. null 이면 비활성.
+  /// 편집 완료(포커스 아웃) 시 전체 content 전달.
+  final void Function(String updatedContent)? onEditSave;
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +40,10 @@ class AriMarkdownEditor extends StatelessWidget {
       );
     }
 
-    return AriMarkdownView(content: content, onBlockSelected: onBlockSelected);
+    return AriMarkdownView(
+      content: content,
+      onBlockSelected: onBlockSelected,
+      onEditSave: onEditSave,
+    );
   }
 }

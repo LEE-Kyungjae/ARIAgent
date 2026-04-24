@@ -119,14 +119,11 @@ class _ChatInputAreaState extends State<ChatInputArea> {
       child: TextField(
         controller: widget.controller,
         focusNode: _textFocusNode,
-        style: TextStyle(
-          color: widget.theme.inputTextColor ?? widget.theme.textMain,
-          fontSize: 13,
-        ),
+        style: TextStyle(color: widget.theme.textMain, fontSize: 13),
         decoration: InputDecoration(
           hintText: widget.hintText,
           hintStyle: TextStyle(
-            color: widget.theme.inputHintColor ?? widget.theme.hintColor,
+            color: widget.theme.hintColor,
             fontSize: 13,
           ),
           border: InputBorder.none,
@@ -150,14 +147,9 @@ class _ChatInputAreaState extends State<ChatInputArea> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              gradient: _showCancelAction
-                  ? null
-                  : widget.theme.sendButtonGradient,
               color: _showCancelAction
                   ? widget.theme.primaryColor.withValues(alpha: 0.5)
-                  : (widget.theme.sendButtonGradient == null
-                      ? widget.theme.primaryColor
-                      : null),
+                  : widget.theme.primaryColor,
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
@@ -201,10 +193,7 @@ class _ChatInputAreaState extends State<ChatInputArea> {
               decoration: BoxDecoration(
                 color: widget.theme.backgroundColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: widget.theme.inputBorderColor ??
-                      widget.theme.borderColor,
-                ),
+                border: Border.all(color: widget.theme.borderColor),
               ),
               child: textField,
             ),
