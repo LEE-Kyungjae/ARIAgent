@@ -120,7 +120,7 @@ function loadSkillsFromDir(dirPath: string): SkillDefinition[] {
       iconPath: fs.existsSync(iconFilePath) ? iconFilePath : undefined,
       content: body,
       filePath: skillFilePath,
-      isApp: fs.existsSync(path.join(skillDir, "app.app")) || fs.existsSync(appInfoPath),
+      isApp: fs.existsSync(appInfoPath),
     });
   }
   return skills;
