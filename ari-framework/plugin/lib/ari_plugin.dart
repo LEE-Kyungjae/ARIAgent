@@ -33,3 +33,7 @@ export 'layouts/ari_base_layout.dart';
 export 'widgets/markdown/ari_markdown_view.dart';
 export 'widgets/markdown/ari_markdown_diff_view.dart';
 export 'widgets/markdown/ari_markdown_editor.dart';
+
+export 'widgets/agent_workspace/ari_agent_workspace.dart';
+export 'widgets/agent_workspace/ari_agent_run_bar.dart';
+export 'widgets/agent_workspace/ari_agent_next_schedule_footer.dart';
