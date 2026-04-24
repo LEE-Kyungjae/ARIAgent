@@ -174,6 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
           HomeTabBar(
             currentTab: _currentTab,
             isLight: isLight,
+            isSpaceUnified: config.isSpaceUnified,
             onTabSelected: (index) {
               if (index == 1 && !config.isSpaceUnified) {
                 AgentProvider().refreshAvatars();

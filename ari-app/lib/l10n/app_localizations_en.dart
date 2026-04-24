@@ -18,6 +18,9 @@ class SEn extends S {
   String get tabPlace => 'Place';
 
   @override
+  String get tabList => 'List';
+
+  @override
   String get tabAvatar => 'Avatar';
 
   @override
@@ -363,6 +366,38 @@ class SEn extends S {
   @override
   String get haIntegrationSuccess =>
       '✅ Successfully connected to Home Assistant server.';
+
+  @override
+  String get officeTitle => 'Agent Office';
+
+  @override
+  String get officeInvite => 'Invite';
+
+  @override
+  String get officeInvited => 'Invited';
+
+  @override
+  String officeInvitingApp(String name) {
+    return 'Inviting \'$name\'...';
+  }
+
+  @override
+  String officeInvitedApp(String name) {
+    return '\'$name\' invited';
+  }
+
+  @override
+  String officeInviteFailed(String error) {
+    return 'Invite failed: $error';
+  }
+
+  @override
+  String get officeNoAgents => 'No agents available.';
+
+  @override
+  String officeNoPlatformBuild(String name) {
+    return '$name: no build available for this platform.';
+  }
 
   @override
   String get appsTitle => 'Apps';

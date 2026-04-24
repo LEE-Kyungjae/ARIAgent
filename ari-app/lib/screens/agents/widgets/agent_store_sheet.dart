@@ -4,6 +4,7 @@ import 'package:ari_plugin/ari_plugin.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../services/agent_store_service.dart';
 
 class AgentStoreSheet extends StatefulWidget {
@@ -125,9 +126,9 @@ class _AgentStoreSheetState extends State<AgentStoreSheet> {
                   size: 20,
                 ),
                 const SizedBox(width: 8),
-                const Text(
-                  'Agent Store',
-                  style: TextStyle(
+                Text(
+                  S.of(context).officeTitle,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
@@ -215,7 +216,7 @@ class _AgentStoreSheetState extends State<AgentStoreSheet> {
           TextButton(
             onPressed: _loadFirstPage,
             style: TextButton.styleFrom(foregroundColor: _accent),
-            child: const Text('Retry'),
+            child: Text(S.of(context).retry),
           ),
         ],
       ),
@@ -225,7 +226,7 @@ class _AgentStoreSheetState extends State<AgentStoreSheet> {
   Widget _buildEmpty() {
     return Center(
       child: Text(
-        'No agents available.',
+        S.of(context).officeNoAgents,
         style: TextStyle(
           color: Colors.white.withValues(alpha: 0.5),
           fontSize: 13,
@@ -260,19 +261,20 @@ class _AgentStoreTileState extends State<_AgentStoreTile> {
   Future<void> _install() async {
     final url = _downloadUrl;
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = S.of(context);
+    final appName = widget.item.name;
 
     if (url == null) {
       _showToast(
         messenger,
         icon: Icons.error_outline_rounded,
         color: const Color(0xFFF59E0B),
-        text: '${widget.item.name}: 현재 플랫폼용 빌드가 없습니다.',
+        text: l10n.officeNoPlatformBuild(appName),
       );
       return;
     }
 
     final agentProv = context.read<AgentProvider>();
-    final appName = widget.item.name;
     final appId = widget.item.appId;
 
     Navigator.of(context).pop();
@@ -281,7 +283,7 @@ class _AgentStoreTileState extends State<_AgentStoreTile> {
       messenger,
       icon: Icons.download_rounded,
       color: const Color(0xFF6C63FF),
-      text: "'$appName' 설치 중...",
+      text: l10n.officeInvitingApp(appName),
       showSpinner: true,
       duration: const Duration(minutes: 2),
     );
@@ -293,8 +295,8 @@ class _AgentStoreTileState extends State<_AgentStoreTile> {
       icon: ok ? Icons.check_circle_rounded : Icons.error_rounded,
       color: ok ? const Color(0xFF4ADE80) : const Color(0xFFEF4444),
       text: ok
-          ? "'$appName' 설치 완료"
-          : "설치 실패: ${result['error'] ?? 'unknown'}",
+          ? l10n.officeInvitedApp(appName)
+          : l10n.officeInviteFailed(result['error'] ?? 'unknown'),
     );
   }
 
@@ -498,16 +500,16 @@ class _AgentStoreTileState extends State<_AgentStoreTile> {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(
+          children: [
+            const Icon(
               Icons.check_rounded,
               size: 13,
               color: Color(0xFF4ADE80),
             ),
-            SizedBox(width: 4),
+            const SizedBox(width: 4),
             Text(
-              '설치됨',
-              style: TextStyle(
+              S.of(context).officeInvited,
+              style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF4ADE80),
@@ -532,7 +534,7 @@ class _AgentStoreTileState extends State<_AgentStoreTile> {
         minimumSize: const Size(0, 32),
       ),
       child: Text(
-        hasBuild ? 'Install' : 'N/A',
+        hasBuild ? S.of(context).officeInvite : 'N/A',
         style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
       ),
     );

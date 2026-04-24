@@ -18,6 +18,9 @@ class SKo extends S {
   String get tabPlace => '플레이스';
 
   @override
+  String get tabList => '리스트';
+
+  @override
   String get tabAvatar => '아바타';
 
   @override
@@ -355,6 +358,38 @@ class SKo extends S {
 
   @override
   String get haIntegrationSuccess => '✅ Home Assistant 서버 연동에 성공했습니다.';
+
+  @override
+  String get officeTitle => '에이전트 오피스';
+
+  @override
+  String get officeInvite => '초대';
+
+  @override
+  String get officeInvited => '초대됨';
+
+  @override
+  String officeInvitingApp(String name) {
+    return '\'$name\' 초대 중...';
+  }
+
+  @override
+  String officeInvitedApp(String name) {
+    return '\'$name\' 초대 완료';
+  }
+
+  @override
+  String officeInviteFailed(String error) {
+    return '초대 실패: $error';
+  }
+
+  @override
+  String get officeNoAgents => '가능한 에이전트가 없습니다.';
+
+  @override
+  String officeNoPlatformBuild(String name) {
+    return '$name: 현재 플랫폼용 빌드가 없습니다.';
+  }
 
   @override
   String get appsTitle => '앱';

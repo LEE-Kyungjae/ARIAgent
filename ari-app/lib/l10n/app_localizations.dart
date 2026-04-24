@@ -115,6 +115,12 @@ abstract class S {
   /// **'플레이스'**
   String get tabPlace;
 
+  /// No description provided for @tabList.
+  ///
+  /// In ko, this message translates to:
+  /// **'리스트'**
+  String get tabList;
+
   /// No description provided for @tabAvatar.
   ///
   /// In ko, this message translates to:
@@ -768,6 +774,54 @@ abstract class S {
   /// In ko, this message translates to:
   /// **'✅ Home Assistant 서버 연동에 성공했습니다.'**
   String get haIntegrationSuccess;
+
+  /// No description provided for @officeTitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'에이전트 오피스'**
+  String get officeTitle;
+
+  /// No description provided for @officeInvite.
+  ///
+  /// In ko, this message translates to:
+  /// **'초대'**
+  String get officeInvite;
+
+  /// No description provided for @officeInvited.
+  ///
+  /// In ko, this message translates to:
+  /// **'초대됨'**
+  String get officeInvited;
+
+  /// No description provided for @officeInvitingApp.
+  ///
+  /// In ko, this message translates to:
+  /// **'\'{name}\' 초대 중...'**
+  String officeInvitingApp(String name);
+
+  /// No description provided for @officeInvitedApp.
+  ///
+  /// In ko, this message translates to:
+  /// **'\'{name}\' 초대 완료'**
+  String officeInvitedApp(String name);
+
+  /// No description provided for @officeInviteFailed.
+  ///
+  /// In ko, this message translates to:
+  /// **'초대 실패: {error}'**
+  String officeInviteFailed(String error);
+
+  /// No description provided for @officeNoAgents.
+  ///
+  /// In ko, this message translates to:
+  /// **'가능한 에이전트가 없습니다.'**
+  String get officeNoAgents;
+
+  /// No description provided for @officeNoPlatformBuild.
+  ///
+  /// In ko, this message translates to:
+  /// **'{name}: 현재 플랫폼용 빌드가 없습니다.'**
+  String officeNoPlatformBuild(String name);
 
   /// No description provided for @appsTitle.
   ///

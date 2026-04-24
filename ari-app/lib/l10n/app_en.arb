@@ -5,6 +5,7 @@
 
   "tabChat": "Chat",
   "tabPlace": "Place",
+  "tabList": "List",
   "tabAvatar": "Avatar",
   "tabSettings": "Settings",
 
@@ -127,6 +128,27 @@
   "haAskAriChat": "Go to Chat and ask \"Help me install HA\"!",
   "haConnected": "Connected",
   "haIntegrationSuccess": "✅ Successfully connected to Home Assistant server.",
+
+  "officeTitle": "Agent Office",
+  "officeInvite": "Invite",
+  "officeInvited": "Invited",
+  "officeInvitingApp": "Inviting '{name}'...",
+  "@officeInvitingApp": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "officeInvitedApp": "'{name}' invited",
+  "@officeInvitedApp": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "officeInviteFailed": "Invite failed: {error}",
+  "@officeInviteFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "officeNoAgents": "No agents available.",
+  "officeNoPlatformBuild": "{name}: no build available for this platform.",
+  "@officeNoPlatformBuild": {
+    "placeholders": { "name": { "type": "String" } }
+  },
 
   "appsTitle": "Apps",
   "appsDesc": "Apps that your agent integrates with.",

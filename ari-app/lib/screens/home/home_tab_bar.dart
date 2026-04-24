@@ -43,14 +43,28 @@ List<HomeTabDefinition> homeTabs = <HomeTabDefinition>[
 class HomeTabBar extends StatelessWidget {
   final int currentTab;
   final bool isLight;
+  final bool isSpaceUnified;
   final ValueChanged<int> onTabSelected;
 
   const HomeTabBar({
     super.key,
     required this.currentTab,
     required this.isLight,
+    required this.isSpaceUnified,
     required this.onTabSelected,
   });
+
+  HomeTabDefinition _resolve(HomeTabDefinition tab) {
+    if (tab.index == 1 && !isSpaceUnified) {
+      return HomeTabDefinition(
+        index: tab.index,
+        icon: Icons.list_rounded,
+        labelBuilder: (l10n) => l10n.tabList,
+        requiresServer: tab.requiresServer,
+      );
+    }
+    return tab;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +81,7 @@ class HomeTabBar extends StatelessWidget {
         children: homeTabs
             .map(
               (tab) => _HomeTabItem(
-                tab: tab,
+                tab: _resolve(tab),
                 currentTab: currentTab,
                 isLight: isLight,
                 onTap: onTabSelected,

@@ -137,16 +137,43 @@ function readDirEntries(dirPath: string): string[] {
   }
 }
 
+function normalizeAppId(id: string): string {
+  return id.toLowerCase().replace(/[-_\s]/g, "");
+}
+
+function resolveAppDir(root: string, appId: string): string | null {
+  const exact = path.join(root, appId);
+  try {
+    if (fs.statSync(exact).isDirectory()) return exact;
+  } catch {
+    /* fall through to fuzzy match */
+  }
+
+  const target = normalizeAppId(appId);
+  for (const entry of readDirEntries(root)) {
+    if (normalizeAppId(entry) !== target) continue;
+    const p = path.join(root, entry);
+    try {
+      if (fs.statSync(p).isDirectory()) return p;
+    } catch {
+      /* skip */
+    }
+  }
+  return null;
+}
+
 /**
  * 설치된 앱 번들(mac: .app / win: .exe)의 실행 파일 경로를 찾는다.
  * 번들 파일명이 무엇이든 상관없이 <root>/<appId>/ 아래를 스캔한다.
+ * appId 표기(하이픈/언더스코어/대소문자)가 설치 디렉토리와 달라도 매칭한다.
  */
 export function findAppExecutable(appId: string): string | null {
   const bundleRoots = getBundleRoots();
 
   if (process.platform === "darwin") {
     for (const root of bundleRoots) {
-      const appDir = path.join(root, appId);
+      const appDir = resolveAppDir(root, appId);
+      if (!appDir) continue;
       const bundles = readDirEntries(appDir).filter((n) => n.endsWith(".app"));
 
       for (const bundleName of bundles) {
@@ -157,7 +184,8 @@ export function findAppExecutable(appId: string): string | null {
     }
   } else if (process.platform === "win32") {
     for (const root of bundleRoots) {
-      const appDir = path.join(root, appId);
+      const appDir = resolveAppDir(root, appId);
+      if (!appDir) continue;
       const exes = readDirEntries(appDir).filter((n) =>
         n.toLowerCase().endsWith(".exe"),
       );

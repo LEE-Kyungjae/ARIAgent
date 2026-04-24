@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 
 import '../agents/widgets/agent_profile_icon.dart';
+import '../agents/widgets/agent_store_sheet.dart';
 import 'models/place_avatar.dart';
 import 'models/ha_device_item.dart';
 import 'providers/place_agent_status_provider.dart';
@@ -328,6 +329,19 @@ class _PlaceTabState extends State<PlaceTab> {
                     const Icon(Icons.home_filled, color: Colors.white),
               ),
             ),
+            Positioned(
+              left: 16,
+              bottom: 84,
+              child: FloatingActionButton(
+                heroTag: 'agent_store',
+                mini: true,
+                backgroundColor:
+                    const Color(0xFF6C63FF).withValues(alpha: 0.8),
+                onPressed: () => _openAgentStore(),
+                child: const Icon(Icons.storefront_rounded,
+                    color: Colors.white),
+              ),
+            ),
           ],
         );
       },
@@ -340,6 +354,15 @@ class _PlaceTabState extends State<PlaceTab> {
         (0.15 + (0.7 / (total - 1) * index)).clamp(0.15, 0.85);
     final y = (0.66 + ((index % 2) * 0.08)).clamp(0.6, 0.82);
     return Offset(x, y);
+  }
+
+  void _openAgentStore() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const AgentStoreSheet(),
+    );
   }
 
   Future<void> _startHAConnection(BuildContext context) async {

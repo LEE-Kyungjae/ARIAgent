@@ -5,6 +5,7 @@
 
   "tabChat": "채팅",
   "tabPlace": "플레이스",
+  "tabList": "리스트",
   "tabAvatar": "아바타",
   "tabSettings": "설정",
 
@@ -152,6 +153,27 @@
   "haAskAriChat": "채팅 탭에서 \"HA 설치 도와줘\"라고 물어보세요!",
   "haConnected": "연결됨",
   "haIntegrationSuccess": "✅ Home Assistant 서버 연동에 성공했습니다.",
+
+  "officeTitle": "에이전트 오피스",
+  "officeInvite": "초대",
+  "officeInvited": "초대됨",
+  "officeInvitingApp": "'{name}' 초대 중...",
+  "@officeInvitingApp": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "officeInvitedApp": "'{name}' 초대 완료",
+  "@officeInvitedApp": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "officeInviteFailed": "초대 실패: {error}",
+  "@officeInviteFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "officeNoAgents": "가능한 에이전트가 없습니다.",
+  "officeNoPlatformBuild": "{name}: 현재 플랫폼용 빌드가 없습니다.",
+  "@officeNoPlatformBuild": {
+    "placeholders": { "name": { "type": "String" } }
+  },
 
   "appsTitle": "앱",
   "appsDesc": "에이전트가 연동해서 활용하는 앱들이에요.",
