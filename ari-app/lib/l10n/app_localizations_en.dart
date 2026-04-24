@@ -400,10 +400,11 @@ class SEn extends S {
   }
 
   @override
-  String get appsTitle => 'Apps';
+  String get appsTitle => 'Domain Agents';
 
   @override
-  String get appsDesc => 'Apps that your agent integrates with.';
+  String get appsDesc =>
+      'Activated specialists are prioritized by your PM Agent. Inactive ones can still be called on when needed.';
 
   @override
   String get appsStore => 'App Store';

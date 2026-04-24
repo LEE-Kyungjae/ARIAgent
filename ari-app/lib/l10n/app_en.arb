@@ -150,8 +150,8 @@
     "placeholders": { "name": { "type": "String" } }
   },
 
-  "appsTitle": "Apps",
-  "appsDesc": "Apps that your agent integrates with.",
+  "appsTitle": "Domain Agents",
+  "appsDesc": "Activated specialists are prioritized by your PM Agent. Inactive ones can still be called on when needed.",
   "appsStore": "App Store",
   "appsNoApps": "No apps installed.",
   "appsCheckFolder": "Check the ~/.ari-agent/apps folder.",

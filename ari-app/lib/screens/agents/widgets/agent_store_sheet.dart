@@ -290,6 +290,10 @@ class _AgentStoreTileState extends State<_AgentStoreTile> {
 
     final result = await agentProv.installApp(url: url, appId: appId);
     final ok = result['ok'] == true;
+    if (ok) {
+      await agentProv.pinApp(appId);
+      await agentProv.currentAgent.loadApps();
+    }
     _showToast(
       messenger,
       icon: ok ? Icons.check_circle_rounded : Icons.error_rounded,

@@ -392,10 +392,11 @@ class SKo extends S {
   }
 
   @override
-  String get appsTitle => '앱';
+  String get appsTitle => '도메인 에이전트';
 
   @override
-  String get appsDesc => '에이전트가 연동해서 활용하는 앱들이에요.';
+  String get appsDesc =>
+      '활성화한 전문가는 PM 에이전트가 우선적으로 참고합니다. 비활성화 상태여도 필요 시 호출됩니다.';
 
   @override
   String get appsStore => '앱스토어';

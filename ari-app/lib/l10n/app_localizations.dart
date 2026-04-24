@@ -826,13 +826,13 @@ abstract class S {
   /// No description provided for @appsTitle.
   ///
   /// In ko, this message translates to:
-  /// **'앱'**
+  /// **'도메인 에이전트'**
   String get appsTitle;
 
   /// No description provided for @appsDesc.
   ///
   /// In ko, this message translates to:
-  /// **'에이전트가 연동해서 활용하는 앱들이에요.'**
+  /// **'활성화한 전문가는 PM 에이전트가 우선적으로 참고합니다. 비활성화 상태여도 필요 시 호출됩니다.'**
   String get appsDesc;
 
   /// No description provided for @appsStore.

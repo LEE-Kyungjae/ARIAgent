@@ -175,8 +175,8 @@
     "placeholders": { "name": { "type": "String" } }
   },
 
-  "appsTitle": "앱",
-  "appsDesc": "에이전트가 연동해서 활용하는 앱들이에요.",
+  "appsTitle": "도메인 에이전트",
+  "appsDesc": "활성화한 전문가는 PM 에이전트가 우선적으로 참고합니다. 비활성화 상태여도 필요 시 호출됩니다.",
   "appsStore": "앱스토어",
   "appsNoApps": "설치된 앱이 없습니다.",
   "appsCheckFolder": "~/.ari-agent/apps 폴더를 확인해주세요.",
