@@ -6,6 +6,8 @@ import { getAgentsConfig } from "../../repositories/agent_repository.js";
 import { AgentsConfig } from "../../models/agent.js";
 import { ExecuteAgentRequestParams } from "../../models/agent_request.js";
 import { executeAgentRequest } from "../agent/index.js";
+import { appendChatLog } from "../../repositories/chat_log_repository.js";
+import { sendAgentRequest } from "../../protocol/agent.js";
 
 const TELEGRAM_API = "https://api.telegram.org/bot";
 
@@ -119,12 +121,35 @@ async function handleIncomingMessage(
 ): Promise<void> {
   const agentsConfig = getAgentsConfig(new AgentsConfig());
   const profile = agentsConfig.agents.find((a) => a.id === agentId);
+  const requestId = randomUUID();
+
+  // 텔레그램 발 사용자 입력을 ARI 채팅창에 노출 + 영구 기록.
+  // executeAgentRequest 본류는 originUuid 가 없는 socket-less 호출에는
+  // /AGENT.REQUEST 에코·user 메시지 chat_log append 를 건너뛴다.
+  appendChatLog("ari", agentId, {
+    type: "chat",
+    isUser: true,
+    message: text,
+    requestId,
+    channel: "telegram",
+    from: fromName,
+  });
+  sendAgentRequest(
+    { appId: "ari" },
+    {
+      message: text,
+      requestId,
+      agentId,
+      appId: "ari",
+      senderName: fromName,
+    },
+  );
 
   try {
     const result = await executeAgentRequest(
       new ExecuteAgentRequestParams({
         message: text,
-        requestId: randomUUID(),
+        requestId,
         agentId,
         appId: "ari",
         platform: "telegram",
