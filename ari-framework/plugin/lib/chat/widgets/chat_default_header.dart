@@ -18,7 +18,7 @@ class ChatDefaultHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: theme.surfaceColor,
+        color: theme.headerColor ?? theme.surfaceColor,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -49,7 +49,7 @@ class ChatDefaultHeader extends StatelessWidget {
                 Text(
                   headerTitle,
                   style: TextStyle(
-                    color: theme.textMain,
+                    color: theme.headerTextColor ?? theme.textMain,
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
                   ),
@@ -57,7 +57,11 @@ class ChatDefaultHeader extends StatelessWidget {
                 if (contextLabel != null)
                   Text(
                     contextLabel!,
-                    style: TextStyle(color: theme.textSub, fontSize: 11),
+                    style: TextStyle(
+                      color: theme.headerTextColor?.withValues(alpha: 0.7) ??
+                          theme.textSub,
+                      fontSize: 11,
+                    ),
                   ),
               ],
             ),

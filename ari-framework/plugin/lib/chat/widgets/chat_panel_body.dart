@@ -238,7 +238,8 @@ class _AriChatPanelBodyState extends State<AriChatPanelBody> {
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.surfaceColor,
+        color: theme.panelGradient == null ? theme.surfaceColor : null,
+        gradient: theme.panelGradient,
         border: theme.borderWidth > 0
             ? Border(
                 left: BorderSide(

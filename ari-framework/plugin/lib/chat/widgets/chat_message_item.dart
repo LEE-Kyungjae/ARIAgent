@@ -163,7 +163,16 @@ class AriChatMessageItem extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: message.isUser ? theme.primaryColor : theme.surfaceColor,
+                gradient: message.isUser
+                    ? theme.userBubbleGradient
+                    : theme.aiBubbleGradient,
+                color: message.isUser
+                    ? (theme.userBubbleGradient == null
+                        ? theme.primaryColor
+                        : null)
+                    : (theme.aiBubbleGradient == null
+                        ? (theme.aiBubbleColor ?? theme.surfaceColor)
+                        : null),
                 borderRadius: BorderRadius.circular(16).copyWith(
                   bottomLeft: Radius.circular(message.isUser ? 16 : 4),
                   bottomRight: Radius.circular(message.isUser ? 4 : 16),
@@ -192,34 +201,34 @@ class AriChatMessageItem extends StatelessWidget {
                       selectable: true,
                       styleSheet: MarkdownStyleSheet(
                         p: TextStyle(
-                          color: theme.textMain,
+                          color: theme.aiBubbleTextColor ?? theme.textMain,
                           height: 1.4,
                           fontSize: 13,
                         ),
                         h1: TextStyle(
-                          color: theme.textMain,
+                          color: theme.aiBubbleTextColor ?? theme.textMain,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           height: 1.4,
                         ),
                         h2: TextStyle(
-                          color: theme.textMain,
+                          color: theme.aiBubbleTextColor ?? theme.textMain,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           height: 1.4,
                         ),
                         h3: TextStyle(
-                          color: theme.textMain,
+                          color: theme.aiBubbleTextColor ?? theme.textMain,
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           height: 1.4,
                         ),
                         strong: TextStyle(
-                          color: theme.textMain,
+                          color: theme.aiBubbleTextColor ?? theme.textMain,
                           fontWeight: FontWeight.bold,
                         ),
                         em: TextStyle(
-                          color: theme.textSub,
+                          color: theme.aiBubbleTextColor?.withValues(alpha: 0.7) ?? theme.textSub,
                           fontStyle: FontStyle.italic,
                         ),
                         code: TextStyle(
@@ -242,19 +251,19 @@ class AriChatMessageItem extends StatelessWidget {
                           ),
                         ),
                         blockquote: TextStyle(
-                          color: theme.textSub,
+                          color: theme.aiBubbleTextColor?.withValues(alpha: 0.7) ?? theme.textSub,
                           fontSize: 13,
                         ),
                         listBullet: TextStyle(
-                          color: theme.textMain,
+                          color: theme.aiBubbleTextColor ?? theme.textMain,
                           fontSize: 13,
                         ),
                         tableBody: TextStyle(
-                          color: theme.textMain,
+                          color: theme.aiBubbleTextColor ?? theme.textMain,
                           fontSize: 12,
                         ),
                         tableHead: TextStyle(
-                          color: theme.textMain,
+                          color: theme.aiBubbleTextColor ?? theme.textMain,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),

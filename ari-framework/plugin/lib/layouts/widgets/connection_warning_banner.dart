@@ -5,9 +5,11 @@ class ConnectionWarningBanner extends StatelessWidget {
   const ConnectionWarningBanner({
     super.key,
     this.warningText = 'Connection to the AI agent server is unstable.',
+    this.backgroundColor,
   });
 
   final String warningText;
+  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
@@ -21,8 +23,8 @@ class ConnectionWarningBanner extends StatelessWidget {
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          decoration: const BoxDecoration(
-            color: Color(0xFFE53935),
+          decoration: BoxDecoration(
+            color: backgroundColor ?? const Color(0xFFE53935),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,

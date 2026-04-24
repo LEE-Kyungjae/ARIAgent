@@ -38,6 +38,12 @@ class AriBaseLayout extends StatefulWidget {
     this.chatFollowUpMessage,
     this.chatFollowUpCount = 0,
     this.chatEmptyStateMessage,
+
+    // BaseLayout 내부 위젯 색상 오버라이드
+    this.connectionWarningColor,
+    this.updateBannerBackgroundColor,
+    this.updateBannerAccentColor,
+    this.thinkingGlowColor,
   });
 
   final String appId;
@@ -65,6 +71,11 @@ class AriBaseLayout extends StatefulWidget {
   final int chatFollowUpCount;
   final String? chatEmptyStateMessage;
 
+  final Color? connectionWarningColor;
+  final Color? updateBannerBackgroundColor;
+  final Color? updateBannerAccentColor;
+  final Color? thinkingGlowColor;
+
   @override
   State<AriBaseLayout> createState() => _AriBaseLayoutState();
 }
@@ -88,8 +99,15 @@ class _AriBaseLayoutState extends State<AriBaseLayout> {
           body: SafeArea(
             child: Column(
               children: [
-                const ConnectionWarningBanner(),
-                AriUpdateBanner(appId: widget.appId, appName: widget.appName),
+                ConnectionWarningBanner(
+                  backgroundColor: widget.connectionWarningColor,
+                ),
+                AriUpdateBanner(
+                  appId: widget.appId,
+                  appName: widget.appName,
+                  backgroundColor: widget.updateBannerBackgroundColor,
+                  accentColor: widget.updateBannerAccentColor,
+                ),
                 Expanded(
                   child: Row(
                     children: [
@@ -153,19 +171,22 @@ class _AriBaseLayoutState extends State<AriBaseLayout> {
         ? widget.chatProvider!.isLoading
         : widget.isChatLoading;
 
+    final glowColor =
+        widget.thinkingGlowColor ?? widget.chatTheme.primaryColor;
+
     if (widget.chatProvider != null) {
       return ListenableBuilder(
         listenable: widget.chatProvider!,
         builder: (context, _) => ThinkingGlowOverlay(
           isLoading: widget.chatProvider!.isLoading,
-          color: widget.chatTheme.primaryColor,
+          color: glowColor,
         ),
       );
     }
 
     return ThinkingGlowOverlay(
       isLoading: isLoading,
-      color: widget.chatTheme.primaryColor,
+      color: glowColor,
     );
   }
 
