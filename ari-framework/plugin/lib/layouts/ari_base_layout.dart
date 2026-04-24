@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../chat/chat_panel.dart';
 import '../chat/providers/chat_provider.dart';
 import '../theme/ari_chat_theme.dart';
@@ -176,21 +177,19 @@ class _AriBaseLayoutState extends State<AriBaseLayout> {
 
     final p = widget.chatProvider;
     if (p != null) {
-      return ListenableBuilder(
-        listenable: p,
-        builder: (context, _) => AriChatPanel(
+      // 앱이 자기 AriChatProvider 를 주입한 경우: value 로 내려보내서
+      // AriChatPanel 이 internal 모드로 `items` getter 를 그대로 쓰게 한다.
+      return ChangeNotifierProvider<AriChatProvider>.value(
+        value: p,
+        child: AriChatPanel(
           appId: widget.appId,
           onSend: widget.onChatSend ??
               (text) => p.sendAgentMessage(text, appId: widget.appId),
           onCancel: widget.onChatCancel ?? p.cancelAgentMessage,
-          messages: p.messages,
-          isLoading: p.isLoading,
           contextLabel: widget.chatContextLabel,
           headerTitle: headerTitle,
           hintText: hintText,
           theme: widget.chatTheme,
-          followUpMessage: p.latestFollowUpMessage,
-          followUpCount: p.queuedFollowUpCount,
           emptyStateMessage: widget.chatEmptyStateMessage,
         ),
       );

@@ -165,6 +165,11 @@ class AriChatPanel extends StatelessWidget {
 
     if (_isExternalMode) return body;
 
+    // ancestor 에 이미 AriChatProvider 가 있으면 그대로 사용 (앱이 직접 주입한 경우).
+    // 없으면 새로 생성.
+    final existing = context.read<AriChatProvider?>();
+    if (existing != null) return body;
+
     return ChangeNotifierProvider(
       create: (_) => AriChatProvider(),
       child: body,

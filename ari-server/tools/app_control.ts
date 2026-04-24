@@ -13,6 +13,7 @@ import { findAppExecutable } from "../infra/runtime_paths.js";
 import { DATA_DIR } from "../infra/data.js";
 import { getExecutionContext } from "../services/agent/execution_context.js";
 import { registerForwardWaiter } from "../services/agent/pipeline/inter_agent.js";
+import { appendChatLog } from "../repositories/chat_log_repository.js";
 
 export const LAUNCH_WAIT_TIMEOUT_MS = 15_000;
 const LAUNCH_POLL_INTERVAL_MS = 300;
@@ -315,8 +316,20 @@ async function runCommandMode(
     logger.info(`[ControlApp:command] '${app}' 연결 확인됨`);
   }
 
+  // WORK.* 전처리: 서버가 sessionId 발급 + chat_log 선기록 (client 응답 대기 전)
+  let normalizedParams = cmdParams;
+  if (command === "WORK.START" && !cmdParams?.id) {
+    normalizedParams = {
+      ...(cmdParams || {}),
+      id: generateWorkSessionId(),
+    };
+  }
+  if (command.startsWith("WORK.")) {
+    persistWorkEntry(app, command, normalizedParams);
+  }
+
   try {
-    const result = await commandApp(app, command, cmdParams || {});
+    const result = await commandApp(app, command, normalizedParams || {});
     const isAppError = result?.status === "error" || result?.ok === false;
 
     if (isAppError) {
@@ -325,7 +338,7 @@ async function runCommandMode(
         {
           app,
           command,
-          params: cmdParams,
+          params: normalizedParams,
           result,
           success: false,
           error: result?.message,
@@ -340,7 +353,13 @@ async function runCommandMode(
           text: `🚀 '${app}' '${command}' 실행 결과:\n${JSON.stringify(result, null, 2)}`,
         },
       ],
-      details: { app, command, params: cmdParams, result, success: true },
+      details: {
+        app,
+        command,
+        params: normalizedParams,
+        result,
+        success: true,
+      },
     };
   } catch (error: any) {
     return errorResult(
@@ -348,6 +367,57 @@ async function runCommandMode(
       { app, command, success: false, error: error.message },
     );
   }
+}
+
+function generateWorkSessionId(): string {
+  return `work-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/**
+ * WORK.* 커맨드를 chat_log JSONL 에 append.
+ * 엔트리 타입: work_start / work_step / work_end. sessionId 로 그루핑.
+ */
+function persistWorkEntry(
+  targetAppId: string,
+  command: string,
+  cmdParams: any,
+): void {
+  const ctx = getExecutionContext();
+  const agentId = ctx?.agentId;
+  if (!agentId) return;
+
+  const params = cmdParams || {};
+  let entry: Record<string, unknown> | null = null;
+
+  if (command === "WORK.START") {
+    if (!params.id) return;
+    entry = {
+      type: "work_start",
+      sessionId: params.id,
+      ...(params.summary ? { summary: params.summary } : {}),
+      ...(params.context ? { context: params.context } : {}),
+    };
+  } else if (command === "WORK.STEP") {
+    if (!params.id || !params.label) return;
+    entry = {
+      type: "work_step",
+      sessionId: params.id,
+      label: params.label,
+      status: params.status ?? "done",
+      ...(params.detail ? { detail: params.detail } : {}),
+    };
+  } else if (command === "WORK.END") {
+    if (!params.id) return;
+    entry = {
+      type: "work_end",
+      sessionId: params.id,
+      status: params.status ?? "completed",
+      ...(params.summary ? { summary: params.summary } : {}),
+    };
+  }
+
+  if (!entry) return;
+  appendChatLog(targetAppId, agentId, entry);
 }
 
 export const TOOLS = [controlAppTool];

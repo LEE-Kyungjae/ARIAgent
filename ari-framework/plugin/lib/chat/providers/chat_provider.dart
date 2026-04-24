@@ -1,17 +1,24 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../bridge/agent/AriAgent.dart';
+import '../../sessions/models/ari_work_session.dart';
+import '../../sessions/models/ari_work_step.dart';
+import '../models/ari_chat_item.dart';
 import '../models/ari_chat_message.dart';
 import '../models/ari_queued_follow_up.dart';
 import '../repositories/chat_repository.dart';
 
+export '../models/ari_chat_item.dart';
 export '../models/ari_chat_message.dart';
+export '../../sessions/models/ari_work_session.dart';
+export '../../sessions/models/ari_work_step.dart';
 
 /// ARI 에이전트 스트림을 구독하여 채팅 메시지 상태를 관리하는 Provider.
 class AriChatProvider extends ChangeNotifier {
   final ChatRepository _repository = ChatRepository();
 
   final List<AriChatMessage> _messages = [];
+  final Map<String, AriWorkSession> _workSessions = {};
   StreamSubscription? _agentPushSub;
   StreamSubscription? _agentRequestSub;
   StreamSubscription? _progressSub;
@@ -20,6 +27,7 @@ class AriChatProvider extends ChangeNotifier {
   StreamSubscription? _taskResultSub;
   StreamSubscription? _noticeSub;
   StreamSubscription? _errorSub;
+  StreamSubscription? _workCommandSub;
   final List<StreamSubscription> _customSubs = [];
   final Set<String> _inFlightRequestIds = {};
   final Set<String> _backgroundRequestIds = {};
@@ -298,9 +306,70 @@ class AriChatProvider extends ChangeNotifier {
         notifyListeners();
       }
     });
+
+    _workCommandSub = AriAgent.on('/APP.COMMAND', _handleWorkCommand);
+  }
+
+  void _handleWorkCommand(Map<String, dynamic> data) {
+    final command = data['command']?.toString() ?? '';
+    if (!command.startsWith('WORK.')) return;
+
+    final rawParams = data['params'];
+    final params = rawParams is Map
+        ? Map<String, dynamic>.from(rawParams)
+        : const <String, dynamic>{};
+    final sessionId = params['id']?.toString();
+    if (sessionId == null || sessionId.isEmpty) return;
+
+    final appId = data['appId']?.toString() ?? '';
+
+    if (command == 'WORK.START') {
+      _workSessions[sessionId] = AriWorkSession(
+        id: sessionId,
+        appId: appId,
+        startedAt: DateTime.now(),
+        status: AriWorkStatus.running,
+        steps: const <AriWorkStep>[],
+        summary: params['summary']?.toString(),
+        context: params['context'] is Map
+            ? Map<String, dynamic>.from(params['context'] as Map)
+            : null,
+      );
+    } else if (command == 'WORK.STEP') {
+      final existing = _workSessions[sessionId];
+      if (existing == null) return;
+      final step = AriWorkStep(
+        label: params['label']?.toString() ?? '',
+        status: AriStepStatus.fromString(params['status']?.toString()),
+        detail: params['detail']?.toString(),
+        createdAt: DateTime.now(),
+      );
+      _workSessions[sessionId] = existing.copyWith(
+        steps: [...existing.steps, step],
+      );
+    } else if (command == 'WORK.END') {
+      final existing = _workSessions[sessionId];
+      if (existing == null) return;
+      _workSessions[sessionId] = existing.copyWith(
+        completedAt: DateTime.now(),
+        status: AriWorkStatus.fromString(params['status']?.toString()),
+        summary: params['summary']?.toString() ?? existing.summary,
+      );
+    } else {
+      return;
+    }
+    notifyListeners();
   }
 
   List<AriChatMessage> get messages => List.unmodifiable(_messages);
+
+  /// 채팅 메시지와 작업 세션을 시간순으로 병합한 단일 아이템 목록.
+  /// 채팅 패널이 렌더링하는 대상이다.
+  List<AriChatItem> get items {
+    final result = <AriChatItem>[..._messages, ..._workSessions.values];
+    result.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    return List.unmodifiable(result);
+  }
 
   // 자식 클래스 오버라이드를 위한 훅 또는 내부 호출
   void onResponseReceived(String requestId) {
@@ -312,14 +381,91 @@ class AriChatProvider extends ChangeNotifier {
     _syncLoadingState();
   }
 
-  /// 표준 서버 히스토리 불러오기
+  // ── 페이지네이션 히스토리 ────────────────────────────────────
+  String? _lastHistoryAgentId;
+  String? _lastHistoryAppId;
+  int _historyOffset = 0;
+  bool _hasMoreHistory = true;
+  bool _loadingOlderHistory = false;
+  static const int _historyPageSize = 20;
+
+  /// 더 로드할 과거 히스토리가 있는지
+  bool get hasMoreHistory => _hasMoreHistory;
+
+  /// 과거 히스토리 프리펜드 진행 중인지 (스크롤 유지용)
+  bool get isLoadingOlderHistory => _loadingOlderHistory;
+
+  /// 표준 서버 히스토리 불러오기 (최신 [_historyPageSize] 개).
+  /// 기존 messages/workSessions 는 초기화된다.
   Future<void> loadServerHistory(String agentId, {String? appId}) async {
     if (!AriAgent.isConnected) return;
     try {
-      final history = await _repository.fetchHistory(agentId, appId: appId);
-      setMessages(history);
+      final history = await _repository.fetchHistory(
+        agentId,
+        appId: appId,
+        index: 0,
+        size: _historyPageSize,
+      );
+      _lastHistoryAgentId = agentId;
+      _lastHistoryAppId = appId;
+      _historyOffset = history.length;
+      _hasMoreHistory = history.length == _historyPageSize;
+      _messages.clear();
+      _workSessions.clear();
+      for (final item in history) {
+        if (item is AriChatMessage) {
+          _messages.add(item);
+        } else if (item is AriWorkSession) {
+          _workSessions[item.id] = item;
+        }
+      }
+      notifyListeners();
     } catch (e) {
       debugPrint('[AriChatProvider] 히스토리 로드 실패: $e');
+    }
+  }
+
+  /// 다음 페이지(더 오래된) 히스토리를 불러와 앞쪽으로 prepend 한다.
+  /// 이미 로드 중이거나 더 남은 페이지가 없으면 no-op.
+  Future<void> loadOlderHistory() async {
+    if (_loadingOlderHistory || !_hasMoreHistory) return;
+    final agentId = _lastHistoryAgentId;
+    if (agentId == null) return;
+
+    _loadingOlderHistory = true;
+    notifyListeners();
+    try {
+      final older = await _repository.fetchHistory(
+        agentId,
+        appId: _lastHistoryAppId,
+        index: _historyOffset,
+        size: _historyPageSize,
+      );
+      if (older.isEmpty) {
+        _hasMoreHistory = false;
+        return;
+      }
+      if (older.length < _historyPageSize) _hasMoreHistory = false;
+      _historyOffset += older.length;
+
+      // 기존 messages 앞쪽으로 오래된 아이템 prepend.
+      final existing = List<AriChatMessage>.from(_messages);
+      _messages.clear();
+      for (final item in older) {
+        if (item is AriChatMessage) {
+          _messages.add(item);
+        } else if (item is AriWorkSession) {
+          // 이미 로드된 세션은 그대로 두고, 새 id 만 추가 (페이지 경계 partial 방어).
+          _workSessions.putIfAbsent(item.id, () => item);
+        }
+      }
+      _messages.addAll(existing);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[AriChatProvider] 이전 히스토리 로드 실패: $e');
+    } finally {
+      _loadingOlderHistory = false;
+      notifyListeners();
     }
   }
 
@@ -474,6 +620,7 @@ class AriChatProvider extends ChangeNotifier {
 
   void clearMessages() {
     _messages.clear();
+    _workSessions.clear();
     _inFlightRequestIds.clear();
     _backgroundRequestIds.clear();
     _queuedFollowUps.clear();
@@ -508,6 +655,7 @@ class AriChatProvider extends ChangeNotifier {
     _taskResultSub?.cancel();
     _noticeSub?.cancel();
     _errorSub?.cancel();
+    _workCommandSub?.cancel();
     for (final sub in _customSubs) {
       sub.cancel();
     }

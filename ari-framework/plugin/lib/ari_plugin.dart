@@ -11,7 +11,10 @@ export 'theme/ari_chat_theme.dart';
 export 'chat/providers/chat_provider.dart';
 export 'chat/chat_panel.dart';
 export 'chat/widgets/chat_input_area.dart';
+export 'chat/models/ari_chat_item.dart';
 export 'chat/models/ari_chat_message.dart';
+export 'sessions/models/ari_work_session.dart';
+export 'sessions/models/ari_work_step.dart';
 
 export 'avatar/models/agent_model.dart';
 export 'avatar/models/agent_token_usage.dart';

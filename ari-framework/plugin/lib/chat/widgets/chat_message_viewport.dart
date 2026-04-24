@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import '../../sessions/models/ari_work_session.dart';
+import '../../sessions/widgets/ari_work_session_card.dart';
 import '../../theme/ari_chat_theme.dart';
+import '../models/ari_chat_item.dart';
 import '../models/ari_chat_message.dart';
 import 'chat_empty_state.dart';
 import 'chat_message_item.dart';
 
 class ChatMessageViewport extends StatelessWidget {
-  final List<AriChatMessage> messages;
+  final List<AriChatItem> items;
   final AriChatTheme theme;
   final bool reverseMessages;
   final ScrollController scrollController;
@@ -18,7 +21,7 @@ class ChatMessageViewport extends StatelessWidget {
 
   const ChatMessageViewport({
     super.key,
-    required this.messages,
+    required this.items,
     required this.theme,
     required this.reverseMessages,
     required this.scrollController,
@@ -40,7 +43,7 @@ class ChatMessageViewport extends StatelessWidget {
               ? overlayWidget!
               : Container(
                   color: theme.backgroundColor,
-                  child: messages.isEmpty
+                  child: items.isEmpty
                       ? (emptyStateWidget ??
                           ChatEmptyState(
                             theme: theme,
@@ -50,17 +53,12 @@ class ChatMessageViewport extends StatelessWidget {
                           controller: scrollController,
                           reverse: reverseMessages,
                           padding: const EdgeInsets.all(20),
-                          itemCount: messages.length,
+                          itemCount: items.length,
                           itemBuilder: (context, index) {
-                            final msg = reverseMessages
-                                ? messages[messages.length - 1 - index]
-                                : messages[index];
-                            return messageBubbleBuilder != null
-                                ? messageBubbleBuilder!(msg)
-                                : AriChatMessageItem(
-                                    message: msg,
-                                    theme: theme,
-                                  );
+                            final item = reverseMessages
+                                ? items[items.length - 1 - index]
+                                : items[index];
+                            return _buildItem(item);
                           },
                         ),
                 ),
@@ -109,5 +107,17 @@ class ChatMessageViewport extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Widget _buildItem(AriChatItem item) {
+    if (item is AriChatMessage) {
+      return messageBubbleBuilder != null
+          ? messageBubbleBuilder!(item)
+          : AriChatMessageItem(message: item, theme: theme);
+    }
+    if (item is AriWorkSession) {
+      return AriWorkSessionCard(session: item, theme: theme);
+    }
+    return const SizedBox.shrink();
   }
 }

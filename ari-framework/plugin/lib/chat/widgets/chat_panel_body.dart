@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 import '../../bridge/agent/AriAgent.dart';
 import '../../theme/ari_chat_theme.dart';
@@ -87,7 +86,7 @@ class _AriChatPanelBodyState extends State<AriChatPanelBody> {
     _scrollController.addListener(_handleScrollChanged);
     if (!widget.isExternalMode) {
       _internalProvider = context.read<AriChatProvider>();
-      _lastMessageCount = _internalProvider!.messages.length;
+      _lastMessageCount = _internalProvider!.items.length;
       _internalProvider!.addListener(_onMessagesChanged);
     } else {
       _lastMessageCount = widget.externalMessages!.length;
@@ -117,10 +116,13 @@ class _AriChatPanelBodyState extends State<AriChatPanelBody> {
 
   void _onMessagesChanged() {
     if (!mounted) return;
-    final messages = _internalProvider!.messages;
-    if (messages.length > _lastMessageCount) {
-      _lastMessageCount = messages.length;
-      _scrollToBottom();
+    final provider = _internalProvider!;
+    final items = provider.items;
+    if (items.length > _lastMessageCount) {
+      final wasPrepend = provider.isLoadingOlderHistory;
+      final wasEmpty = _lastMessageCount == 0;
+      _lastMessageCount = items.length;
+      if (!wasPrepend) _scrollToBottom(immediate: wasEmpty);
     }
   }
 
@@ -155,10 +157,11 @@ class _AriChatPanelBodyState extends State<AriChatPanelBody> {
   }
 
   void _scrollToBottom({bool immediate = false}) {
-    void performScroll() {
-      if (!_scrollController.hasClients) {
-        return;
-      }
+    // 항상 다음 프레임(레이아웃 완료 후)에 스크롤한다.
+    // 히스토리 초기 로드처럼 비동기로 아이템이 들어올 때,
+    // 즉시 실행하면 ListView 가 아직 새 아이템을 렌더하기 전이라 maxScrollExtent 가 stale.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
 
       final target = widget.reverseMessages
           ? _scrollController.position.minScrollExtent
@@ -166,23 +169,14 @@ class _AriChatPanelBodyState extends State<AriChatPanelBody> {
 
       if (immediate) {
         _scrollController.jumpTo(target);
-        return;
+      } else {
+        _scrollController.animateTo(
+          target,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+        );
       }
-
-      _scrollController.animateTo(
-        target,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-      );
-    }
-
-    if (WidgetsBinding.instance.schedulerPhase ==
-        SchedulerPhase.persistentCallbacks) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => performScroll());
-      return;
-    }
-
-    performScroll();
+    });
   }
 
   void _handleScrollChanged() {
@@ -201,13 +195,23 @@ class _AriChatPanelBodyState extends State<AriChatPanelBody> {
         _showScrollToBottomButton = shouldShow;
       });
     }
+
+    // 상단 근처 → 더 오래된 히스토리 페이지 로드
+    if (!widget.isExternalMode) {
+      final distanceFromTop = widget.reverseMessages
+          ? (position.maxScrollExtent - position.pixels).abs()
+          : (position.pixels - position.minScrollExtent).abs();
+      if (distanceFromTop < 80) {
+        _internalProvider?.loadOlderHistory();
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final messages = widget.isExternalMode
-        ? widget.externalMessages!
-        : context.watch<AriChatProvider>().messages;
+    final List<AriChatItem> items = widget.isExternalMode
+        ? List<AriChatItem>.from(widget.externalMessages!)
+        : context.watch<AriChatProvider>().items;
     final provider =
         widget.isExternalMode ? null : context.watch<AriChatProvider>();
     final theme = widget.theme;
@@ -255,7 +259,7 @@ class _AriChatPanelBodyState extends State<AriChatPanelBody> {
           // ── 메시지 영역 ────────────────────────────────────────────────────
           Expanded(
             child: ChatMessageViewport(
-              messages: messages,
+              items: items,
               theme: theme,
               reverseMessages: widget.reverseMessages,
               scrollController: _scrollController,

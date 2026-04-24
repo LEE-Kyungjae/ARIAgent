@@ -1,5 +1,7 @@
+import 'ari_chat_item.dart';
+
 /// 채팅 메시지 데이터 모델.
-class AriChatMessage {
+class AriChatMessage implements AriChatItem {
   final String text;
   final bool isUser;
   final bool isSystem;
@@ -25,4 +27,7 @@ class AriChatMessage {
     this.appId,
     this.senderName,
   });
+
+  @override
+  DateTime get timestamp => createdAt;
 }

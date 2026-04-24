@@ -182,6 +182,23 @@ class AppProtocolHandler {
       return;
     }
 
+    // Reserved: WORK.* (framework 공용 — 앱 onCommand 로 전달하지 않음)
+    // 세션 상태는 AriChatProvider 가 /APP.COMMAND 를 별도 구독해 업데이트한다.
+    // 여기서는 AI 에게 성공 응답만 돌려준다.
+    if (command.startsWith('WORK.')) {
+      if (requestId != null) {
+        final sessionId = params['id']?.toString();
+        AriAgent.sendResponse(
+          requestId: requestId,
+          result: {
+            'status': 'success',
+            if (sessionId != null) 'id': sessionId,
+          },
+        );
+      }
+      return;
+    }
+
     final result = await onCommand?.call(command, params);
 
     if (requestId != null && result != null) {
