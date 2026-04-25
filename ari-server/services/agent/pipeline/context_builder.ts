@@ -61,13 +61,13 @@ export async function buildSystemPrompt(
   }));
 
   // 템플릿 라우팅. agentId 가 공용 `default` 여도 appId 가 도메인이면 도메인 역할로 실행.
-  //   - appId 미지정 / "ari": PM 역할 (`ari_pm_prompt.hbs`)
-  //   - 그 외 (SARI 등 도메인 앱): 도메인 전문가 역할 (`third_party_prompt.hbs`)
+  //   - appId 미지정 / "ari": PM 역할 (`pm_agent_prompt.hbs`)
+  //   - 그 외 (SARI 등 도메인 앱): 도메인 전문가 역할 (`domain_agent_prompt.hbs`)
   const currentAppId = agentProfile.appId;
   const templateName =
     !currentAppId || currentAppId === "ari"
-      ? "ari_pm_prompt.hbs"
-      : "third_party_prompt.hbs";
+      ? "pm_agent_prompt.hbs"
+      : "domain_agent_prompt.hbs";
 
   const systemPrompt = await Prompt.load(templateName, {
     avatarName,
