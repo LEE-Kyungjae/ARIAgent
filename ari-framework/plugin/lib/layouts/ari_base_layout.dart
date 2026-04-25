@@ -44,6 +44,16 @@ class AriBaseLayout extends StatefulWidget {
     this.updateBannerBackgroundColor,
     this.updateBannerAccentColor,
     this.thinkingGlowColor,
+
+    // Chat header reset button
+    this.showChatResetButton = true,
+    this.chatAgentId = 'default',
+    this.onChatResetOverride,
+    this.chatResetDialogTitle,
+    this.chatResetDialogMessage,
+    this.chatResetConfirmLabel,
+    this.chatResetCancelLabel,
+    this.chatResetButtonTooltip,
   });
 
   final String appId;
@@ -75,6 +85,15 @@ class AriBaseLayout extends StatefulWidget {
   final Color? updateBannerBackgroundColor;
   final Color? updateBannerAccentColor;
   final Color? thinkingGlowColor;
+
+  final bool showChatResetButton;
+  final String chatAgentId;
+  final Future<void> Function()? onChatResetOverride;
+  final String? chatResetDialogTitle;
+  final String? chatResetDialogMessage;
+  final String? chatResetConfirmLabel;
+  final String? chatResetCancelLabel;
+  final String? chatResetButtonTooltip;
 
   @override
   State<AriBaseLayout> createState() => _AriBaseLayoutState();
@@ -212,6 +231,14 @@ class _AriBaseLayoutState extends State<AriBaseLayout> {
           hintText: hintText,
           theme: widget.chatTheme,
           emptyStateMessage: widget.chatEmptyStateMessage,
+          showResetButton: widget.showChatResetButton,
+          resetAgentId: widget.chatAgentId,
+          onResetOverride: widget.onChatResetOverride,
+          resetDialogTitle: widget.chatResetDialogTitle,
+          resetDialogMessage: widget.chatResetDialogMessage,
+          resetConfirmLabel: widget.chatResetConfirmLabel,
+          resetCancelLabel: widget.chatResetCancelLabel,
+          resetButtonTooltip: widget.chatResetButtonTooltip,
         ),
       );
     }
@@ -229,6 +256,14 @@ class _AriBaseLayoutState extends State<AriBaseLayout> {
       followUpMessage: widget.chatFollowUpMessage,
       followUpCount: widget.chatFollowUpCount,
       emptyStateMessage: widget.chatEmptyStateMessage,
+      showResetButton: widget.showChatResetButton,
+      resetAgentId: widget.chatAgentId,
+      onResetOverride: widget.onChatResetOverride,
+      resetDialogTitle: widget.chatResetDialogTitle,
+      resetDialogMessage: widget.chatResetDialogMessage,
+      resetConfirmLabel: widget.chatResetConfirmLabel,
+      resetCancelLabel: widget.chatResetCancelLabel,
+      resetButtonTooltip: widget.chatResetButtonTooltip,
     );
   }
 }

@@ -108,6 +108,23 @@ class AriChatPanel extends StatelessWidget {
   /// Receives the queued count; returns a localized summary (e.g. "N pending").
   final String Function(int count)? followUpSummaryBuilder;
 
+  // ── 세션 리셋 버튼 ──────────────────────────────────────────────────────────
+  /// 헤더에 세션 초기화 버튼 표시 여부.
+  final bool showResetButton;
+
+  /// 리셋 대상 에이전트 ID.
+  final String resetAgentId;
+
+  /// 외부 모드(또는 커스텀 리셋 동작) 오버라이드. null 이면 내부 provider 의
+  /// resetAgentSession + clearServerHistory 를 호출.
+  final Future<void> Function()? onResetOverride;
+
+  final String? resetDialogTitle;
+  final String? resetDialogMessage;
+  final String? resetConfirmLabel;
+  final String? resetCancelLabel;
+  final String? resetButtonTooltip;
+
   const AriChatPanel({
     super.key,
     required this.appId,
@@ -130,6 +147,14 @@ class AriChatPanel extends StatelessWidget {
     this.inputAreaBuilder,
     this.followUpBannerTopOffset = -52,
     this.followUpSummaryBuilder,
+    this.showResetButton = false,
+    this.resetAgentId = 'default',
+    this.onResetOverride,
+    this.resetDialogTitle,
+    this.resetDialogMessage,
+    this.resetConfirmLabel,
+    this.resetCancelLabel,
+    this.resetButtonTooltip,
   }) : assert(
           messages == null || onSend != null,
           'onSend must be provided when messages is provided (external mode)',
@@ -161,6 +186,14 @@ class AriChatPanel extends StatelessWidget {
       followUpBannerTopOffset: followUpBannerTopOffset,
       isExternalMode: _isExternalMode,
       followUpSummaryBuilder: followUpSummaryBuilder,
+      showResetButton: showResetButton,
+      resetAgentId: resetAgentId,
+      onResetOverride: onResetOverride,
+      resetDialogTitle: resetDialogTitle,
+      resetDialogMessage: resetDialogMessage,
+      resetConfirmLabel: resetConfirmLabel,
+      resetCancelLabel: resetCancelLabel,
+      resetButtonTooltip: resetButtonTooltip,
     );
 
     if (_isExternalMode) return body;

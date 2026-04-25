@@ -18,6 +18,7 @@ class ChatMessageViewport extends StatelessWidget {
   final Widget Function(AriChatMessage)? messageBubbleBuilder;
   final bool showScrollToBottomButton;
   final VoidCallback onScrollToBottom;
+  final double listBottomPadding;
 
   const ChatMessageViewport({
     super.key,
@@ -31,6 +32,7 @@ class ChatMessageViewport extends StatelessWidget {
     required this.messageBubbleBuilder,
     required this.showScrollToBottomButton,
     required this.onScrollToBottom,
+    this.listBottomPadding = 20,
   });
 
   @override
@@ -52,7 +54,12 @@ class ChatMessageViewport extends StatelessWidget {
                       : ListView.builder(
                           controller: scrollController,
                           reverse: reverseMessages,
-                          padding: const EdgeInsets.all(20),
+                          padding: EdgeInsets.fromLTRB(
+                            20,
+                            20,
+                            20,
+                            listBottomPadding,
+                          ),
                           itemCount: items.length,
                           itemBuilder: (context, index) {
                             final item = reverseMessages
@@ -64,7 +71,7 @@ class ChatMessageViewport extends StatelessWidget {
                 ),
         ),
         Positioned(
-          bottom: 14,
+          bottom: listBottomPadding - 8,
           child: AnimatedSlide(
             offset:
                 showScrollToBottomButton ? Offset.zero : const Offset(0, 0.35),

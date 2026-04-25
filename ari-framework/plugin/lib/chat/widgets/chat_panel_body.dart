@@ -34,6 +34,14 @@ class AriChatPanelBody extends StatefulWidget {
   final double followUpBannerTopOffset;
   final bool isExternalMode;
   final String Function(int count)? followUpSummaryBuilder;
+  final bool showResetButton;
+  final String resetAgentId;
+  final Future<void> Function()? onResetOverride;
+  final String? resetDialogTitle;
+  final String? resetDialogMessage;
+  final String? resetConfirmLabel;
+  final String? resetCancelLabel;
+  final String? resetButtonTooltip;
 
   const AriChatPanelBody({
     super.key,
@@ -58,6 +66,14 @@ class AriChatPanelBody extends StatefulWidget {
     required this.followUpBannerTopOffset,
     required this.isExternalMode,
     this.followUpSummaryBuilder,
+    this.showResetButton = false,
+    this.resetAgentId = 'default',
+    this.onResetOverride,
+    this.resetDialogTitle,
+    this.resetDialogMessage,
+    this.resetConfirmLabel,
+    this.resetCancelLabel,
+    this.resetButtonTooltip,
   });
 
   @override
@@ -154,6 +170,40 @@ class _AriChatPanelBodyState extends State<AriChatPanelBody> {
         appId: widget.appId,
       );
     }
+  }
+
+  Future<void> _handleReset() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(widget.resetDialogTitle ?? 'Reset chat?'),
+        content: Text(
+          widget.resetDialogMessage ??
+              'This will delete the conversation history and reset the agent.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(widget.resetCancelLabel ?? 'Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(widget.resetConfirmLabel ?? 'Reset'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    if (widget.onResetOverride != null) {
+      await widget.onResetOverride!();
+      return;
+    }
+
+    final provider = _internalProvider;
+    if (provider == null) return;
+    await provider.resetAgentSession(agentId: widget.resetAgentId);
+    await provider.clearServerHistory(widget.resetAgentId, appId: widget.appId);
   }
 
   void _scrollToBottom({bool immediate = false}) {
@@ -255,54 +305,67 @@ class _AriChatPanelBodyState extends State<AriChatPanelBody> {
                   headerTitle: widget.headerTitle,
                   contextLabel: widget.contextLabel,
                   theme: theme,
+                  onReset: widget.showResetButton ? _handleReset : null,
+                  resetTooltip: widget.resetButtonTooltip,
                 ),
 
-          // ── 메시지 영역 ────────────────────────────────────────────────────
+          // ── 메시지(전체) + 입력창(하단 오버레이) ────────────────────────────
           Expanded(
-            child: ChatMessageViewport(
-              items: items,
-              theme: theme,
-              reverseMessages: widget.reverseMessages,
-              scrollController: _scrollController,
-              overlayWidget: widget.overlayWidget,
-              emptyStateWidget: widget.emptyStateWidget,
-              emptyStateMessage: widget.emptyStateMessage,
-              messageBubbleBuilder: widget.messageBubbleBuilder,
-              showScrollToBottomButton: _showScrollToBottomButton,
-              onScrollToBottom: () => _scrollToBottom(immediate: true),
-            ),
-          ),
-
-          // ── 입력창 ─────────────────────────────────────────────────────────
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              inputArea,
-              if (followUpMessage != null && followUpMessage.isNotEmpty)
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  top: widget.followUpBannerTopOffset,
-                  child: IgnorePointer(
-                    ignoring: true,
-                    child: AnimatedSlide(
-                      offset: Offset.zero,
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeOutCubic,
-                      child: AnimatedOpacity(
-                        opacity: 1,
-                        duration: const Duration(milliseconds: 180),
-                        child: ChatFollowUpBanner(
-                          theme: theme,
-                          message: followUpMessage,
-                          count: followUpCount,
-                          summaryBuilder: widget.followUpSummaryBuilder,
-                        ),
-                      ),
-                    ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: ChatMessageViewport(
+                    items: items,
+                    theme: theme,
+                    reverseMessages: widget.reverseMessages,
+                    scrollController: _scrollController,
+                    overlayWidget: widget.overlayWidget,
+                    emptyStateWidget: widget.emptyStateWidget,
+                    emptyStateMessage: widget.emptyStateMessage,
+                    messageBubbleBuilder: widget.messageBubbleBuilder,
+                    showScrollToBottomButton: _showScrollToBottomButton,
+                    onScrollToBottom: () => _scrollToBottom(immediate: true),
+                    listBottomPadding:
+                        88 + MediaQuery.of(context).padding.bottom,
                   ),
                 ),
-            ],
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      inputArea,
+                      if (followUpMessage != null && followUpMessage.isNotEmpty)
+                        Positioned(
+                          left: 16,
+                          right: 16,
+                          top: widget.followUpBannerTopOffset,
+                          child: IgnorePointer(
+                            ignoring: true,
+                            child: AnimatedSlide(
+                              offset: Offset.zero,
+                              duration: const Duration(milliseconds: 180),
+                              curve: Curves.easeOutCubic,
+                              child: AnimatedOpacity(
+                                opacity: 1,
+                                duration: const Duration(milliseconds: 180),
+                                child: ChatFollowUpBanner(
+                                  theme: theme,
+                                  message: followUpMessage,
+                                  count: followUpCount,
+                                  summaryBuilder: widget.followUpSummaryBuilder,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

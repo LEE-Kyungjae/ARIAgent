@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../theme/ari_chat_theme.dart';
@@ -82,6 +84,11 @@ class _ChatInputAreaState extends State<ChatInputArea> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
+    final inputTextColor = theme.inputTextColor ?? theme.textMain;
+    final inputHintColor = theme.inputHintColor ?? theme.hintColor;
+    final inputBorderColor = theme.inputBorderColor ?? theme.borderColor;
+
     final textField = Focus(
       onKeyEvent: (_, event) {
         if (event is! KeyDownEvent) {
@@ -100,11 +107,11 @@ class _ChatInputAreaState extends State<ChatInputArea> {
       child: TextField(
         controller: widget.controller,
         focusNode: _textFocusNode,
-        style: TextStyle(color: widget.theme.textMain, fontSize: 13),
+        style: TextStyle(color: inputTextColor, fontSize: 13),
         decoration: InputDecoration(
           hintText: widget.hintText,
           hintStyle: TextStyle(
-            color: widget.theme.hintColor,
+            color: inputHintColor,
             fontSize: 13,
           ),
           border: InputBorder.none,
@@ -133,16 +140,31 @@ class _ChatInputAreaState extends State<ChatInputArea> {
               context, onPressed, showCancelAction);
         }
 
+        final useGradient =
+            theme.sendButtonGradient != null && !showCancelAction;
+
         return Padding(
           padding: const EdgeInsets.only(bottom: 2),
           child: Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: showCancelAction
-                  ? widget.theme.primaryColor.withValues(alpha: 0.5)
-                  : widget.theme.primaryColor,
-              borderRadius: BorderRadius.circular(12),
+              gradient: useGradient ? theme.sendButtonGradient : null,
+              color: useGradient
+                  ? null
+                  : (showCancelAction
+                      ? theme.primaryColor.withValues(alpha: 0.5)
+                      : theme.primaryColor),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: useGradient
+                  ? [
+                      BoxShadow(
+                        color: theme.primaryColor.withValues(alpha: 0.35),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : null,
             ),
             child: IconButton(
               onPressed: onPressed,
@@ -161,38 +183,63 @@ class _ChatInputAreaState extends State<ChatInputArea> {
       return widget.layoutBuilder!(context, textField, actionButton);
     }
 
+    final areaIsOpaque = theme.inputAreaColor.a > 0;
+
     return Container(
       padding: EdgeInsets.fromLTRB(
         20,
-        16,
+        14,
         20,
-        16 + MediaQuery.of(context).padding.bottom,
+        14 + MediaQuery.of(context).padding.bottom,
       ),
       decoration: BoxDecoration(
-        color: widget.theme.surfaceColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, -5),
-          ),
-        ],
+        color: theme.inputAreaColor,
+        boxShadow: areaIsOpaque
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 15,
+                  offset: const Offset(0, -5),
+                ),
+              ]
+            : null,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: DecoratedBox(
               decoration: BoxDecoration(
-                color: widget.theme.backgroundColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: widget.theme.borderColor),
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.primaryColor.withValues(alpha: 0.08),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              child: textField,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: inputBorderColor,
+                        width: theme.borderWidth,
+                      ),
+                    ),
+                    child: textField,
+                  ),
+                ),
+              ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           actionButton,
         ],
       ),

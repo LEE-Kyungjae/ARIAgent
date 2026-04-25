@@ -5,20 +5,33 @@ class ChatDefaultHeader extends StatelessWidget {
   final String headerTitle;
   final String? contextLabel;
   final AriChatTheme theme;
+  final VoidCallback? onReset;
+  final String? resetTooltip;
 
   const ChatDefaultHeader({
     super.key,
     required this.headerTitle,
     required this.contextLabel,
     required this.theme,
+    this.onReset,
+    this.resetTooltip,
   });
 
   @override
   Widget build(BuildContext context) {
+    final headerText = theme.headerTextColor ?? theme.textMain;
+    final useGradient = theme.sendButtonGradient != null;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
         color: theme.headerColor ?? theme.surfaceColor,
+        border: Border(
+          bottom: BorderSide(
+            color: theme.primaryColor.withValues(alpha: 0.18),
+            width: 1,
+          ),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -30,15 +43,28 @@ class ChatDefaultHeader extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
-              color: theme.primaryColor.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
+              gradient: useGradient ? theme.sendButtonGradient : null,
+              color: useGradient
+                  ? null
+                  : theme.primaryColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: useGradient
+                  ? [
+                      BoxShadow(
+                        color: theme.primaryColor.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ]
+                  : null,
             ),
             child: Icon(
               Icons.auto_awesome_rounded,
-              size: 18,
-              color: theme.primaryColor,
+              size: 19,
+              color: useGradient ? Colors.white : theme.primaryColor,
             ),
           ),
           const SizedBox(width: 12),
@@ -49,20 +75,56 @@ class ChatDefaultHeader extends StatelessWidget {
                 Text(
                   headerTitle,
                   style: TextStyle(
-                    color: theme.headerTextColor ?? theme.textMain,
-                    fontWeight: FontWeight.bold,
+                    color: headerText,
+                    fontWeight: FontWeight.w800,
                     fontSize: 15,
+                    letterSpacing: -0.2,
                   ),
                 ),
-                if (contextLabel != null)
+                if (contextLabel != null) ...[
+                  const SizedBox(height: 2),
                   Text(
                     contextLabel!,
                     style: TextStyle(
-                      color: theme.headerTextColor?.withValues(alpha: 0.7) ??
-                          theme.textSub,
+                      color: headerText.withValues(alpha: 0.65),
                       fontSize: 11,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
+                ],
+              ],
+            ),
+          ),
+          if (onReset != null) ...[
+            Tooltip(
+              message: resetTooltip ?? 'Reset session',
+              child: InkWell(
+                onTap: onReset,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Icon(
+                    Icons.refresh_rounded,
+                    size: 18,
+                    color: headerText.withValues(alpha: 0.65),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(
+              color: theme.primaryColor,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: theme.primaryColor.withValues(alpha: 0.5),
+                  blurRadius: 6,
+                  spreadRadius: 1,
+                ),
               ],
             ),
           ),

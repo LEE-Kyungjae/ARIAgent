@@ -43,6 +43,13 @@ class AriChatTheme {
   /// 전송 버튼 그라디언트. null 이면 primaryColor 단색 사용.
   final Gradient? sendButtonGradient;
 
+  /// 채팅 입력창 외곽(입력 pill + 전송버튼 감싸는 하단 바) 배경색.
+  /// 기본값은 투명 — 패널 배경이 그대로 비침.
+  final Color inputAreaColor;
+
+  /// 작업 세션(워크 스텝) 카드의 외곽 테두리 색. null 이면 borderColor 사용.
+  final Color? workSessionBorderColor;
+
   const AriChatTheme({
     this.primaryColor = const Color(0xFF3182F6),
     this.surfaceColor = const Color(0xFFFFFFFF),
@@ -63,5 +70,7 @@ class AriChatTheme {
     this.inputTextColor,
     this.inputHintColor,
     this.sendButtonGradient,
+    this.inputAreaColor = const Color(0x00000000),
+    this.workSessionBorderColor,
   });
 }

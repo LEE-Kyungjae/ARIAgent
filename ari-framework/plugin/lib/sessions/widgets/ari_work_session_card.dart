@@ -44,7 +44,9 @@ class _AriWorkSessionCardState extends State<AriWorkSessionCard> {
         decoration: BoxDecoration(
           color: theme.surfaceColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: theme.borderColor),
+          border: Border.all(
+            color: theme.workSessionBorderColor ?? theme.borderColor,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
