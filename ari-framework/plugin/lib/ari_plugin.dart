@@ -8,6 +8,7 @@ export 'bridge/ws/WebSocketService.dart';
 export 'bridge/agent/AriAgent.dart';
 
 export 'theme/ari_chat_theme.dart';
+export 'theme/ari_markdown_theme.dart';
 export 'chat/providers/chat_provider.dart';
 export 'chat/chat_panel.dart';
 export 'chat/widgets/chat_input_area.dart';

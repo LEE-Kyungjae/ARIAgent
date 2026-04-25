@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import '../../theme/ari_markdown_theme.dart';
 
 class AriMarkdownView extends StatefulWidget {
   const AriMarkdownView({
@@ -7,9 +8,7 @@ class AriMarkdownView extends StatefulWidget {
     required this.content,
     this.padding = const EdgeInsets.fromLTRB(18, 24, 18, 18),
     this.borderRadius = 24,
-    this.primaryColor = const Color(0xFF3182F6),
-    this.textMainColor = const Color(0xFF191F28),
-    this.textSubColor = const Color(0xFF4E5968),
+    this.theme = const AriMarkdownTheme(),
     this.onBlockSelected,
     this.onEditSave,
   });
@@ -17,9 +16,7 @@ class AriMarkdownView extends StatefulWidget {
   final String content;
   final EdgeInsetsGeometry padding;
   final double borderRadius;
-  final Color primaryColor;
-  final Color textMainColor;
-  final Color textSubColor;
+  final AriMarkdownTheme theme;
 
   /// 블록 선택/해제 시 호출. 선택 해제 시 null 전달.
   final void Function(String? selectedBlock)? onBlockSelected;
@@ -111,24 +108,24 @@ class _AriMarkdownViewState extends State<AriMarkdownView> {
     final blocks = _currentBlocks();
 
     final style = MarkdownStyleSheet(
-      p: TextStyle(fontSize: 12, height: 1.6, color: widget.textMainColor),
+      p: TextStyle(fontSize: 12, height: 1.6, color: widget.theme.textMain),
       strong:
-          TextStyle(fontWeight: FontWeight.w700, color: widget.textMainColor),
+          TextStyle(fontWeight: FontWeight.w700, color: widget.theme.textMain),
       h1: TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w700,
-          color: widget.textMainColor),
+          color: widget.theme.textMain),
       h2: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w700,
-          color: widget.textMainColor),
+          color: widget.theme.textMain),
       h3: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w700,
-          color: widget.textMainColor),
-      listBullet: TextStyle(fontSize: 12, color: widget.textMainColor),
+          color: widget.theme.textMain),
+      listBullet: TextStyle(fontSize: 12, color: widget.theme.textMain),
       blockquote:
-          TextStyle(color: widget.textSubColor, fontSize: 12, height: 1.6),
+          TextStyle(color: widget.theme.textSub, fontSize: 12, height: 1.6),
     );
 
     return Container(
@@ -138,7 +135,7 @@ class _AriMarkdownViewState extends State<AriMarkdownView> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(widget.borderRadius),
         border: Border.all(
-            color: widget.primaryColor.withValues(alpha: 0.2), width: 1.2),
+            color: widget.theme.primaryColor.withValues(alpha: 0.2), width: 1.2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,10 +157,10 @@ class _AriMarkdownViewState extends State<AriMarkdownView> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: widget.primaryColor.withValues(alpha: 0.04),
+        color: widget.theme.primaryColor.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: widget.primaryColor.withValues(alpha: 0.45),
+          color: widget.theme.primaryColor.withValues(alpha: 0.45),
           width: 1.2,
         ),
       ),
@@ -176,14 +173,14 @@ class _AriMarkdownViewState extends State<AriMarkdownView> {
           fontFamily: 'monospace',
           fontSize: 13,
           height: 1.5,
-          color: widget.textMainColor,
+          color: widget.theme.textMain,
         ),
         decoration: InputDecoration(
           border: InputBorder.none,
           isDense: true,
           hintText: '마크다운 원본…',
           hintStyle: TextStyle(
-            color: widget.textSubColor.withValues(alpha: 0.6),
+            color: widget.theme.textSub.withValues(alpha: 0.6),
             fontSize: 13,
           ),
         ),
@@ -214,16 +211,16 @@ class _AriMarkdownViewState extends State<AriMarkdownView> {
               width: double.infinity,
               decoration: BoxDecoration(
                 color: _selectedIndex == i
-                    ? widget.primaryColor.withValues(alpha: 0.07)
+                    ? widget.theme.primaryColor.withValues(alpha: 0.07)
                     : _hoveredIndex == i
-                        ? widget.primaryColor.withValues(alpha: 0.03)
+                        ? widget.theme.primaryColor.withValues(alpha: 0.03)
                         : Colors.transparent,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: _selectedIndex == i
-                      ? widget.primaryColor.withValues(alpha: 0.2)
+                      ? widget.theme.primaryColor.withValues(alpha: 0.2)
                       : _hoveredIndex == i
-                          ? widget.primaryColor.withValues(alpha: 0.1)
+                          ? widget.theme.primaryColor.withValues(alpha: 0.1)
                           : Colors.transparent,
                 ),
               ),
@@ -239,8 +236,8 @@ class _AriMarkdownViewState extends State<AriMarkdownView> {
                         margin: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
                           color: _selectedIndex == i
-                              ? widget.primaryColor.withValues(alpha: 0.25)
-                              : widget.primaryColor.withValues(alpha: 0.07),
+                              ? widget.theme.primaryColor.withValues(alpha: 0.25)
+                              : widget.theme.primaryColor.withValues(alpha: 0.07),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -271,13 +268,13 @@ class _AriMarkdownViewState extends State<AriMarkdownView> {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: widget.primaryColor.withValues(alpha: 0.12),
+                        color: widget.theme.primaryColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Icon(
                         Icons.edit_outlined,
                         size: 13,
-                        color: widget.primaryColor,
+                        color: widget.theme.primaryColor,
                       ),
                     ),
                   ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/ari_markdown_theme.dart';
 import 'ari_markdown_diff_view.dart';
 import 'ari_markdown_view.dart';
 
@@ -13,6 +14,7 @@ class AriMarkdownEditor extends StatelessWidget {
     required this.onPartialUpdate,
     this.onBlockSelected,
     this.onEditSave,
+    this.theme = const AriMarkdownTheme(),
   });
 
   final String content;
@@ -28,6 +30,8 @@ class AriMarkdownEditor extends StatelessWidget {
   /// 편집 완료(포커스 아웃) 시 전체 content 전달.
   final void Function(String updatedContent)? onEditSave;
 
+  final AriMarkdownTheme theme;
+
   @override
   Widget build(BuildContext context) {
     if (hasDiff && previousContent != null) {
@@ -37,6 +41,7 @@ class AriMarkdownEditor extends StatelessWidget {
         onApproveAll: onApproveAll,
         onRejectAll: onRejectAll,
         onPartialUpdate: onPartialUpdate,
+        theme: theme,
       );
     }
 
@@ -44,6 +49,7 @@ class AriMarkdownEditor extends StatelessWidget {
       content: content,
       onBlockSelected: onBlockSelected,
       onEditSave: onEditSave,
+      theme: theme,
     );
   }
 }

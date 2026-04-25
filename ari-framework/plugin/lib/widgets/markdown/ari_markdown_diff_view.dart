@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import '../../theme/ari_markdown_theme.dart';
 
 // ─── 데이터 모델 및 알고리즘 ───────────────────────────────────────────────────
 
@@ -74,11 +75,7 @@ class AriMarkdownDiffView extends StatelessWidget {
     required this.onApproveAll,
     required this.onRejectAll,
     required this.onPartialUpdate,
-    this.primaryColor = const Color(0xFF3182F6),
-    this.accentGreen = const Color(0xFF2E7D32),
-    this.accentRed = const Color(0xFFD32F2F),
-    this.textMain = const Color(0xFF191F28),
-    this.textSub = const Color(0xFF4E5968),
+    this.theme = const AriMarkdownTheme(),
     this.titleText = 'AI suggested markdown edits.',
     this.rejectAllText = 'Reject All',
     this.approveAllText = 'Approve All',
@@ -93,11 +90,7 @@ class AriMarkdownDiffView extends StatelessWidget {
   final VoidCallback onRejectAll;
   final Function(String updatedContent, String updatedPrevious) onPartialUpdate;
 
-  final Color primaryColor;
-  final Color accentGreen;
-  final Color accentRed;
-  final Color textMain;
-  final Color textSub;
+  final AriMarkdownTheme theme;
 
   final String titleText;
   final String rejectAllText;
@@ -117,18 +110,18 @@ class AriMarkdownDiffView extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: primaryColor.withOpacity(0.1),
+            color: theme.primaryColor.withOpacity(0.1),
             borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
           ),
           child: Row(
             children: [
-              Icon(Icons.auto_awesome, size: 14, color: primaryColor),
+              Icon(Icons.auto_awesome, size: 14, color: theme.primaryColor),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(titleText, style: TextStyle(fontSize: 13, color: primaryColor, fontWeight: FontWeight.bold)),
+                child: Text(titleText, style: TextStyle(fontSize: 13, color: theme.primaryColor, fontWeight: FontWeight.bold)),
               ),
-              _TopActionButton(label: rejectAllText, color: accentRed, onPressed: onRejectAll),
-              _TopActionButton(label: approveAllText, color: accentGreen, onPressed: onApproveAll),
+              _TopActionButton(label: rejectAllText, color: theme.accentRed, onPressed: onRejectAll),
+              _TopActionButton(label: approveAllText, color: theme.accentGreen, onPressed: onApproveAll),
             ],
           ),
         ),
@@ -136,17 +129,17 @@ class AriMarkdownDiffView extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(24), bottomRight: Radius.circular(24)),
-            border: Border.all(color: primaryColor.withOpacity(0.2)),
+            border: Border.all(color: theme.primaryColor.withOpacity(0.2)),
           ),
           child: Column(
             children: List.generate(diffBlocks.length, (idx) {
               return _DiffBlockWidget(
                 block: diffBlocks[idx],
-                accentGreen: accentGreen,
-                accentRed: accentRed,
-                primaryColor: primaryColor,
-                textMain: textMain,
-                textSub: textSub,
+                accentGreen: theme.accentGreen,
+                accentRed: theme.accentRed,
+                primaryColor: theme.primaryColor,
+                textMain: theme.textMain,
+                textSub: theme.textSub,
                 labelAddedText: labelAddedText,
                 labelRemovedText: labelRemovedText,
                 labelModifiedText: labelModifiedText,
