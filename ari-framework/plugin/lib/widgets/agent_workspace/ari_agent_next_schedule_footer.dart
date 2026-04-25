@@ -6,13 +6,14 @@ import 'package:provider/provider.dart';
 import '../../tasks/task_provider.dart';
 
 /// [appId] 로 필터된 AriTask 중 가장 빠른 다음 실행 시각을 카운트다운으로 보여준다.
-/// 등록된 태스크가 없으면 빈 위젯.
+/// 등록된 태스크가 없으면 "스케줄 없음" 라벨을 동일 자리에 표시.
 class AriAgentNextScheduleFooter extends StatefulWidget {
   const AriAgentNextScheduleFooter({
     super.key,
     required this.appId,
     this.textSubColor = const Color(0xFF4E5968),
     this.labelBuilder,
+    this.emptyText = '예약된 스케줄이 없어요',
   });
 
   final String appId;
@@ -21,6 +22,9 @@ class AriAgentNextScheduleFooter extends StatefulWidget {
   /// 커스텀 라벨 빌더: (remainingText, taskLabel) → display string.
   /// 미제공 시 "다음 스케줄 <remaining> 전 · <taskLabel>" 형식.
   final String Function(String remainingText, String taskLabel)? labelBuilder;
+
+  /// 등록된 스케줄이 없을 때 표시할 문구.
+  final String emptyText;
 
   @override
   State<AriAgentNextScheduleFooter> createState() =>
@@ -146,25 +150,29 @@ class _AriAgentNextScheduleFooterState
       }
     }
 
+    final String displayText;
+    final Color iconColor;
+
     if (soonest == null || soonestTask == null) {
-      return const SizedBox.shrink();
+      displayText = widget.emptyText;
+      iconColor = widget.textSubColor.withValues(alpha: 0.5);
+    } else {
+      final remaining = soonest.difference(now);
+      final label = soonestTask.label.isEmpty
+          ? soonestTask.scheduleDescription
+          : soonestTask.label;
+      final remainingText = _formatRemaining(remaining);
+      displayText = widget.labelBuilder != null
+          ? widget.labelBuilder!(remainingText, label)
+          : '다음 스케줄 $remainingText 전 · $label';
+      iconColor = widget.textSubColor;
     }
-
-    final remaining = soonest.difference(now);
-    final label = soonestTask.label.isEmpty
-        ? soonestTask.scheduleDescription
-        : soonestTask.label;
-
-    final remainingText = _formatRemaining(remaining);
-    final displayText = widget.labelBuilder != null
-        ? widget.labelBuilder!(remainingText, label)
-        : '다음 스케줄 $remainingText 전 · $label';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
       child: Row(
         children: [
-          Icon(Icons.schedule_rounded, size: 13, color: widget.textSubColor),
+          Icon(Icons.schedule_rounded, size: 13, color: iconColor),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
