@@ -40,14 +40,10 @@ class _ChatInputAreaState extends State<ChatInputArea> {
   late final FocusNode _textFocusNode;
   late final TextInputFormatter _leadingNewlineBlocker;
 
-  bool get _hasText => widget.controller.text.trim().isNotEmpty;
-  bool get _showCancelAction => widget.isLoading && !_hasText;
-
   @override
   void initState() {
     super.initState();
     _textFocusNode = FocusNode();
-    widget.controller.addListener(_handleControllerChanged);
     _leadingNewlineBlocker = TextInputFormatter.withFunction((
       oldValue,
       newValue,
@@ -64,23 +60,8 @@ class _ChatInputAreaState extends State<ChatInputArea> {
 
   @override
   void dispose() {
-    widget.controller.removeListener(_handleControllerChanged);
     _textFocusNode.dispose();
     super.dispose();
-  }
-
-  @override
-  void didUpdateWidget(covariant ChatInputArea oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
-      oldWidget.controller.removeListener(_handleControllerChanged);
-      widget.controller.addListener(_handleControllerChanged);
-    }
-  }
-
-  void _handleControllerChanged() {
-    if (!mounted) return;
-    setState(() {});
   }
 
   void _refocusInput() {
@@ -138,16 +119,27 @@ class _ChatInputAreaState extends State<ChatInputArea> {
       ),
     );
 
-    final onPressed = _showCancelAction ? widget.onCancel : _handleSend;
-    final actionButton = widget.actionButtonBuilder
-            ?.call(context, onPressed, _showCancelAction) ??
-        Padding(
+    // 한글 IME composition 보호: 컨트롤러 변화에 의한 rebuild 가
+    // 액션 버튼 영역에만 닿도록 ValueListenableBuilder 로 좁힘.
+    final actionButton = ValueListenableBuilder<TextEditingValue>(
+      valueListenable: widget.controller,
+      builder: (context, value, _) {
+        final hasText = value.text.trim().isNotEmpty;
+        final showCancelAction = widget.isLoading && !hasText;
+        final onPressed = showCancelAction ? widget.onCancel : _handleSend;
+
+        if (widget.actionButtonBuilder != null) {
+          return widget.actionButtonBuilder!(
+              context, onPressed, showCancelAction);
+        }
+
+        return Padding(
           padding: const EdgeInsets.only(bottom: 2),
           child: Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: _showCancelAction
+              color: showCancelAction
                   ? widget.theme.primaryColor.withValues(alpha: 0.5)
                   : widget.theme.primaryColor,
               borderRadius: BorderRadius.circular(12),
@@ -155,13 +147,15 @@ class _ChatInputAreaState extends State<ChatInputArea> {
             child: IconButton(
               onPressed: onPressed,
               icon: Icon(
-                _showCancelAction ? Icons.stop_rounded : Icons.send_rounded,
+                showCancelAction ? Icons.stop_rounded : Icons.send_rounded,
                 size: 20,
                 color: Colors.white,
               ),
             ),
           ),
         );
+      },
+    );
 
     if (widget.layoutBuilder != null) {
       return widget.layoutBuilder!(context, textField, actionButton);
