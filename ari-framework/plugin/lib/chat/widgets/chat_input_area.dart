@@ -38,6 +38,10 @@ class ChatInputArea extends StatefulWidget {
   State<ChatInputArea> createState() => _ChatInputAreaState();
 }
 
+class _SendMessageIntent extends Intent {
+  const _SendMessageIntent();
+}
+
 class _ChatInputAreaState extends State<ChatInputArea> {
   late final FocusNode _textFocusNode;
   late final TextInputFormatter _leadingNewlineBlocker;
@@ -89,40 +93,45 @@ class _ChatInputAreaState extends State<ChatInputArea> {
     final inputHintColor = theme.inputHintColor ?? theme.hintColor;
     final inputBorderColor = theme.inputBorderColor ?? theme.borderColor;
 
-    final textField = Focus(
-      onKeyEvent: (_, event) {
-        if (event is! KeyDownEvent) {
-          return KeyEventResult.ignored;
-        }
-        if (event.logicalKey != LogicalKeyboardKey.enter) {
-          return KeyEventResult.ignored;
-        }
-        if (HardwareKeyboard.instance.isShiftPressed) {
-          return KeyEventResult.ignored;
-        }
-
-        _handleSend();
-        return KeyEventResult.handled;
+    // 한글 IME 보호: Focus.onKeyEvent 로 모든 KeyDown 을 가로채면 macOS IME 의
+    // marked text 처리가 깨져 자모가 분해 입력됨 (ㅇㅏㄴㄴㅕㅇ).
+    // Shortcuts 는 매칭된 키 조합만 인터셉트하므로 일반 입력은 IME 로 그대로 전달.
+    // shift+enter 는 SingleActivator 가 매칭 안 함 → 기본 동작 (줄바꿈) 유지.
+    final textField = Shortcuts(
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.enter): _SendMessageIntent(),
       },
-      child: TextField(
-        controller: widget.controller,
-        focusNode: _textFocusNode,
-        style: TextStyle(color: inputTextColor, fontSize: 13),
-        decoration: InputDecoration(
-          hintText: widget.hintText,
-          hintStyle: TextStyle(
-            color: inputHintColor,
-            fontSize: 13,
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          _SendMessageIntent: CallbackAction<_SendMessageIntent>(
+            onInvoke: (_) {
+              // IME 조합 중인 enter 는 한글 확정용 — 무시.
+              if (widget.controller.value.composing.isValid) return null;
+              _handleSend();
+              return null;
+            },
           ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        },
+        child: TextField(
+          controller: widget.controller,
+          focusNode: _textFocusNode,
+          style: TextStyle(color: inputTextColor, fontSize: 13),
+          decoration: InputDecoration(
+            hintText: widget.hintText,
+            hintStyle: TextStyle(
+              color: inputHintColor,
+              fontSize: 13,
+            ),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          ),
+          minLines: 1,
+          maxLines: 3,
+          textInputAction: TextInputAction.newline,
+          inputFormatters: [_leadingNewlineBlocker],
+          onTap: _refocusInput,
+          onSubmitted: (_) => _handleSend(),
         ),
-        minLines: 1,
-        maxLines: 3,
-        textInputAction: TextInputAction.newline,
-        inputFormatters: [_leadingNewlineBlocker],
-        onTap: _refocusInput,
-        onSubmitted: (_) => _handleSend(),
       ),
     );
 

@@ -4,7 +4,7 @@ import {
   hasDailyMemory,
   listDailyMemoryFiles,
 } from "../../repositories/memory_repository.js";
-import { MemoryGraphMeta, resolveAgentId } from "./index.js";
+import { resolveAgentId } from "./index.js";
 
 function getTodayString(): string {
   const d = new Date();
@@ -29,7 +29,6 @@ function parseDailyEntries(dateStr: string, agentId: string): string[] {
 export function appendDailyMemory(
   content: string,
   agentId?: string,
-  meta: MemoryGraphMeta = {},
 ): void {
   const activeId = resolveAgentId(agentId);
   const todayFilename = `${getTodayString()}.md`;

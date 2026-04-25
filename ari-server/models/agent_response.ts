@@ -48,6 +48,8 @@ export interface PendingAgentResponse {
   dispatchMode?: "user" | "inter" | "ari-broadcast";
   /** 에이전트 간 잔여 TTL. 도구가 forward 시 decrement. */
   ttl?: number;
+  /** 스케줄러 trigger 발 호출이면 true → task 전용 system prompt 사용. */
+  scheduledTask?: boolean;
 }
 
 export interface AgentPassResult {

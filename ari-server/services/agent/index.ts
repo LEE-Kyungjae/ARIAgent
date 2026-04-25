@@ -108,6 +108,7 @@ export async function executeAgentRequest(
   const message = await composeUserMessage({
     message: originalMessage,
     agentId: currentAgentId,
+    avatarName: params.avatarName,
     resolvedAppId,
     normalizedPlatform: params.platform,
     detailEntries: normalizeDetailEntries(params.details),
@@ -147,6 +148,7 @@ export async function executeAgentRequest(
     isInterAgent,
     dispatchMode,
     ttl: effectiveTtl,
+    scheduledTask: params.scheduledTask,
   };
 
   if (params.waitForCompletion) {

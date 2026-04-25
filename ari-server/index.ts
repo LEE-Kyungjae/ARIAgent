@@ -23,7 +23,6 @@ import "./routers/usage.js";
 import "./routers/homeassistant.js";
 import "./routers/channel.js";
 import { logger } from "./infra/logger.js";
-import { initEmbeddingModel } from "./infra/embedding.js";
 import { startTelegramPolling } from "./services/channels/telegram_service.js";
 import { listTelegramConfigs } from "./repositories/channel_repository.js";
 import { runScheduledTask } from "./services/tasks/run_task.js";
@@ -162,13 +161,6 @@ async function main() {
   // 2. 초기화 (Agent & State)
   await initState(config);
   const state = getCurrentState();
-
-  // 2-1. 고급 관계 지능 활성화 시 임베딩 모델 자동 로드 (백그라운드)
-  if (config.USE_ADVANCED_MEMORY) {
-    initEmbeddingModel().catch((e) =>
-      logger.error(`[Embedding] 자동 로드 실패:`, e),
-    );
-  }
 
   // 3. 플래그인 정보 확인
   const plugins = await getPluginsInfo();

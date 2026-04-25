@@ -17,7 +17,6 @@ import { TOOLS as HA_TOOLS } from "./homeassistant.js";
 import { TOOLS as SKIP_TURN_TOOLS } from "./skip_turn.js";
 import { updateCoreMemoryTool } from "./core_memory_tool.js";
 import { appendDailyMemoryTool } from "./daily_memory_tool.js";
-import { searchMemoryTool } from "./search_memory_tool.js";
 import { readSkillTool } from "./read_skill.js";
 
 const BUILT_IN_TOOLS = [
@@ -35,7 +34,6 @@ const BUILT_IN_TOOLS = [
   ...SKIP_TURN_TOOLS,
   updateCoreMemoryTool,
   appendDailyMemoryTool,
-  searchMemoryTool,
   readSkillTool,
 ] as AgentTool[];
 

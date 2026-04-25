@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -19,33 +18,12 @@ class _ServerSettingsState extends State<ServerSettings> {
   bool _isSaving = false;
   String _statusMessage = '';
   late ConfigProvider _configProvider;
-  Timer? _modelStatusTimer;
 
   @override
   void initState() {
     super.initState();
     _configProvider = ConfigProvider();
     _portController.text = _configProvider.port.toString();
-    _startModelStatusPollingIfNeeded();
-  }
-
-  void _startModelStatusPollingIfNeeded() {
-    final status = _configProvider.embeddingModelStatus;
-    if (_configProvider.useAdvancedMemory &&
-        (status == 'downloading' || status == 'loading')) {
-      _startPolling();
-    }
-  }
-
-  void _startPolling() {
-    _modelStatusTimer?.cancel();
-    _modelStatusTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
-      final status = await _configProvider.refreshEmbeddingModelStatus();
-      if (status == 'ready' || status == 'error') {
-        _modelStatusTimer?.cancel();
-        _modelStatusTimer = null;
-      }
-    });
   }
 
   Future<void> _saveSettings() async {
@@ -91,7 +69,6 @@ class _ServerSettingsState extends State<ServerSettings> {
 
   @override
   void dispose() {
-    _modelStatusTimer?.cancel();
     _portController.dispose();
     super.dispose();
   }

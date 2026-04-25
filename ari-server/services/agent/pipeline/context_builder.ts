@@ -3,18 +3,15 @@ import { AgentInfo } from "../../../models/agent.js";
 import { AIProviders } from "../../../models/settings.js";
 import { Prompt } from "../../../infra/prompt.js";
 import { logger } from "../../../infra/logger.js";
-import { readCoreMemory, searchRelevantMemories } from "../../memory/index.js";
-import { getSettings } from "../../../repositories/setting_repository.js";
-import { Settings } from "../../../models/settings.js";
-import { getEmbeddingStatus } from "../../../infra/embedding.js";
+import { readCoreMemory } from "../../memory/index.js";
 import { ARI_CLOUD_PROVIDER } from "../provider/selector.js";
 import { getCurrentTools } from "../plugin_cache.js";
 
 export async function buildSystemPrompt(
   agentProfile: AgentInfo,
   providers?: AIProviders,
-  userQuery?: string,
   isRoomContext?: boolean,
+  isScheduledTask?: boolean,
 ): Promise<string> {
   // setup 모드: 아직 프로바이더가 설정되지 않아 ARICloud 프록시를 사용 중인 경우
   // 일반 system_prompt 대신 setup 가이드 전용 프롬프트를 사용한다
@@ -29,23 +26,7 @@ export async function buildSystemPrompt(
   }
 
   const agentId = agentProfile.id || "default";
-  const settings = getSettings(new Settings());
-  const useAdvancedMemory =
-    settings.USE_ADVANCED_MEMORY && getEmbeddingStatus().status === "ready";
-
-  // 고급 관계 지능이 활성화된 경우 벡터 검색으로 관련 메모리만 주입
-  // 비활성화된 경우 기존 방식(전체 MEMORY.md + 어제/오늘 로그) 사용
-  let coreMemory: string;
-
-  if (useAdvancedMemory) {
-    const query = userQuery || "recent context summary preferences rules";
-    coreMemory = await searchRelevantMemories(query, agentId, 6);
-  } else {
-    coreMemory = readCoreMemory(agentId);
-  }
-  const avatarName = agentProfile.name.trim() || "ARI";
-  const platform = agentProfile.platform?.trim() || process.platform;
-
+  const coreMemory = readCoreMemory(agentId);
   // 시스템 프롬프트에는 "핀된 앱"만 미리 소개한다. 호출 자체는
   // list_apps / control_app 을 통해 어떤 앱이든 가능.
   // (loadedSkills 본문은 매 턴 user context 에 inject — 시스템 프롬프트는 정적 유지.)
@@ -60,18 +41,19 @@ export async function buildSystemPrompt(
     description: t.description,
   }));
 
-  // 템플릿 라우팅. agentId 가 공용 `default` 여도 appId 가 도메인이면 도메인 역할로 실행.
-  //   - appId 미지정 / "ari": PM 역할 (`pm_agent_prompt.hbs`)
-  //   - 그 외 (SARI 등 도메인 앱): 도메인 전문가 역할 (`domain_agent_prompt.hbs`)
+  // 템플릿 라우팅:
+  //   - 스케줄러 trigger 발 호출 (PM/도메인 무관) → task 전용 프롬프트
+  //   - appId 미지정 / "ari": PM 역할
+  //   - 그 외 (SARI 등 도메인 앱): 도메인 전문가 역할
   const currentAppId = agentProfile.appId;
-  const templateName =
-    !currentAppId || currentAppId === "ari"
+  const isPm = !currentAppId || currentAppId === "ari";
+  const templateName = isScheduledTask
+    ? "task_system_prompt.hbs"
+    : isPm
       ? "pm_agent_prompt.hbs"
       : "domain_agent_prompt.hbs";
 
   const systemPrompt = await Prompt.load(templateName, {
-    avatarName,
-    platform,
     appId: agentProfile.appId || undefined,
     persona: agentProfile.persona,
     coreMemory,

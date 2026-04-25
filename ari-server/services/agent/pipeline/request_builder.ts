@@ -49,6 +49,7 @@ export async function resolveAppIdFromPlatform(
 export async function composeUserMessage(opts: {
   message: string;
   agentId: string;
+  avatarName: string;
   resolvedAppId?: string;
   normalizedPlatform: string;
   detailEntries: Array<{ key: string; value: string }>;
@@ -65,6 +66,8 @@ export async function composeUserMessage(opts: {
 
   return Prompt.load("app_user_context.hbs", {
     now_str: new Date().toISOString(),
+    avatarName: opts.avatarName,
+    appId: opts.resolvedAppId,
     platform: opts.normalizedPlatform,
     details: opts.detailEntries,
     connectedAppIds:

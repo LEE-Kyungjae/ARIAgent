@@ -1,5 +1,15 @@
+{{!
+  수정 시 주의:
+  - 유저 컨텍스트 프롬프트입니다 (매 턴 user 메시지에 prepend).
+  - 동적 시그널(시간·참여자·로그·최근 메시지) 노출 자리. 정적 룰은 system prompt 로.
+  - 매 턴 새로 생성되어 캐시 영향 적음 — 변수·동적 블록 사용 자유.
+  - 시그널 추가 시 system prompt 의 해당 해석 룰도 같이 갱신 (예: `room participants` ↔ PM 의 fanout 룸 분기).
+}}
 [Request Context]
 - time: {{now_str}}
+- name: `{{avatarName}}`
+{{#if appId}}- my appId: `{{appId}}`{{/if}}
+- platform: `{{platform}}`
 {{#each details}}
 - {{key}}: {{value}}
 {{/each}}

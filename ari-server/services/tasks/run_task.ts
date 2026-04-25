@@ -4,8 +4,6 @@ import { executeAgentRequest } from "../agent/index.js";
 import { ExecuteAgentRequestParams } from "../../models/agent_request.js";
 import { notifyAppNotice } from "../../protocol/app.js";
 import { notifyTaskResult } from "../../protocol/task.js";
-import { forwardToAgent } from "../../protocol/agent.js";
-import { DEFAULT_INTER_AGENT_TTL } from "../agent/pipeline/inter_agent.js";
 import { appendChatLog } from "../../repositories/chat_log_repository.js";
 import { logger } from "../../infra/logger.js";
 import { t } from "../../infra/i18n.js";
@@ -66,37 +64,14 @@ export async function runScheduledTask(
   // ── AI 에이전트 직접 호출 ────────────────────────────────────────────────
   try {
     const runRequestId = `${task.id}-${Date.now()}`;
+    const executorAppId = task.executorAppId;
+    const isDelegated = executorAppId !== (task.appId || "ari");
 
-    // targetAppId 지정된 task: PM 우회 → 도메인 에이전트에 직접 forward.
-    // requestId 에 `-${target}` 접미 → 서버가 ari-broadcast 로 처리 → 응답이 ari 채팅창 표시.
-    if (task.targetAppId) {
-      const subRequestId = `${runRequestId}-${task.targetAppId}`;
-      forwardToAgent(task.targetAppId, {
-        from: "ari",
-        to: task.targetAppId,
-        message: task.prompt,
-        requestId: subRequestId,
-        ttl: DEFAULT_INTER_AGENT_TTL,
-      });
-      const responseText = `(forwarded to ${task.targetAppId})`;
-      logger.info(`✅ 완료: ${responseText}`);
-      const executedAt = new Date().toISOString();
-      persistTaskResult(task.id, {
-        lastRunAt: executedAt,
-        lastResult: responseText,
-        lastError: undefined,
-      });
-      notifyTaskResult({
-        taskId: task.id,
-        requestId: runRequestId,
-        agentId,
-        label: task.label,
-        result: responseText,
-        executedAt,
-      });
-      if (options.exitProcess) process.exit(0);
-      return;
-    }
+    // 위임 task (등록자 ≠ 실행자): inter-agent 메타 + requestId 접미로 ari-broadcast 라우팅.
+    // 자기 task (등록자 = 실행자): 일반 호출.
+    const subRequestId = isDelegated
+      ? `${runRequestId}-${executorAppId}`
+      : runRequestId;
 
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(
@@ -116,14 +91,18 @@ export async function runScheduledTask(
       executeAgentRequest(
         new ExecuteAgentRequestParams({
           message: task.prompt,
-          requestId: runRequestId,
+          requestId: subRequestId,
           agentId,
-          appId: task.appId,
+          appId: executorAppId,
           persona: task.persona,
           avatarName: task.avatarName,
-          // 스케줄러 발 표식 — PM 이 context 에서 인지해 control_app 위임 결정.
           details: { source: "scheduler" },
+          scheduledTask: true,
           waitForCompletion: true,
+          ...(isDelegated && {
+            from: task.appId || "ari",
+            to: executorAppId,
+          }),
         }),
       ),
       timeoutPromise,

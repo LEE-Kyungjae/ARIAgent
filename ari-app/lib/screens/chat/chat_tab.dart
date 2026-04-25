@@ -115,7 +115,7 @@ class _ChatTabState extends State<ChatTab> {
               avatarName: avatar.name,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 88 + MediaQuery.of(context).padding.bottom),
         ],
       ),
       messageBubbleBuilder: (msg) {

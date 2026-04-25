@@ -2,7 +2,6 @@ import { router } from "../system/router.js";
 import { saveSettings } from "../repositories/setting_repository.js";
 import { initAgent, getPluginsInfo, getCurrentState } from "../services/agent/index.js";
 import { logger } from "../infra/logger.js";
-import { getEmbeddingStatus, initEmbeddingModel } from "../infra/embedding.js";
 import { getAgentsConfig } from "../repositories/agent_repository.js";
 import { AgentsConfig } from "../models/agent.js";
 
@@ -62,21 +61,6 @@ router.on("/SETTINGS", async (ctx, params) => {
       `[Settings] Changing SHOW_TASK_MESSAGES to: ${params.showTaskMessages}`,
     );
     saveSettings({ SHOW_TASK_MESSAGES: params.showTaskMessages === true });
-  }
-
-  if (params.advancedMemory !== undefined) {
-    const enabled = params.advancedMemory === true;
-    logger.info(`[Settings] Changing USE_ADVANCED_MEMORY to: ${enabled}`);
-    saveSettings({ USE_ADVANCED_MEMORY: enabled });
-    if (enabled) {
-      const status = getEmbeddingStatus();
-      if (status.status === "idle" || status.status === "error") {
-        logger.info(`[Settings] Advanced memory enabled — starting embedding model download`);
-        initEmbeddingModel().catch((e) =>
-          logger.error(`[Embedding] Background init failed:`, e),
-        );
-      }
-    }
   }
 
   if (params.apiKey || params.model || params.provider) {

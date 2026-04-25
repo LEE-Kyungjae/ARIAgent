@@ -2,9 +2,6 @@ import { router } from "../system/router.js";
 import { UserSocketHandler } from "../system/ws.js";
 import { logger } from "../infra/logger.js";
 import { getCurrentState, getPluginsInfo } from "../services/agent/index.js";
-import { getSettings } from "../repositories/setting_repository.js";
-import { Settings } from "../models/settings.js";
-import { getEmbeddingStatus } from "../infra/embedding.js";
 import {
   commandApp,
   notifyAppNotice,
@@ -73,8 +70,6 @@ router.on("/HEALTH", async (ctx) => {
   logger.info(`[Health] Check from ${ctx.uuid}`);
   const state = getCurrentState();
   const plugins = await getPluginsInfo();
-  const settings = getSettings(new Settings());
-  const embStatus = getEmbeddingStatus();
   ctx.send("/HEALTH", {
     ok: true,
     data: {
@@ -94,8 +89,6 @@ router.on("/HEALTH", async (ctx) => {
       engine: "pi-agent-core",
       tools: plugins.tools.map((t) => t.name),
       skills: plugins.skills.map((s) => s.name),
-      useAdvancedMemory: settings.USE_ADVANCED_MEMORY,
-      embeddingModelStatus: embStatus.status,
     },
   });
 });

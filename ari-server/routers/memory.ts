@@ -1,10 +1,6 @@
 import { router } from "../system/router.js";
 import { clearAgentMemory, readCoreMemory, readRecentDailyLogs, updateCoreMemory } from "../services/memory/index.js";
 import { clearAgentInstance } from "../services/agent/index.js";
-import { getEmbeddingStatus, initEmbeddingModel } from "../infra/embedding.js";
-import { getMemoryStats } from "../repositories/sqlite_memory_repository.js";
-import { getSettings } from "../repositories/setting_repository.js";
-import { Settings } from "../models/settings.js";
 
 router.on("/MEMORY.GET", async (ctx, params) => {
   const agentId = (params.agentId as string) || "default";
@@ -25,50 +21,4 @@ router.on("/MEMORY.CLEAR", async (ctx, params) => {
   clearAgentMemory(agentId);
   clearAgentInstance(agentId);
   ctx.send("/MEMORY.CLEAR", { ok: true, data: { success: true } });
-});
-
-router.on("/MEMORY.MODEL_STATUS", async (ctx, _params) => {
-  const embStatus = getEmbeddingStatus();
-  ctx.send("/MEMORY.MODEL_STATUS", {
-    ok: true,
-    data: {
-      status: embStatus.status,
-      error: embStatus.error ?? null,
-    },
-  });
-});
-
-router.on("/MEMORY.STATS", async (ctx, params) => {
-  const agentId = (params.agentId as string) || "default";
-  const settings = getSettings(new Settings());
-  if (!settings.USE_ADVANCED_MEMORY) {
-    return ctx.send("/MEMORY.STATS", { ok: true, data: { enabled: false } });
-  }
-  try {
-    const stats = await getMemoryStats(agentId);
-    ctx.send("/MEMORY.STATS", { ok: true, data: { enabled: true, ...stats } });
-  } catch (e: any) {
-    ctx.send("/MEMORY.STATS", { ok: false, data: { error: e.message } });
-  }
-});
-
-router.on("/MEMORY.MODEL_DOWNLOAD", async (ctx, _params) => {
-  const current = getEmbeddingStatus();
-  if (current.status === "downloading") {
-    return ctx.send("/MEMORY.MODEL_DOWNLOAD", {
-      ok: true,
-      data: { message: "이미 다운로드 중입니다." },
-    });
-  }
-  if (current.status === "ready") {
-    return ctx.send("/MEMORY.MODEL_DOWNLOAD", {
-      ok: true,
-      data: { message: "모델이 이미 준비되어 있습니다." },
-    });
-  }
-  initEmbeddingModel().catch(() => {});
-  ctx.send("/MEMORY.MODEL_DOWNLOAD", {
-    ok: true,
-    data: { message: "모델 다운로드를 시작했습니다." },
-  });
 });

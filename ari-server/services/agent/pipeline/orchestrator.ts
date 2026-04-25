@@ -89,8 +89,8 @@ async function chatWithAgent(
   const systemPrompt = await buildSystemPrompt(
     session.agentInfo,
     agentState,
-    message,
     isRoomContext,
+    !!pendingResponse?.scheduledTask,
   );
   const result = await runWithExecutionContext(
     {
