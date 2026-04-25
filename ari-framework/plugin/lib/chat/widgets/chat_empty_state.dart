@@ -15,6 +15,12 @@ class ChatEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final iconBg = theme.emptyStateIconBackgroundColor ??
+        theme.primaryColor.withValues(alpha: 0.05);
+    final iconColor = theme.emptyStateIconColor ??
+        theme.primaryColor.withValues(alpha: 0.3);
+    final textColor = theme.emptyStateTextColor ?? theme.textMain;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -23,16 +29,16 @@ class ChatEmptyState extends StatelessWidget {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: theme.primaryColor.withValues(alpha: 0.05),
+              color: iconBg,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 32, color: theme.primaryColor.withValues(alpha: 0.3)),
+            child: Icon(icon, size: 32, color: iconColor),
           ),
           const SizedBox(height: 16),
           Text(
             message,
             style: TextStyle(
-              color: theme.textMain,
+              color: textColor,
               fontWeight: FontWeight.w600,
               fontSize: 13,
             ),

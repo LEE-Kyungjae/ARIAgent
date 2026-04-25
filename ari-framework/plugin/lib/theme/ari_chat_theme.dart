@@ -50,6 +50,15 @@ class AriChatTheme {
   /// 작업 세션(워크 스텝) 카드의 외곽 테두리 색. null 이면 borderColor 사용.
   final Color? workSessionBorderColor;
 
+  /// 채팅 빈 상태(메시지 없음 가이드)의 아이콘 배경색. null 이면 primaryColor @5% 사용.
+  final Color? emptyStateIconBackgroundColor;
+
+  /// 채팅 빈 상태의 아이콘 색. null 이면 primaryColor @30% 사용.
+  final Color? emptyStateIconColor;
+
+  /// 채팅 빈 상태의 가이드 메세지 텍스트 색. null 이면 textMain 사용.
+  final Color? emptyStateTextColor;
+
   const AriChatTheme({
     this.primaryColor = const Color(0xFF3182F6),
     this.surfaceColor = const Color(0xFFFFFFFF),
@@ -72,5 +81,8 @@ class AriChatTheme {
     this.sendButtonGradient,
     this.inputAreaColor = const Color(0x00000000),
     this.workSessionBorderColor,
+    this.emptyStateIconBackgroundColor,
+    this.emptyStateIconColor,
+    this.emptyStateTextColor,
   });
 }
