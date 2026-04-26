@@ -103,6 +103,8 @@ class _AriBaseLayoutState extends State<AriBaseLayout> {
   double _chatWidth = 360;
   static const double _minChatWidth = 240.0;
   static const double _maxChatWidthRatio = 0.6;
+  // Left 영역 (앱 본문) 최소 가로 — 작은 창에서 trading_strategy 등 오버플로우 방지.
+  static const double _minLeftWidth = 480.0;
 
   @override
   Widget build(BuildContext context) {
@@ -128,50 +130,71 @@ class _AriBaseLayoutState extends State<AriBaseLayout> {
                   accentColor: widget.updateBannerAccentColor,
                 ),
                 Expanded(
-                  child: Row(
-                    children: [
-                      // Left Side: Header + Content
-                      Expanded(
-                        child: Column(
-                          children: [
-                            if (widget.appBar != null)
-                              SizedBox(
-                                height: widget.appBar!.preferredSize.height,
-                                child: widget.appBar!,
-                              ),
-                            Expanded(child: widget.body),
-                          ],
-                        ),
-                      ),
-                      // Right Side: Chat Panel
-                      if (widget.showChat) ...[
-                        // Resize Handle
-                        GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onHorizontalDragUpdate: (details) {
-                            setState(() {
-                              _chatWidth = (_chatWidth - details.delta.dx).clamp(
-                                _minChatWidth,
-                                maxChatWidth,
-                              );
-                            });
-                          },
-                          child: MouseRegion(
-                            cursor: SystemMouseCursors.resizeLeftRight,
-                            child: Container(
-                              width: 1,
-                              height: double.infinity,
-                              color: Colors.transparent,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final chatTotal = widget.showChat ? _chatWidth + 1 : 0.0;
+                      final neededWidth = _minLeftWidth + chatTotal;
+
+                      final row = Row(
+                        children: [
+                          // Left Side: Header + Content
+                          Expanded(
+                            child: Column(
+                              children: [
+                                if (widget.appBar != null)
+                                  SizedBox(
+                                    height: widget.appBar!.preferredSize.height,
+                                    child: widget.appBar!,
+                                  ),
+                                Expanded(child: widget.body),
+                              ],
                             ),
                           ),
-                        ),
-                        // Chat Panel Area
-                        SizedBox(
-                          width: _chatWidth,
-                          child: _buildChatPanel(),
-                        ),
-                      ],
-                    ],
+                          // Right Side: Chat Panel
+                          if (widget.showChat) ...[
+                            // Resize Handle
+                            GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onHorizontalDragUpdate: (details) {
+                                setState(() {
+                                  _chatWidth =
+                                      (_chatWidth - details.delta.dx).clamp(
+                                    _minChatWidth,
+                                    maxChatWidth,
+                                  );
+                                });
+                              },
+                              child: MouseRegion(
+                                cursor: SystemMouseCursors.resizeLeftRight,
+                                child: Container(
+                                  width: 1,
+                                  height: double.infinity,
+                                  color: Colors.transparent,
+                                ),
+                              ),
+                            ),
+                            // Chat Panel Area
+                            SizedBox(
+                              width: _chatWidth,
+                              child: _buildChatPanel(),
+                            ),
+                          ],
+                        ],
+                      );
+
+                      // 화면이 좁으면 가로 스크롤로 fallback (left 가 _minLeftWidth 보장).
+                      if (constraints.maxWidth < neededWidth) {
+                        return SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SizedBox(
+                            width: neededWidth,
+                            height: constraints.maxHeight,
+                            child: row,
+                          ),
+                        );
+                      }
+                      return row;
+                    },
                   ),
                 ),
                 if (widget.statusBar != null) widget.statusBar!,

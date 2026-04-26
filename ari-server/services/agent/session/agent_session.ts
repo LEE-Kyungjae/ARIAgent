@@ -309,7 +309,20 @@ export class AgentSession {
 
       // dispatchMode 별 응답 송신.
       if (isError) {
-        if (pending.originUuid) {
+        if (pending.dispatchMode === "ari-broadcast") {
+          // ari-broadcast 모드 에러: originUuid 가 없어도 ari 채팅창에
+          // 에러 보고를 보내야 isLoading 이 풀린다 (스케줄러 발 task 등).
+          errorApp({ appId: "ari" }, {
+            ok: false,
+            data: {
+              message: responseText,
+              requestId: pending.requestId,
+              agentId: pending.agentId,
+              appId: pending.appId,
+              senderName: pending.senderName,
+            },
+          });
+        } else if (pending.originUuid) {
           errorApp({ uuid: pending.originUuid }, {
             ok: false,
             data: {
