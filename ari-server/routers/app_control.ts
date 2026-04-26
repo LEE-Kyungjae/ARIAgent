@@ -196,18 +196,23 @@ router.on("/APP.UPDATE", async (ctx, params) => {
       installParent.startsWith(appsRoot + path.sep);
 
     if (isPluginApp) {
+      // 메타파일만 미리 앱 디렉토리에 복사해 loadAllApps가 새 버전 정보를 즉시 인식하게 한다.
+      // 바이너리(exe/dll)는 실행 중 잠겨 있으므로 복사하지 않는다 — bat/sh 스크립트가 처리.
+      const PLUGIN_METADATA = new Set(["SKILL.md", "app_info.json", "icon.png", "README.md"]);
       const bundleDir = path.dirname(newAppBundle);
       for (const entry of fs.readdirSync(bundleDir)) {
-        if (entry === "__MACOSX" || entry.startsWith(".")) continue;
+        if (!PLUGIN_METADATA.has(entry)) continue;
         const srcPath = path.join(bundleDir, entry);
-        if (srcPath === newAppBundle) continue;
-        const dstPath = path.join(installParent, entry);
-        if (fs.existsSync(dstPath)) fs.rmSync(dstPath, { recursive: true, force: true });
-        fs.cpSync(srcPath, dstPath, { recursive: true });
+        const dstPath = path.join(currentAppBundle, entry);
+        try {
+          fs.cpSync(srcPath, dstPath);
+        } catch {
+          // 메타파일 복사 실패는 치명적이지 않음 — 계속 진행
+        }
       }
-      logger.info(`[AppUpdate] Plugin metadata synced to ${installParent}`);
+      logger.info(`[AppUpdate] Plugin metadata synced to ${currentAppBundle}`);
       await loadAllApps();
-      const pluginId = path.basename(installParent);
+      const pluginId = path.basename(currentAppBundle);
       notifyInstalledAppsChanged(pluginId);
     }
 
@@ -230,16 +235,29 @@ router.on("/APP.UPDATE", async (ctx, params) => {
 
     } else if (process.platform === "win32") {
       const scriptPath = path.join(tempDir, "apply_update.bat");
-      // newAppBundle is the path to the new .exe; its parent dir contains all app files
       const newExeDir = path.dirname(newAppBundle);
       const exeName = path.basename(newAppBundle);
       const targetExePath = path.join(currentAppBundle, exeName);
+      // _bak 경로로 구 버전 이름 변경 후 신 버전 이동.
+      // 실행 중인 DLL이 잠겨 있어 rd /s /q 가 실패하는 경우에도
+      // 디렉토리 rename(move)은 성공하므로 더 안정적이다.
+      const backupPath = `${currentAppBundle}_bak`;
       const script = [
         "@echo off",
-        "timeout /t 2 /nobreak >nul",
-        `rd /s /q "${currentAppBundle}"`,
+        "timeout /t 3 /nobreak >nul",
+        // 이전 백업 정리
+        `if exist "${backupPath}" rd /s /q "${backupPath}" 2>nul`,
+        // 구 버전 디렉토리를 백업명으로 rename (잠긴 파일 있어도 rename은 가능)
+        `move "${currentAppBundle}" "${backupPath}"`,
+        // rename 실패 시 강제 삭제 시도 (fallback)
+        `if exist "${currentAppBundle}" rd /s /q "${currentAppBundle}" 2>nul`,
+        // 신 버전 디렉토리를 원래 경로로 이동
         `move "${newExeDir}" "${currentAppBundle}"`,
-        `start "" "${targetExePath}"`,
+        // 새 앱 실행
+        `if exist "${targetExePath}" start "" "${targetExePath}"`,
+        // 백업 및 임시 폴더 정리
+        `rd /s /q "${backupPath}" 2>nul`,
+        `rd /s /q "${tempDir}" 2>nul`,
       ].join("\r\n");
       fs.writeFileSync(scriptPath, script);
       const child = spawn("cmd", ["/c", scriptPath], { detached: true, stdio: "ignore", windowsHide: true });

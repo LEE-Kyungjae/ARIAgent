@@ -14,6 +14,7 @@ const TELEGRAM_API = "https://api.telegram.org/bot";
 interface PollingState {
   active: boolean;
   lastUpdateId: number;
+  consecutiveErrors: number;
   restartTimer?: NodeJS.Timeout;
 }
 
@@ -22,7 +23,7 @@ const pollingStates = new Map<string, PollingState>();
 function getOrCreateState(agentId: string): PollingState {
   let state = pollingStates.get(agentId);
   if (!state) {
-    state = { active: false, lastUpdateId: 0 };
+    state = { active: false, lastUpdateId: 0, consecutiveErrors: 0 };
     pollingStates.set(agentId, state);
   }
   return state;
@@ -77,7 +78,10 @@ export async function testTelegramConnection(token: string): Promise<{ ok: boole
 // Long-polling loop
 // ─────────────────────────────────────────────
 
-async function pollOnce(agentId: string, token: string): Promise<void> {
+// 연속 오류 횟수에 따른 대기 시간 (ms): 1s → 2s → 5s → 10s → 30s → 60s (최대)
+const BACKOFF_MS = [1000, 2000, 5000, 10000, 30000, 60000];
+
+async function pollOnce(agentId: string, token: string): Promise<boolean> {
   const state = getOrCreateState(agentId);
   let updates: any[];
   try {
@@ -86,13 +90,15 @@ async function pollOnce(agentId: string, token: string): Promise<void> {
       timeout: 30,
       allowed_updates: ["message"],
     });
-    if (!res.ok || !Array.isArray(res.result)) return;
+    state.consecutiveErrors = 0;
+    if (!res.ok || !Array.isArray(res.result)) return true;
     updates = res.result;
   } catch (err: any) {
+    state.consecutiveErrors++;
     if (!err.message?.includes("ECONNRESET") && !err.code?.includes("ECONNABORTED")) {
       logger.warn(`[Telegram:${agentId}] getUpdates 오류: ${err.message}`);
     }
-    return;
+    return false;
   }
 
   for (const update of updates) {
@@ -110,6 +116,7 @@ async function pollOnce(agentId: string, token: string): Promise<void> {
     // LLM 응답 대기 중 polling 이 막히지 않도록 fire-and-forget.
     void handleIncomingMessage(token, agentId, chatId, text, fromName);
   }
+  return true;
 }
 
 async function handleIncomingMessage(
@@ -177,7 +184,12 @@ async function pollingLoop(agentId: string): Promise<void> {
       state.active = false;
       break;
     }
-    await pollOnce(agentId, config.botToken);
+    const ok = await pollOnce(agentId, config.botToken);
+    if (!ok && state.active) {
+      // 연속 오류 시 지수 백오프: 최대 60초 대기
+      const delayMs = BACKOFF_MS[Math.min(state.consecutiveErrors - 1, BACKOFF_MS.length - 1)];
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
   }
   logger.info(`[Telegram:${agentId}] Polling 종료`);
 }
@@ -200,6 +212,7 @@ export function startTelegramPolling(agentId: string): void {
 
   state.active = true;
   state.lastUpdateId = 0;
+  state.consecutiveErrors = 0;
   logger.info(`[Telegram:${agentId}] Polling 시작`);
   void pollingLoop(agentId);
 }
