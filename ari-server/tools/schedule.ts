@@ -7,16 +7,7 @@ import { t } from "../infra/i18n.js";
 import { getTasks } from "../repositories/task_repository.js";
 import { type ScheduleSpec, scheduleSpecToLabel } from "../models/schedule_spec.js";
 
-/**
- * PM appId 집합. PM은 모든 도메인의 스케줄에 대한 view/통제권을 갖는다.
- * agentId는 PM 내부 인격/세션 단위라 권한 판단에 들어가지 않는다 — 어떤 agentId든 appId가 PM이면 PM.
- */
-const PM_APP_IDS: ReadonlySet<string> = new Set(["ari"]);
 const DEFAULT_APP_ID = "ari";
-
-function isPmContext(activeAppId: string): boolean {
-  return PM_APP_IDS.has(activeAppId);
-}
 
 function resolveExecutionContext(): { agentId: string; appId: string } {
   const context = getExecutionContext();
@@ -26,13 +17,20 @@ function resolveExecutionContext(): { agentId: string; appId: string } {
   };
 }
 
-/** 이 앱이 task의 view/통제권을 가지는지. PM은 모든 task, 도메인은 자기 소유 또는 자기 실행. */
-function hasScopeOver(task: { appId?: string; executorAppId: string }, activeAppId: string): boolean {
-  return (
-    isPmContext(activeAppId) ||
-    task.executorAppId === activeAppId ||
-    task.appId === activeAppId
-  );
+/**
+ * 이 컨텍스트가 task에 대해 view/삭제 권한을 갖는지 — view 규칙과 권한 규칙이 동일.
+ * - **owner**: 등록 컨텍스트 정확 일치 (appId + agentId). 자기가 만든 일정만 자기 일.
+ * - **executor**: 자기 도메인이 실행을 책임짐 (appId 단위, agent 무관). 위임받은 일은 도메인이 책임자.
+ * 같은 appId여도 다른 agent가 만든 일정은 자기 일이 아니다 — A가 만든 걸 B가 보거나 지울 수 없다.
+ */
+function hasScope(
+  task: { appId?: string; agentId?: string; executorAppId: string },
+  activeAppId: string,
+  activeAgentId: string,
+): boolean {
+  const isOwner = task.appId === activeAppId && (task.agentId || "default") === activeAgentId;
+  const isExecutor = task.executorAppId === activeAppId;
+  return isOwner || isExecutor;
 }
 
 export const registerScheduleTool: AgentTool = {
@@ -174,11 +172,11 @@ export const listSchedulesTool: AgentTool = {
   name: "list_schedules",
   label: "스케줄 조회",
   description:
-    "이 앱이 소유(등록)했거나 실행을 책임지는 스케줄 목록을 조회한다. PM이 도메인에 위임한 스케줄은 PM 방·도메인 방 양쪽에서 모두 보인다(같은 record). 스케줄 삭제/수정 전에 어떤 taskId와 label이 있는지 먼저 확인할 때 사용한다.",
+    "이 에이전트가 직접 등록했거나(같은 appId+agentId), 이 도메인이 실행을 책임지는(executorAppId) 스케줄 목록을 조회한다. 같은 appId라도 다른 agent가 만든 일정은 보이지 않는다. PM이 도메인에 위임한 스케줄은 등록한 PM agent 본인과 실행 도메인 양쪽에서 모두 보인다(같은 record).",
   parameters: Type.Object({}),
   execute: async () => {
-    const { appId: activeAppId } = resolveExecutionContext();
-    const tasks = getTasks().filter((task) => hasScopeOver(task, activeAppId));
+    const { appId: activeAppId, agentId: activeAgentId } = resolveExecutionContext();
+    const tasks = getTasks().filter((task) => hasScope(task, activeAppId, activeAgentId));
 
     if (tasks.length === 0) {
       return {
@@ -206,20 +204,23 @@ export const listSchedulesTool: AgentTool = {
       details: {
         ok: true,
         count: tasks.length,
-        tasks: tasks.map((task) => ({
-          taskId: task.id,
-          label: task.label,
-          scheduleSpec: task.scheduleSpec,
-          startAt: task.startAt,
-          endAt: task.endAt,
-          appId: task.appId,
-          executorAppId: task.executorAppId,
-          role: task.appId === activeAppId
-            ? (task.executorAppId === activeAppId ? "self" : "owner")
-            : "executor",
-          isOneOff: task.isOneOff === true,
-          enabled: task.enabled !== false,
-        })),
+        tasks: tasks.map((task) => {
+          const isOwner = task.appId === activeAppId && (task.agentId || "default") === activeAgentId;
+          const isExecutor = task.executorAppId === activeAppId;
+          return {
+            taskId: task.id,
+            label: task.label,
+            scheduleSpec: task.scheduleSpec,
+            startAt: task.startAt,
+            endAt: task.endAt,
+            appId: task.appId,
+            agentId: task.agentId || "default",
+            executorAppId: task.executorAppId,
+            role: isOwner && isExecutor ? "self" : isOwner ? "owner" : "executor",
+            isOneOff: task.isOneOff === true,
+            enabled: task.enabled !== false,
+          };
+        }),
       },
     };
   },
@@ -229,7 +230,7 @@ export const deleteScheduleTool: AgentTool = {
   name: "delete_schedule",
   label: "스케줄 삭제",
   description:
-    "이 앱이 소유(등록)했거나 실행을 책임지는 스케줄을 삭제한다. PM은 자기가 위임한 스케줄을 삭제할 수 있고, 도메인은 자기가 실행하는 스케줄을 삭제할 수 있다(같은 record라 한쪽에서 지우면 양쪽에서 사라짐). 애매하면 먼저 list_schedules로 taskId를 확인한 뒤 taskId로 삭제한다.",
+    "이 에이전트가 직접 등록했거나(같은 appId+agentId) 이 도메인이 실행을 책임지는(executorAppId) 스케줄만 삭제할 수 있다. 같은 appId라도 다른 agent가 만든 일정은 삭제 권한이 없다 — A가 등록한 일정을 B가 지울 수 없다. 같은 record이므로 한쪽에서 지우면 등록자/실행자 양쪽 view에서 사라진다. 애매하면 먼저 list_schedules로 taskId를 확인한 뒤 taskId로 삭제한다.",
   parameters: Type.Object({
     taskId: Type.Optional(
       Type.String({
@@ -244,7 +245,7 @@ export const deleteScheduleTool: AgentTool = {
   }),
   execute: async (_toolCallId, params, _signal, _onUpdate) => {
     const { taskId, label } = params as { taskId?: string; label?: string };
-    const { appId: activeAppId } = resolveExecutionContext();
+    const { appId: activeAppId, agentId: activeAgentId } = resolveExecutionContext();
 
     if (!taskId && !label) {
       return {
@@ -264,7 +265,7 @@ export const deleteScheduleTool: AgentTool = {
       const normalizedLabel = label!.trim();
       const matchedTasks = getTasks().filter(
         (task) =>
-          hasScopeOver(task, activeAppId) &&
+          hasScope(task, activeAppId, activeAgentId) &&
           task.label.trim() === normalizedLabel,
       );
 
@@ -275,11 +276,12 @@ export const deleteScheduleTool: AgentTool = {
               type: "text" as const,
               text: t("tool.schedule.delete.not_found", {
                 appId: activeAppId,
+                agentId: activeAgentId,
                 label: normalizedLabel,
               }),
             },
           ],
-          details: { ok: false, appId: activeAppId, label: normalizedLabel },
+          details: { ok: false, appId: activeAppId, agentId: activeAgentId, label: normalizedLabel },
         };
       }
 
@@ -308,13 +310,15 @@ export const deleteScheduleTool: AgentTool = {
       targetTaskId = matchedTasks[0].id;
     } else {
       const target = getTasks().find((task) => task.id === targetTaskId);
-      if (target && !hasScopeOver(target, activeAppId)) {
+      if (target && !hasScope(target, activeAppId, activeAgentId)) {
         return {
           content: [
             {
               type: "text" as const,
               text: t("tool.schedule.delete.forbidden", {
                 taskId: targetTaskId,
+                ownerAppId: target.appId ?? "",
+                ownerAgentId: target.agentId || "default",
                 executorAppId: target.executorAppId,
               }),
             },
@@ -323,6 +327,8 @@ export const deleteScheduleTool: AgentTool = {
             ok: false,
             forbidden: true,
             taskId: targetTaskId,
+            ownerAppId: target.appId,
+            ownerAgentId: target.agentId || "default",
             executorAppId: target.executorAppId,
           },
         };

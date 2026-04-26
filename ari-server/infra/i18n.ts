@@ -21,17 +21,17 @@ const translations: Record<ServerLocale, Record<string, TranslationValue>> = {
       `✅ 반복 스케줄 등록 완료: "${params?.label ?? ""}" (${params?.schedule ?? ""})`,
     "tool.schedule.one_off_registered": (params) =>
       `✅ 1회성 스케줄 등록 완료: "${params?.label ?? ""}" (${params?.delayMinutes ?? ""}분 뒤 예정)`,
-    "tool.schedule.list.empty": "이 앱이 실행하는 스케줄이 없습니다.",
+    "tool.schedule.list.empty": "이 에이전트가 보거나 책임지는 스케줄이 없습니다.",
     "tool.schedule.list.header": (params) =>
       `현재 등록된 스케줄 ${params?.count ?? 0}개입니다:`,
     "tool.schedule.delete.missing_params":
       "삭제할 스케줄의 taskId 또는 label 중 하나는 꼭 필요합니다.",
     "tool.schedule.delete.not_found": (params) =>
-      `삭제할 스케줄을 찾지 못했습니다. (app: ${params?.appId ?? ""}, label: "${params?.label ?? ""}")`,
+      `삭제할 스케줄을 찾지 못했습니다. (app: ${params?.appId ?? ""}, agent: ${params?.agentId ?? ""}, label: "${params?.label ?? ""}")`,
     "tool.schedule.delete.ambiguous": (params) =>
       `같은 이름의 스케줄이 ${params?.count ?? 0}개 있습니다. taskId를 지정해서 다시 요청해주세요.`,
     "tool.schedule.delete.forbidden": (params) =>
-      `이 스케줄은 ${params?.executorAppId ?? ""}이(가) 실행하는 작업입니다. ${params?.executorAppId ?? ""} 방에서 삭제해주세요. (taskId: ${params?.taskId ?? ""})`,
+      `이 스케줄은 자기가 등록하지 않았고 자기 도메인이 실행하지도 않아 삭제할 수 없습니다. 등록한 에이전트(${params?.ownerAppId ?? ""}/${params?.ownerAgentId ?? ""}) 또는 실행 도메인(${params?.executorAppId ?? ""})에서 삭제해주세요. (taskId: ${params?.taskId ?? ""})`,
     "tool.schedule.delete.success": (params) =>
       `✅ 스케줄 삭제 완료: ${params?.taskId ?? ""}`,
     "tool.schedule.delete.failed": (params) =>
@@ -72,17 +72,17 @@ const translations: Record<ServerLocale, Record<string, TranslationValue>> = {
       `✅ Recurring schedule registered: "${params?.label ?? ""}" (${params?.schedule ?? ""})`,
     "tool.schedule.one_off_registered": (params) =>
       `✅ One-off schedule registered: "${params?.label ?? ""}" (${params?.delayMinutes ?? ""} minutes later)`,
-    "tool.schedule.list.empty": "This app has no schedules to run.",
+    "tool.schedule.list.empty": "This agent has no schedules in its scope.",
     "tool.schedule.list.header": (params) =>
       `There are ${params?.count ?? 0} registered schedules:`,
     "tool.schedule.delete.missing_params":
       "Either taskId or label is required to delete a schedule.",
     "tool.schedule.delete.not_found": (params) =>
-      `Could not find a matching schedule. (app: ${params?.appId ?? ""}, label: "${params?.label ?? ""}")`,
+      `Could not find a matching schedule. (app: ${params?.appId ?? ""}, agent: ${params?.agentId ?? ""}, label: "${params?.label ?? ""}")`,
     "tool.schedule.delete.ambiguous": (params) =>
       `Found ${params?.count ?? 0} schedules with the same label. Please retry with a taskId.`,
     "tool.schedule.delete.forbidden": (params) =>
-      `This schedule is run by ${params?.executorAppId ?? ""}. Please delete it from the ${params?.executorAppId ?? ""} room. (taskId: ${params?.taskId ?? ""})`,
+      `This schedule was not registered by this agent and is not run by this domain. Please delete it from the registering agent (${params?.ownerAppId ?? ""}/${params?.ownerAgentId ?? ""}) or the executor domain (${params?.executorAppId ?? ""}). (taskId: ${params?.taskId ?? ""})`,
     "tool.schedule.delete.success": (params) =>
       `✅ Schedule deleted: ${params?.taskId ?? ""}`,
     "tool.schedule.delete.failed": (params) =>
