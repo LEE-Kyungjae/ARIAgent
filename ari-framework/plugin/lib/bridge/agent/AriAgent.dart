@@ -8,13 +8,18 @@ import '../ws/settings_loader_stub.dart'
 
 // Flutter on Windows uses BoringSSL which doesn't trust the Windows certificate
 // store on clean systems, causing HandshakeException on ariwith.me / CloudFront.
+// 신뢰 호스트는 기본 ARI 도메인 + 호출자가 주입하는 도메인 목록을 합쳐 사용한다.
 class _AriHttpOverrides extends HttpOverrides {
-  static const _trustedHosts = [
+  _AriHttpOverrides(this._trustedHosts);
+
+  static const List<String> defaultTrustedHosts = [
     'ariwith.me',
     'cloudfront.net',
     'amazonaws.com',
     'supabase.co',
   ];
+
+  final List<String> _trustedHosts;
 
   @override
   HttpClient createHttpClient(SecurityContext? context) {
@@ -51,9 +56,13 @@ class AriAgent {
     String? url,
     String host = defaultHost,
     int port = defaultPort,
+    List<String> additionalTrustedHosts = const [],
   }) {
     if (HttpOverrides.current == null) {
-      HttpOverrides.global = _AriHttpOverrides();
+      HttpOverrides.global = _AriHttpOverrides([
+        ..._AriHttpOverrides.defaultTrustedHosts,
+        ...additionalTrustedHosts,
+      ]);
     }
     final resolvedUrl = url ?? 'ws://$host:$port';
     _webSocketService.setFallbackUrlResolver(_resolveFallbackUrl);
