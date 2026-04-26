@@ -73,27 +73,6 @@ mkdir -p build/standalone build/runtime
 # Start from arm64 layout — non-native files are identical between arches.
 cp -R "$ARM64_STAGING/standalone/." build/standalone/
 
-# Overlay x64 sharp prebuild packages (sharp 0.34+ layout: @img/sharp-darwin-x64 + @img/sharp-libvips-darwin-x64).
-for pkg in sharp-darwin-x64 sharp-libvips-darwin-x64; do
-  SRC="$X64_STAGING/standalone/node_modules/@img/$pkg"
-  if [ ! -d "$SRC" ]; then
-    echo "[universal] ERROR: x64 @img/$pkg missing in staging" >&2
-    exit 1
-  fi
-  mkdir -p "build/standalone/node_modules/@img"
-  rm -rf "build/standalone/node_modules/@img/$pkg"
-  cp -R "$SRC" "build/standalone/node_modules/@img/"
-done
-
-# Overlay x64 onnxruntime-node prebuild.
-X64_ORT="$X64_STAGING/standalone/node_modules/onnxruntime-node/bin/napi-v3/darwin/x64"
-if [ -d "$X64_ORT" ]; then
-  cp -R "$X64_ORT" build/standalone/node_modules/onnxruntime-node/bin/napi-v3/darwin/
-else
-  echo "[universal] ERROR: x64 onnxruntime-node prebuild missing" >&2
-  exit 1
-fi
-
 # lipo-create universal binary.
 lipo -create \
   "$ARM64_STAGING/standalone/ari-server" \

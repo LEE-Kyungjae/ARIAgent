@@ -22,22 +22,9 @@ const nodeBinDir = path.dirname(process.execPath);
 const standaloneExternalModules = [
   "playwright",
   "playwright-core",
-  "chromium-bidi",
   "fsevents",
-  "sharp",
-  "onnxruntime-node",
-  "@xenova/transformers",
 ];
-// Transitive deps we do NOT want in the standalone bundle — they are pulled in
-// by @xenova/transformers's package.json but never loaded at runtime on Node:
-//   - onnxruntime-web: browser-only runtime (Node uses onnxruntime-node)
-//   - onnx-proto / protobufjs: only needed by onnxruntime-web
-//   - @types/*: TypeScript-only, zero runtime value
-const excludedTransitiveModules = new Set([
-  "onnxruntime-web",
-  "onnx-proto",
-  "protobufjs",
-]);
+const excludedTransitiveModules = new Set();
 const existingPath = process.env.PATH ?? process.env.Path ?? "";
 const pathWithNode = process.platform === "win32"
   ? `${nodeBinDir};${existingPath}`
@@ -155,37 +142,6 @@ function copyNodeModuleTree(moduleName, targetRoot, visited = new Set()) {
     console.warn(
       `[build] Warning: failed to inspect dependencies for ${moduleName}: ${error instanceof Error ? error.message : String(error)}`,
     );
-  }
-}
-
-function trimPlatformBloat(targetRoot) {
-  // @xenova/transformers/dist is the browser UMD bundle + ORT WASM files.
-  // Node resolves `main: ./src/transformers.js`, so dist/ is dead weight (~43MB).
-  const xenovaDist = path.join(targetRoot, "node_modules", "@xenova", "transformers", "dist");
-  if (fs.existsSync(xenovaDist)) {
-    fs.rmSync(xenovaDist, { recursive: true, force: true });
-    console.log("[build] Trimmed @xenova/transformers/dist (browser UMD + WASM, unused on Node)");
-  }
-
-  // onnxruntime-node ships prebuilds for 6 platforms (darwin/linux/win32 × arm64/x64).
-  // Keep only the one matching this build's target platform/arch.
-  const ortBin = path.join(targetRoot, "node_modules", "onnxruntime-node", "bin", "napi-v3");
-  if (fs.existsSync(ortBin)) {
-    const keepPlatform = process.platform;
-    const keepArch = process.arch;
-    for (const plat of fs.readdirSync(ortBin)) {
-      const platDir = path.join(ortBin, plat);
-      if (plat !== keepPlatform) {
-        fs.rmSync(platDir, { recursive: true, force: true });
-        continue;
-      }
-      for (const arch of fs.readdirSync(platDir)) {
-        if (arch !== keepArch) {
-          fs.rmSync(path.join(platDir, arch), { recursive: true, force: true });
-        }
-      }
-    }
-    console.log(`[build] Trimmed onnxruntime-node prebuilds (kept ${keepPlatform}/${keepArch} only)`);
   }
 }
 
@@ -315,10 +271,7 @@ async function buildStandalone() {
       sourcemap: false,
       logLevel: "info",
       external: standaloneExternalModules,
-      // @xenova/transformers의 env.js가 import.meta.url로 경로를 계산하는데,
-      // esbuild CJS 번들에서 import.meta가 빈 객체({})로 치환되어 url이 undefined가 됨.
-      // banner로 번들 상단에 실제 URL 변수를 주입하고, define으로 해당 변수를 참조해
-      // fileURLToPath(undefined) 에러를 방지.
+      // esbuild CJS 번들에서 import.meta가 빈 객체({})로 치환되어 fileURLToPath(undefined) 에러가 나는 걸 방지.
       banner: {
         js: "var __bundle_import_meta_url = require('url').pathToFileURL(__filename).href;",
       },
@@ -392,7 +345,6 @@ async function buildStandalone() {
       copyNodeModuleTree(moduleName, standaloneDir);
     }
     copyNodeModuleTree("node-schedule", standaloneDir);
-    trimPlatformBloat(standaloneDir);
 
     cleanDir(runtimeDir);
     packagePlaywrightRuntime(standaloneDir, runtimeDir);
