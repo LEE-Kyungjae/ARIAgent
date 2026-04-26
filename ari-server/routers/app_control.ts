@@ -185,88 +185,109 @@ router.on("/APP.UPDATE", async (ctx, params) => {
     }
     logger.info(`[AppUpdate] Current bundle: ${currentAppBundle}`);
 
-    // 5-1. 플러그인 앱(~/.ari-agent/apps/<id>/app.app) 인 경우 zip 안의
-    //      메타파일(SKILL.md, app_info.json, icon.png …) 도 같이 설치해야
-    //      바이너리와 메타가 분리되지 않음. 호스트 앱 업데이트( /Applications )
-    //      에서는 건드리지 않음.
+    // 플러그인 앱 여부 판별 (DATA_DIR/apps/ 하위에 설치된 서드파티 앱)
     const installParent = path.dirname(currentAppBundle);
     const appsRoot = path.join(DATA_DIR, "apps");
-    const isPluginApp =
-      installParent === appsRoot ||
-      installParent.startsWith(appsRoot + path.sep);
+    const isPluginApp = installParent === appsRoot || installParent.startsWith(appsRoot + path.sep);
 
-    if (isPluginApp) {
-      // 메타파일만 미리 앱 디렉토리에 복사해 loadAllApps가 새 버전 정보를 즉시 인식하게 한다.
-      // 바이너리(exe/dll)는 실행 중 잠겨 있으므로 복사하지 않는다 — bat/sh 스크립트가 처리.
-      const PLUGIN_METADATA = new Set(["SKILL.md", "app_info.json", "icon.png", "README.md"]);
-      const bundleDir = path.dirname(newAppBundle);
-      for (const entry of fs.readdirSync(bundleDir)) {
-        if (!PLUGIN_METADATA.has(entry)) continue;
-        const srcPath = path.join(bundleDir, entry);
-        const dstPath = path.join(currentAppBundle, entry);
-        try {
-          fs.cpSync(srcPath, dstPath);
-        } catch {
-          // 메타파일 복사 실패는 치명적이지 않음 — 계속 진행
-        }
-      }
-      logger.info(`[AppUpdate] Plugin metadata synced to ${currentAppBundle}`);
-      await loadAllApps();
-      const pluginId = path.basename(currentAppBundle);
-      notifyInstalledAppsChanged(pluginId);
-    }
+    const newExeDir = path.dirname(newAppBundle);
+    const exeName = path.basename(newAppBundle);
+    const targetExePath = path.join(currentAppBundle, exeName);
 
-    // 6. 교체 스크립트 생성 후 detached 실행 (서버·앱이 종료돼도 안전)
     ctx.send("/APP.UPDATE.PROGRESS", { stage: "installing", message: "업데이트 설치 중..." });
 
-    if (process.platform === "darwin") {
-      const scriptPath = path.join(tempDir, "apply_update.sh");
-      const script = [
-        "#!/bin/bash",
-        "sleep 2",
-        `rm -rf "${currentAppBundle}"`,
-        `mv "${newAppBundle}" "${currentAppBundle}"`,
-        `open "${currentAppBundle}"`,
-        `rm -rf "${tempDir}"`,
-      ].join("\n");
-      fs.writeFileSync(scriptPath, script, { mode: 0o755 });
-      const child = spawn("bash", [scriptPath], { detached: true, stdio: "ignore" });
-      child.unref();
+    if (isPluginApp && process.platform === "win32") {
+      // ─── Windows 플러그인 앱 업데이트: 서버가 직접 소켓 close 를 감지해서 Node.js 로 처리 ───
+      // Windows bat/ps1 스크립트는 한글 사용자명 경로 인코딩 문제로 실행이 안 될 수 있다.
+      // 서버는 SARI 업데이트 후에도 계속 살아있으므로 Node.js 의 네이티브 유니코드 지원을 그대로 쓴다.
+      // macOS 는 UTF-8 환경이라 기존 bash 스크립트가 정상 동작하므로 아래 else 분기를 사용한다.
+      const backupPath = `${currentAppBundle}_bak_${Date.now()}`;
+      const capturedTempDir = tempDir;
 
-    } else if (process.platform === "win32") {
-      const scriptPath = path.join(tempDir, "apply_update.bat");
-      const newExeDir = path.dirname(newAppBundle);
-      const exeName = path.basename(newAppBundle);
-      const targetExePath = path.join(currentAppBundle, exeName);
-      // _bak 경로로 구 버전 이름 변경 후 신 버전 이동.
-      // 실행 중인 DLL이 잠겨 있어 rd /s /q 가 실패하는 경우에도
-      // 디렉토리 rename(move)은 성공하므로 더 안정적이다.
-      const backupPath = `${currentAppBundle}_bak`;
-      const script = [
-        "@echo off",
-        "timeout /t 3 /nobreak >nul",
-        // 이전 백업 정리
-        `if exist "${backupPath}" rd /s /q "${backupPath}" 2>nul`,
-        // 구 버전 디렉토리를 백업명으로 rename (잠긴 파일 있어도 rename은 가능)
-        `move "${currentAppBundle}" "${backupPath}"`,
-        // rename 실패 시 강제 삭제 시도 (fallback)
-        `if exist "${currentAppBundle}" rd /s /q "${currentAppBundle}" 2>nul`,
-        // 신 버전 디렉토리를 원래 경로로 이동
-        `move "${newExeDir}" "${currentAppBundle}"`,
-        // 새 앱 실행
-        `if exist "${targetExePath}" start "" "${targetExePath}"`,
-        // 백업 및 임시 폴더 정리
-        `rd /s /q "${backupPath}" 2>nul`,
-        `rd /s /q "${tempDir}" 2>nul`,
-      ].join("\r\n");
-      fs.writeFileSync(scriptPath, script);
-      const child = spawn("cmd", ["/c", scriptPath], { detached: true, stdio: "ignore", windowsHide: true });
-      child.unref();
+      const socket = UserSocketHandler.findSocketByUuid(ctx.uuid);
+      const doReplace = () => {
+        setTimeout(async () => {
+          try {
+            if (fs.existsSync(currentAppBundle)) {
+              fs.renameSync(currentAppBundle, backupPath);
+              logger.info(`[AppUpdate] Renamed old dir → ${backupPath}`);
+            }
+            fs.renameSync(newExeDir, currentAppBundle);
+            logger.info(`[AppUpdate] Moved new version → ${currentAppBundle}`);
+
+            await loadAllApps();
+            notifyInstalledAppsChanged(path.basename(currentAppBundle));
+
+            if (fs.existsSync(targetExePath)) {
+              const child = spawn(targetExePath, [], { detached: true, stdio: "ignore" });
+              child.unref();
+              logger.info(`[AppUpdate] Started new version: ${targetExePath}`);
+            } else {
+              logger.error(`[AppUpdate] Target exe not found: ${targetExePath}`);
+            }
+
+            fs.rmSync(backupPath, { recursive: true, force: true });
+            if (fs.existsSync(capturedTempDir)) fs.rmSync(capturedTempDir, { recursive: true, force: true });
+          } catch (err: any) {
+            logger.error(`[AppUpdate] In-process replacement failed: ${err.message}`);
+          }
+        }, 2000);
+      };
+
+      if (socket) {
+        socket.once("close", doReplace);
+      } else {
+        doReplace();
+      }
+
+      ctx.send("/APP.UPDATE", { ok: true, data: { message: "업데이트 준비 완료. 앱을 재시작합니다." } });
+      logger.info(`[AppUpdate] Plugin update: waiting for client socket to close.`);
+
+    } else {
+      // ─── macOS(플러그인 포함) / Windows 호스트 앱: 외부 스크립트 사용 ───
+      // macOS 는 UTF-8 환경이라 bash 스크립트가 문제없이 동작한다.
+      // Windows 호스트 앱은 서버도 함께 종료되므로 외부 스크립트가 필요하다.
+      if (process.platform === "darwin") {
+        const scriptPath = path.join(tempDir, "apply_update.sh");
+        const script = [
+          "#!/bin/bash",
+          "sleep 2",
+          `rm -rf "${currentAppBundle}"`,
+          `mv "${newAppBundle}" "${currentAppBundle}"`,
+          `open "${currentAppBundle}"`,
+          `rm -rf "${tempDir}"`,
+        ].join("\n");
+        fs.writeFileSync(scriptPath, script, { mode: 0o755 });
+        const child = spawn("bash", [scriptPath], { detached: true, stdio: "ignore" });
+        child.unref();
+      } else if (process.platform === "win32") {
+        const backupPath = `${currentAppBundle}_bak_${Date.now()}`;
+        const ps = (p: string) => p.replace(/'/g, "''");
+        const script = [
+          "Start-Sleep -Seconds 3",
+          `$backup = '${ps(backupPath)}'`,
+          `$current = '${ps(currentAppBundle)}'`,
+          `$newDir = '${ps(newExeDir)}'`,
+          `$target = '${ps(targetExePath)}'`,
+          "if (Test-Path $backup) { Remove-Item -Recurse -Force $backup -ErrorAction SilentlyContinue }",
+          "Rename-Item -Path $current -NewName ([System.IO.Path]::GetFileName($backup)) -ErrorAction SilentlyContinue",
+          "if (Test-Path $current) { Remove-Item -Recurse -Force $current -ErrorAction SilentlyContinue }",
+          "Move-Item -Path $newDir -Destination $current -ErrorAction SilentlyContinue",
+          "if (Test-Path $target) { Start-Process $target }",
+          "if (Test-Path $backup) { Remove-Item -Recurse -Force $backup -ErrorAction SilentlyContinue }",
+          `Remove-Item -Recurse -Force '${ps(tempDir)}' -ErrorAction SilentlyContinue`,
+        ].join("\n");
+        const encoded = Buffer.from(script, "utf16le").toString("base64");
+        const child = spawn(
+          "powershell",
+          ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded],
+          { detached: true, stdio: "ignore" },
+        );
+        child.unref();
+      }
+      ctx.send("/APP.UPDATE", { ok: true, data: { message: "업데이트 준비 완료. 앱을 재시작합니다." } });
+      logger.info(`[AppUpdate] Host update script launched. Waiting for client to close.`);
     }
-
-    // 7. 클라이언트에 완료 알림 → 클라이언트가 exit(0) 호출
-    ctx.send("/APP.UPDATE", { ok: true, data: { message: "업데이트 준비 완료. 앱을 재시작합니다." } });
-    logger.info(`[AppUpdate] Update script launched. Waiting for client to close.`);
 
   } catch (error: any) {
     logger.error(`[AppUpdate] Failed: ${error.message}`);

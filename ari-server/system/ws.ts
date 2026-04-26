@@ -198,6 +198,10 @@ export namespace UserSocketHandler {
     return clients.find((c) => c.appId === appId);
   };
 
+  export const findSocketByUuid = (uuid: string): UserSocket | undefined => {
+    return clients.find((c) => c.uuid === uuid);
+  };
+
   /**
    * 소켓이 살아있는지 판정. OPEN 상태이면서 keep-alive 플래그가 유효해야 함.
    */

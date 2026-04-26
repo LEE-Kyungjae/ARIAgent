@@ -206,7 +206,13 @@ function packagePlaywrightRuntime(standaloneRoot, runtimeOutDir) {
     if (!fs.existsSync(src)) continue;
     const dest = path.join(stagingModules, ...moduleName.split("/"));
     fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.renameSync(src, dest);
+    // Windows에서 rename 이 EPERM(파일 잠금)으로 실패할 수 있으므로 cpSync+rmSync 로 fallback.
+    try {
+      fs.renameSync(src, dest);
+    } catch {
+      fs.cpSync(src, dest, { recursive: true });
+      fs.rmSync(src, { recursive: true, force: true });
+    }
     moved++;
   }
 

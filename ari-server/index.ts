@@ -32,6 +32,9 @@ import {
 } from "./services/tasks/scheduler/runtime.js";
 
 let parentWatchTimer: NodeJS.Timeout | undefined;
+let parentMissCount = 0;
+// 연속 3회 이상 감지 실패해야 종료 — EPERM(권한 차이)나 일시적 오류로 인한 오판 방지.
+const PARENT_MISS_THRESHOLD = 3;
 
 function isProcessAlive(targetPid: number): boolean {
   if (!Number.isFinite(targetPid) || targetPid <= 0) {
@@ -41,7 +44,10 @@ function isProcessAlive(targetPid: number): boolean {
   try {
     process.kill(targetPid, 0);
     return true;
-  } catch {
+  } catch (err: any) {
+    // EPERM = 프로세스는 살아있지만 신호 보낼 권한 없음 (Windows UAC 권한 차이 등).
+    // 이 경우 살아있다고 판단해 서버를 유지한다.
+    if (err.code === "EPERM") return true;
     return false;
   }
 }
@@ -61,11 +67,20 @@ function startParentWatch(): void {
 
   parentWatchTimer = setInterval(() => {
     if (isProcessAlive(parentPid)) {
+      parentMissCount = 0;
+      return;
+    }
+
+    parentMissCount++;
+    if (parentMissCount < PARENT_MISS_THRESHOLD) {
+      logger.warn(
+        `[ParentWatch] Parent process ${parentPid} not detected (${parentMissCount}/${PARENT_MISS_THRESHOLD}). Will confirm before shutting down.`,
+      );
       return;
     }
 
     logger.warn(
-      `[ParentWatch] Parent process ${parentPid} is gone. Shutting down server.`,
+      `[ParentWatch] Parent process ${parentPid} is gone (confirmed ${PARENT_MISS_THRESHOLD}x). Shutting down server.`,
     );
     stopWatchingParent();
     process.exit(0);
