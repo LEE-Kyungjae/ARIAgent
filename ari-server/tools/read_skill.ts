@@ -44,7 +44,7 @@ export const readSkillTool: AgentTool = {
             skill.tools.length > 0
               ? `이 스킬에서 사용할 수 있는 도구: ${skill.tools.join(", ")}`
               : null,
-            "같은 요청에서는 이 스킬을 다시 읽지 말고, 아래 지침에 따라 바로 도구를 사용하세요.",
+            "참고: 같은 요청에서는 보통 이 내용을 그대로 참조하면 됩니다. 갱신 여부 확인이 필요한 경우에만 다시 호출하세요.",
             "",
             skill.content,
           ]
