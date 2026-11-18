@@ -42,7 +42,7 @@ class AppearanceSettings extends StatelessWidget {
                         ),
                       ),
                       value: configProvider.isPinned,
-                      activeColor: const Color(0xFF6C63FF),
+                      activeThumbColor: const Color(0xFF6C63FF),
                       onChanged: (val) async {
                         await configProvider.updateIsPinned(val);
                         await windowManager.setAlwaysOnTop(val);
@@ -73,7 +73,7 @@ class AppearanceSettings extends StatelessWidget {
                         ),
                       ),
                       value: configProvider.isSpaceUnified,
-                      activeColor: const Color(0xFF6C63FF),
+                      activeThumbColor: const Color(0xFF6C63FF),
                       onChanged: (val) =>
                           configProvider.updateIsSpaceUnified(val),
                     ),
