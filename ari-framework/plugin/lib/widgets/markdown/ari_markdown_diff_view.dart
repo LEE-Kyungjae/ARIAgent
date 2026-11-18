@@ -110,7 +110,7 @@ class AriMarkdownDiffView extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: theme.primaryColor.withOpacity(0.1),
+            color: theme.primaryColor.withValues(alpha: 0.1),
             borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
           ),
           child: Row(
@@ -129,7 +129,7 @@ class AriMarkdownDiffView extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(24), bottomRight: Radius.circular(24)),
-            border: Border.all(color: theme.primaryColor.withOpacity(0.2)),
+            border: Border.all(color: theme.primaryColor.withValues(alpha: 0.2)),
           ),
           child: Column(
             children: List.generate(diffBlocks.length, (idx) {
@@ -209,7 +209,7 @@ class _DiffBlockWidget extends StatelessWidget {
         : (block.type == _BlockType.removed ? labelRemovedText : labelModifiedText);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(color: accent.withOpacity(0.04), borderRadius: BorderRadius.circular(16), border: Border.all(color: accent.withOpacity(0.1))),
+      decoration: BoxDecoration(color: accent.withValues(alpha: 0.04), borderRadius: BorderRadius.circular(16), border: Border.all(color: accent.withValues(alpha: 0.1))),
       child: Stack(
         children: [
           Padding(
@@ -269,7 +269,7 @@ class _ContentBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity, padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: color.withOpacity(0.1)), boxShadow: isElevated ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))] : null),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: color.withValues(alpha: 0.1)), boxShadow: isElevated ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))] : null),
       child: MarkdownBody(data: content, styleSheet: MarkdownStyleSheet(p: TextStyle(fontSize: 13, height: 1.5, color: color, decoration: isStrike ? TextDecoration.lineThrough : null))),
     );
   }
@@ -280,6 +280,6 @@ class _MiniButton extends StatelessWidget {
   final IconData icon; final Color color; final VoidCallback onTap;
   @override
   Widget build(BuildContext context) {
-    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(12), child: Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: color.withOpacity(0.3)), color: Colors.white), child: Icon(icon, size: 14, color: color)));
+    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(12), child: Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: color.withValues(alpha: 0.3)), color: Colors.white), child: Icon(icon, size: 14, color: color)));
   }
 }

@@ -242,7 +242,7 @@ class _ServerSettingsState extends State<ServerSettings> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF6C63FF).withOpacity(_isSaving ? 0.3 : 1.0),
+          color: const Color(0xFF6C63FF).withValues(alpha: _isSaving ? 0.3 : 1.0),
           borderRadius: BorderRadius.circular(8),
         ),
         child: _isSaving

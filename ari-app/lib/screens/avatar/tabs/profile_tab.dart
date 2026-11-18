@@ -137,12 +137,12 @@ class _ProfileTabState extends State<ProfileTab> {
             style: const TextStyle(color: Colors.white, fontSize: 16),
             decoration: InputDecoration(
               labelText: 'Avatar Name',
-              labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+              labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
               filled: true,
               fillColor: const Color(0xFF1A1A2E),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -160,14 +160,14 @@ class _ProfileTabState extends State<ProfileTab> {
             style: const TextStyle(color: Colors.white, fontSize: 13),
             decoration: InputDecoration(
               labelText: 'Persona / System Prompt',
-              labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+              labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
               hintText: S.of(context).profileSystemPromptHint,
-              hintStyle: TextStyle(color: Colors.white.withOpacity(0.2)),
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.2)),
               filled: true,
               fillColor: const Color(0xFF1A1A2E),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),

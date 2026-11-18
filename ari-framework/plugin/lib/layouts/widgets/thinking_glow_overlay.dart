@@ -63,7 +63,7 @@ class _ThinkingGlowOverlayState extends State<ThinkingGlowOverlay>
         animation: _animation,
         builder: (context, child) {
           final opacity = _animation.value * 0.4;
-          final glowColor = widget.color.withOpacity(opacity);
+          final glowColor = widget.color.withValues(alpha: opacity);
 
           return CustomPaint(
             size: Size.infinite,
@@ -89,7 +89,7 @@ class _InnerGlowPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (glowColor.opacity <= 0) return;
+    if (glowColor.a <= 0) return;
 
     final outerRect = Offset.zero & size;
     final innerRect = outerRect.deflate(thickness);

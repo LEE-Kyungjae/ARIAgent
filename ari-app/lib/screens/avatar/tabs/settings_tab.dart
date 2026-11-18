@@ -236,7 +236,7 @@ class _SettingsTabContent extends StatelessWidget {
             color: const Color(0xFF1A1A2E),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: color.withOpacity(isDisabled ? 0.05 : 0.2),
+              color: color.withValues(alpha: isDisabled ? 0.05 : 0.2),
             ),
           ),
           child: Row(
@@ -245,7 +245,7 @@ class _SettingsTabContent extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: color, size: 20),
@@ -267,7 +267,7 @@ class _SettingsTabContent extends StatelessWidget {
                     Text(
                       description,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.4),
+                        color: Colors.white.withValues(alpha: 0.4),
                         fontSize: 11,
                         height: 1.5,
                       ),
@@ -278,7 +278,7 @@ class _SettingsTabContent extends StatelessWidget {
               if (!isDisabled)
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                 ),
             ],
           ),
