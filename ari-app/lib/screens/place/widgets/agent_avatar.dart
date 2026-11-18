@@ -25,7 +25,7 @@ class AgentAvatar extends StatelessWidget {
             border: Border.all(color: const Color(0xFF6C63FF), width: 3),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withValues(alpha: 0.5),
                 blurRadius: 10,
                 offset: const Offset(0, 5),
               ),
@@ -41,7 +41,7 @@ class AgentAvatar extends StatelessWidget {
             color: const Color(0xCC13132B),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: const Color(0xFF6C63FF).withOpacity(0.35),
+              color: const Color(0xFF6C63FF).withValues(alpha: 0.35),
             ),
           ),
           child: Column(
@@ -65,7 +65,7 @@ class AgentAvatar extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.68),
+                  color: Colors.white.withValues(alpha: 0.68),
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
                 ),

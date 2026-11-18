@@ -82,7 +82,7 @@ class _HARegistrationSheetState extends State<HARegistrationSheet> {
                           borderRadius: BorderRadius.circular(18),
                           boxShadow: [
                             BoxShadow(
-                              color: primaryColor.withOpacity(0.3),
+                              color: primaryColor.withValues(alpha: 0.3),
                               blurRadius: 12,
                               offset: const Offset(0, 6),
                             ),
@@ -155,7 +155,7 @@ class _HARegistrationSheetState extends State<HARegistrationSheet> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: accentColor.withOpacity(0.3),
+                          color: accentColor.withValues(alpha: 0.3),
                           blurRadius: 15,
                           offset: const Offset(0, 8),
                         ),
@@ -247,9 +247,9 @@ class _HARegistrationSheetState extends State<HARegistrationSheet> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.05),
+          color: color.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.1)),
+          border: Border.all(color: color.withValues(alpha: 0.1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,7 +258,7 @@ class _HARegistrationSheetState extends State<HARegistrationSheet> {
             const SizedBox(height: 12),
             Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color)),
             const SizedBox(height: 2),
-            Text(subtitle, style: TextStyle(fontSize: 11, color: color.withOpacity(0.6))),
+            Text(subtitle, style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.6))),
           ],
         ),
       ),
@@ -287,7 +287,7 @@ class _HARegistrationSheetState extends State<HARegistrationSheet> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
           ),
           child: TextField(
             controller: controller,
@@ -296,7 +296,7 @@ class _HARegistrationSheetState extends State<HARegistrationSheet> {
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(color: Colors.blueGrey[200], fontSize: 14),
-              prefixIcon: Icon(icon, color: const Color(0xFF03A9F4).withOpacity(0.6), size: 20),
+              prefixIcon: Icon(icon, color: const Color(0xFF03A9F4).withValues(alpha: 0.6), size: 20),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
             ),
