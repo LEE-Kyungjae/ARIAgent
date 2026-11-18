@@ -214,7 +214,7 @@ class _AriUpdateBannerState extends State<AriUpdateBanner> {
           color: effectiveBackgroundColor,
           border: Border(
             bottom: BorderSide(
-              color: effectiveAccentColor.withOpacity(0.1),
+              color: effectiveAccentColor.withValues(alpha: 0.1),
               width: 1,
             ),
           ),
@@ -235,7 +235,7 @@ class _AriUpdateBannerState extends State<AriUpdateBanner> {
                   Text(
                     widget.newVersionTextBuilder(info.latestVersion),
                     style: defaultTextStyle.copyWith(
-                      color: Colors.white.withOpacity(0.92),
+                      color: Colors.white.withValues(alpha: 0.92),
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.2,
@@ -247,7 +247,7 @@ class _AriUpdateBannerState extends State<AriUpdateBanner> {
                       child: Text(
                         widget.mandatoryNoteText,
                         style: defaultTextStyle.copyWith(
-                          color: effectiveAccentColor.withOpacity(0.8),
+                          color: effectiveAccentColor.withValues(alpha: 0.8),
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
                         ),
