@@ -115,7 +115,7 @@ class _SettingsCategoryList extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         ),
         child: ListTile(
           leading: Icon(icon, color: const Color(0xFF6C63FF)),
@@ -129,7 +129,7 @@ class _SettingsCategoryList extends StatelessWidget {
           subtitle: Text(
             subtitle,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
               fontSize: 12,
             ),
           ),

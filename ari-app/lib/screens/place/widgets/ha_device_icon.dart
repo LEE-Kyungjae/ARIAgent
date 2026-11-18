@@ -62,16 +62,16 @@ class HADeviceIcon extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: (isOn ? color : Colors.grey).withOpacity(0.2),
+              color: (isOn ? color : Colors.grey).withValues(alpha: 0.2),
               shape: BoxShape.circle,
               border: Border.all(
-                color: (isOn ? color : Colors.grey).withOpacity(0.6),
+                color: (isOn ? color : Colors.grey).withValues(alpha: 0.6),
                 width: 2,
               ),
               boxShadow: isOn
                   ? [
                       BoxShadow(
-                        color: color.withOpacity(0.4),
+                        color: color.withValues(alpha: 0.4),
                         blurRadius: 8,
                         spreadRadius: 1,
                       )
@@ -88,7 +88,7 @@ class HADeviceIcon extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
